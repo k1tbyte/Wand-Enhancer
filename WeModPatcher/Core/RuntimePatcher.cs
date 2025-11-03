@@ -137,7 +137,7 @@ namespace WeModPatcher.Core
                 new StaticPatcher(latestPath, logger, config).Patch();
             }
             
-            new RuntimePatcher(Path.Combine(latestPath, "WeMod.exe"))
+            new RuntimePatcher(Path.Combine(latestPath, Constants.WeModExeName))
                 .StartProcess();
         }
         
@@ -145,7 +145,7 @@ namespace WeModPatcher.Core
         
         public static void KillWeMod()
         {
-            Process[] processes = Process.GetProcessesByName("WeMod");
+            Process[] processes = Process.GetProcessesByName(Constants.WeModBrandName);
             for (int i = 0; processes.Length > i || i < 5; i++)
             {
                 foreach (var process in processes)
@@ -160,7 +160,7 @@ namespace WeModPatcher.Core
                     }
                 }
                 
-                processes = Process.GetProcessesByName("WeMod");
+                processes = Process.GetProcessesByName(Constants.WeModBrandName);
                 Thread.Sleep(250);
             }
             

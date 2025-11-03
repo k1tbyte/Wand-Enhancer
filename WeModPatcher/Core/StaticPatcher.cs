@@ -64,7 +64,7 @@ namespace WeModPatcher.Core
             _asarPath = Path.Combine(weModRootFolder, "resources", "app.asar");
             _unpackedPath = Path.Combine(weModRootFolder, "resources", "app.asar.unpacked");
             _backupPath = Path.Combine(weModRootFolder, "resources", "app.asar.backup");
-            _exePath = Path.Combine(_weModRootFolder, "WeMod.exe");
+            _exePath = Path.Combine(_weModRootFolder, Constants.WeModExeName);
         }
         
         private static string GetFetchFieldName(string targetFunction)
@@ -161,7 +161,7 @@ namespace WeModPatcher.Core
                 CheckPathExists = true,
                 AddExtension = true,
                 SupportMultiDottedExtensions = false,
-                FileName = "WeMod",
+                FileName = Constants.WeModBrandName,
             };
             
             if(fileDialog.ShowDialog() != DialogResult.OK)

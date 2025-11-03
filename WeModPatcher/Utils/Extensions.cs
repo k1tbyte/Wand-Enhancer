@@ -11,7 +11,7 @@ namespace WeModPatcher.Utils
         {
             try
             {
-                return File.Exists(Path.Combine(root, "WeMod.exe")) && 
+                return File.Exists(Path.Combine(root, Constants.WeModExeName)) && 
                        File.Exists(Path.Combine(root, "resources", "app.asar"));
             }
             catch
@@ -23,15 +23,17 @@ namespace WeModPatcher.Utils
         public static string FindWeModDirectory()
         {
             string localAppDataPath = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-
-            string defaultDir = Path.Combine(localAppDataPath ?? "", "WeMod");
             
-            if (!Directory.Exists(defaultDir))
+            foreach (var folder in Constants.WeModRootFolders)
             {
-                return null;
+                var weModDir = Path.Combine(localAppDataPath ?? "", folder);
+                if(Directory.Exists(weModDir))
+                {
+                    return FindLatestWeMod(weModDir);
+                }
             }
-            
-            return FindLatestWeMod(defaultDir);
+
+            return null;
         }
         
         public static string Base64Decode(string base64EncodedData) 

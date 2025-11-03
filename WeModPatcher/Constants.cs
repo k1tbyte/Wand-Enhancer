@@ -10,6 +10,9 @@ namespace WeModPatcher
         public const string Owner = "k1tbyte";
         public static readonly string RepositoryUrl = $"https://github.com/{Owner}/{RepoName}";
         public static readonly Version Version;
+        public static readonly string WeModBrandName = "Wand";
+        public static readonly string WeModExeName = "Wand.exe";
+        public static readonly string[] WeModRootFolders = { "WeMod", "Wand" };
 
         // cmp     dword ptr [rdx], 0
         // jnz     loc_XXXXXXXX 

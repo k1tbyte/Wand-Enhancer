@@ -119,7 +119,7 @@ namespace WeModPatcher.View.MainWindow
                 // This shit doesn't look at the hash and verify() always returns true 
                 //using X509Certificate2 cert = new X509Certificate2(X509Certificate.CreateFromSignedFile(filePath));
                 
-                var restoreExeResult = MemoryUtils.PatchFile( Path.Combine( WeModPath, "WeMod.exe"),
+                var restoreExeResult = MemoryUtils.PatchFile( Path.Combine( WeModPath, Constants.WeModExeName),
                     Constants.ExePatchSignature, Constants.ExePatchSignature.OriginalBytes);
                 if (restoreExeResult == -1)
                 {
@@ -129,7 +129,7 @@ namespace WeModPatcher.View.MainWindow
                 {
                     Log(restoreExeResult == 0 ?
                         "Signature exe is original, does not require restoration"
-                        : "WeMod.exe restored successfully", ELogType.Success);
+                        : $"{Constants.WeModExeName} restored successfully", ELogType.Success);
                 }
             }
             catch
