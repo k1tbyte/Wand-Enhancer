@@ -90,7 +90,7 @@
                 <Grid Margin="10" Cursor="Hand" Background="Transparent">
                     <TextBox Style="{StaticResource TitledTextBox}"
                              Uid="Folder path"  IsReadOnly="True"
-                             Text="{Binding WeModPath}"
+                             Text="{Binding WeModInfo.RootDirectory, Mode=OneWay}"
                              VerticalAlignment="Center" Tag="Folder not found">
                     </TextBox>
                     <Grid.InputBindings>

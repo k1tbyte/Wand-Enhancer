@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Windows.Threading;
-using AsarSharp;
 using WeModPatcher.Core;
 using WeModPatcher.Models;
 using WeModPatcher.ReactiveUICore;
@@ -24,18 +19,18 @@ namespace WeModPatcher.View.MainWindow
         public ObservableCollection<LogEntry> LogList { get; set; } = new ObservableCollection<LogEntry>();
         private static Updater _updater = new Updater();
         
-        private string _weModPath;
+        private WeModConfig _weModConfig;
         
-        public string WeModPath
+        public WeModConfig WeModInfo
         {
-            get => _weModPath;
+            get => _weModConfig;
             set
             {
-                SetProperty(ref _weModPath, value);
+                SetProperty(ref _weModConfig, value);
                 if (value == null) return;
                 
-                Log($"WeMod directory found at '{_weModPath}'", ELogType.Success);
-                if (File.Exists(Path.Combine(_weModPath, "resources", "app.asar.backup")))
+                Log($"WeMod directory found at '{_weModConfig}' ({_weModConfig.ExecutableName})", ELogType.Success);
+                if (File.Exists(Path.Combine(_weModConfig.RootDirectory, "resources", "app.asar.backup")))
                 {
                     Log("WeMod already patched. If you want to patch again, please restore the backup first.", ELogType.Warn);
                     IsPatchEnabled = false;
@@ -85,10 +80,12 @@ namespace WeModPatcher.View.MainWindow
                 if (dialog.ShowDialog() != DialogResult.OK) return;
                 string selectedPath = dialog.SelectedPath;
                 string fileName = Path.GetFileName(selectedPath);
+                
+                var info = Extensions.CheckWeModPath(selectedPath);
 
-                if (Extensions.CheckWeModPath(selectedPath))
+                if (info != null)
                 {
-                    WeModPath = selectedPath;
+                    WeModInfo = info;
                     return;
                 }
 
@@ -103,7 +100,7 @@ namespace WeModPatcher.View.MainWindow
         private void OnBackupRestoring(object param)
         {
             
-            var backupPath = Path.Combine(WeModPath, "resources", "app.asar.backup");
+            var backupPath = Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar.backup");
             if (!File.Exists(backupPath))
             {
                 Log("Backup not found. Please dont delete it manually", ELogType.Error);
@@ -119,8 +116,11 @@ namespace WeModPatcher.View.MainWindow
                 // This shit doesn't look at the hash and verify() always returns true 
                 //using X509Certificate2 cert = new X509Certificate2(X509Certificate.CreateFromSignedFile(filePath));
                 
-                var restoreExeResult = MemoryUtils.PatchFile( Path.Combine( WeModPath, Constants.WeModExeName),
-                    Constants.ExePatchSignature, Constants.ExePatchSignature.OriginalBytes);
+                var restoreExeResult = MemoryUtils.PatchFile(
+                    WeModInfo.ExecutablePath,
+                    Constants.ExePatchSignature, 
+                    Constants.ExePatchSignature.OriginalBytes
+                );
                 if (restoreExeResult == -1)
                 {
                     Log("Failed to restore the backup. Please close the WeMod and try again.", ELogType.Error);
@@ -129,7 +129,7 @@ namespace WeModPatcher.View.MainWindow
                 {
                     Log(restoreExeResult == 0 ?
                         "Signature exe is original, does not require restoration"
-                        : $"{Constants.WeModExeName} restored successfully", ELogType.Success);
+                        : $"{WeModInfo.ExecutableName} restored successfully", ELogType.Success);
                 }
             }
             catch
@@ -138,7 +138,7 @@ namespace WeModPatcher.View.MainWindow
                 return;
             }
             
-            File.Copy(backupPath, Path.Combine(WeModPath, "resources", "app.asar"), true);
+            File.Copy(backupPath, Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar"), true);
             File.Delete(backupPath);
             Log("Backup restored successfully.", ELogType.Success);
             AlreadyPatched = false;
@@ -147,7 +147,7 @@ namespace WeModPatcher.View.MainWindow
 
         private void OnPatching(object param)
         {
-            if (WeModPath == null)
+            if (WeModInfo == null)
             {
                 Log("Can't be done. Please specify the directory first.", ELogType.Warn);
                 return;
@@ -161,7 +161,7 @@ namespace WeModPatcher.View.MainWindow
                 {
                     try
                     {
-                        new StaticPatcher(WeModPath, Log, config).Patch();
+                        new StaticPatcher(WeModInfo, Log, config).Patch();
                         AlreadyPatched = true;
                     }
                     catch (Exception e)
@@ -217,8 +217,8 @@ namespace WeModPatcher.View.MainWindow
             RestoreBackupCommand = new RelayCommand(OnBackupRestoring);
             UpdateCommand = new AsyncRelayCommand(OnUpdate);
             
-            WeModPath = Extensions.FindWeModDirectory();
-            if (WeModPath == null)
+            WeModInfo = Extensions.FindWeMod();
+            if (WeModInfo == null)
             {
                 Log("WeMod directory not found.", ELogType.Error);
             }

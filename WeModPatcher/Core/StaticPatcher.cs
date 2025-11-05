@@ -46,25 +46,23 @@ namespace WeModPatcher.Core
             }
         };
         
-        private readonly string _weModRootFolder;
+        private readonly WeModConfig _weModConfig;
         private readonly Action<string, ELogType> _logger;
         private readonly PatchConfig _config;
         private readonly string _asarPath;
         private readonly string _backupPath;
         private readonly string _unpackedPath;
         private int _sumOfPatches = 0;
-        private readonly string _exePath;
 
-        public StaticPatcher(string weModRootFolder, Action<string, ELogType> logger, PatchConfig config)
+        public StaticPatcher(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
         {
-            _weModRootFolder = weModRootFolder;
+            _weModConfig = weModConfig;
             _logger = logger;
             _config = config;
 
-            _asarPath = Path.Combine(weModRootFolder, "resources", "app.asar");
-            _unpackedPath = Path.Combine(weModRootFolder, "resources", "app.asar.unpacked");
-            _backupPath = Path.Combine(weModRootFolder, "resources", "app.asar.backup");
-            _exePath = Path.Combine(_weModRootFolder, Constants.WeModExeName);
+            _asarPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar");
+            _unpackedPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar.unpacked");
+            _backupPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar.backup");
         }
         
         private static string GetFetchFieldName(string targetFunction)
@@ -143,7 +141,11 @@ namespace WeModPatcher.Core
         private void PatchPe()
         {
             _logger("[PATCHER] Patching PE...", ELogType.Info);
-            var patchResult = MemoryUtils.PatchFile(_exePath,Constants.ExePatchSignature, Constants.ExePatchSignature.PatchBytes);
+            var patchResult = MemoryUtils.PatchFile(
+                _weModConfig.ExecutablePath, 
+                Constants.ExePatchSignature, 
+                Constants.ExePatchSignature.PatchBytes
+            );
             if(patchResult == -1)
             {
                 _logger("[PATCHER] Failed to patch PE", ELogType.Error);
@@ -161,24 +163,29 @@ namespace WeModPatcher.Core
                 CheckPathExists = true,
                 AddExtension = true,
                 SupportMultiDottedExtensions = false,
-                FileName = Constants.WeModBrandName,
+                FileName = _weModConfig.BrandName,
             };
             
             if(fileDialog.ShowDialog() != DialogResult.OK)
             {
                 return;
             }
-
-            _config.Path = _weModRootFolder;
-
-            var json = JsonConvert.SerializeObject(_config, Formatting.None);
+            
+            _config.Path = _weModConfig.RootDirectory;
+            var json = JsonConvert.SerializeObject(_config, new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                DefaultValueHandling = DefaultValueHandling.Ignore,
+                Formatting = Formatting.None
+            });
+            
             Utils.Win32.Shortcut.CreateShortcut(
                 fileName: fileDialog.FileName + ".lnk",
                 targetPath: Assembly.GetExecutingAssembly().Location,
                 arguments: Extensions.Base64Encode(json),
-                workingDirectory:  Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                workingDirectory:  Common.GetCurrentDir(),
                 description: null,
-                iconPath: _exePath
+                iconPath: _weModConfig.ExecutablePath
             );
             
             _logger("[PATCHER] The shortcut has been created, now you should only run WeMod through this shortcut", ELogType.Success);
@@ -186,7 +193,7 @@ namespace WeModPatcher.Core
         
         public void Patch()
         {
-            RuntimePatcher.KillWeMod();
+            Common.TryKillProcess(_weModConfig.BrandName);
             if (!File.Exists(_backupPath))
             {
                 _logger("[PATCHER] Creating backup...", ELogType.Info);

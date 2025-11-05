@@ -67,12 +67,14 @@
         <Compile Include="Converters\ToVisibilityConverter.cs" />
         <Compile Include="Core\RuntimePatcher.cs" />
         <Compile Include="Core\StaticPatcher.cs" />
+        <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Models\Signature.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="ReactiveUICore\AsyncRelayCommand.cs" />
         <Compile Include="ReactiveUICore\ObservableObject.cs" />
         <Compile Include="ReactiveUICore\RelayCommand.cs" />
+        <Compile Include="Utils\Common.cs" />
         <Compile Include="Utils\Extensions.cs" />
         <Compile Include="Utils\MemoryUtils.cs" />
         <Compile Include="Utils\Updater.cs" />

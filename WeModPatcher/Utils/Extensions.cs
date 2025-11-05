@@ -2,29 +2,45 @@
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using WeModPatcher.Models;
 
 namespace WeModPatcher.Utils
 {
     public static class Extensions
     {
-        public static bool CheckWeModPath(string root)
+        public static WeModConfig CheckWeModPath(string versionRoot)
         {
             try
             {
-                return File.Exists(Path.Combine(root, Constants.WeModExeName)) && 
-                       File.Exists(Path.Combine(root, "resources", "app.asar"));
+                
+                foreach (var name in Constants.WeModBrandNames)
+                {
+                    var exeName = $"{name}.exe";
+                    var path = Path.Combine(versionRoot, exeName);
+                    if (File.Exists(path) && File.Exists(Path.Combine(versionRoot, "resources", "app.asar")))
+                    {
+                        return new WeModConfig
+                        {
+                            BrandName = name,
+                            ExecutableName = exeName,
+                            RootDirectory = versionRoot
+                        };
+                    }
+                }
             }
             catch
             {
-                return false;
+                // ignored
             }
+
+            return null;
         }
         
-        public static string FindWeModDirectory()
+        public static WeModConfig FindWeMod()
         {
             string localAppDataPath = Environment.GetEnvironmentVariable("LOCALAPPDATA");
             
-            foreach (var folder in Constants.WeModRootFolders)
+            foreach (var folder in Constants.WeModBrandNames)
             {
                 var weModDir = Path.Combine(localAppDataPath ?? "", folder);
                 if(Directory.Exists(weModDir))
@@ -48,7 +64,7 @@ namespace WeModPatcher.Utils
             return System.Convert.ToBase64String(plainTextBytes);
         }
 
-        public static string FindLatestWeMod(string root)
+        public static WeModConfig FindLatestWeMod(string root)
         {
             var appFolders = Directory.EnumerateDirectories(root)
                 .Select(folderPath => new DirectoryInfo(folderPath))
@@ -61,13 +77,11 @@ namespace WeModPatcher.Utils
                 })
                 .OrderByDescending(item => item.LastModified)
                 .ToList();
+            
 
-            return (
-                from folder 
-                    in appFolders 
-                where CheckWeModPath(folder.Path) 
-                select folder.Path
-            ).FirstOrDefault();
+            return appFolders
+                .Select(folder => CheckWeModPath(folder.Path))
+                .FirstOrDefault(config => config != null);
         }
     }
 }

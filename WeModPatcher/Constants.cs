@@ -8,11 +8,10 @@ namespace WeModPatcher
     {
         public const string RepoName = "Wemod-Patcher";
         public const string Owner = "k1tbyte";
+        /*public const string PatchRegistryName = "patchRegistry.json";*/
         public static readonly string RepositoryUrl = $"https://github.com/{Owner}/{RepoName}";
         public static readonly Version Version;
-        public static readonly string WeModBrandName = "Wand";
-        public static readonly string WeModExeName = "Wand.exe";
-        public static readonly string[] WeModRootFolders = { "WeMod", "Wand" };
+        public static readonly string[] WeModBrandNames = { "Wand", "WeMod" };
 
         // cmp     dword ptr [rdx], 0
         // jnz     loc_XXXXXXXX 

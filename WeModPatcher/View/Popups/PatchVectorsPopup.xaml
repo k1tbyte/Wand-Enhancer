@@ -23,6 +23,7 @@
                 <RowDefinition Height="27"/>
                 <RowDefinition Height="27"/>
                 <RowDefinition Height="27"/>
+                <RowDefinition Height="37"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
@@ -34,8 +35,15 @@
         
             <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Disable updates"/>
             <CheckBox Grid.Row="2" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            
+            <TextBlock  ToolTip="Disable if you want to use older versions separately and manage versions manually via different shortcuts" 
+                        ToolTipService.InitialShowDelay="300"
+                        Grid.Row="3" VerticalAlignment="Center">
+                Apply the patch to new versions <LineBreak/>  automatically (hover to see more)
+            </TextBlock>
+            <CheckBox Grid.Row="3" x:Name="AutoUpdates" HorizontalAlignment="Right" VerticalAlignment="Center" IsChecked="True"/>
         
-            <Button Grid.Row="3" Padding="0 5 0 5" Margin="0 15 0 0" Content="Continue"
+            <Button Grid.Row="4" Padding="0 5 0 5" Margin="0 15 0 0" Content="Continue"
                     Click="NextClicked"/>
         </Grid>
         

@@ -57,7 +57,8 @@ namespace WeModPatcher.View.Popups
             _onApply(new PatchConfig
             {
                 PatchTypes = result,
-                PatchMethod = method
+                PatchMethod = method,
+                AutoApplyPatches = AutoUpdates.IsChecked == true
             });
         }
 

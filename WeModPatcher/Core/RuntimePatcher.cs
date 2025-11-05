@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using WeModPatcher.Models;
 using WeModPatcher.Utils;
 using WeModPatcher.Utils.Win32;
@@ -15,24 +13,24 @@ namespace WeModPatcher.Core
 
     public class RuntimePatcher
     {
-        private readonly string _exePath;
+        private readonly WeModConfig _config;
 
-        public RuntimePatcher(string exePath)
+        public RuntimePatcher(WeModConfig config)
         {
-            _exePath = exePath;
+            _config = config;
         }
         
         
         public void StartProcess()
         {
-            if(string.IsNullOrEmpty(_exePath))
+            if(string.IsNullOrEmpty(_config?.ExecutablePath))
             {
                 throw new Exception("Path is not specified");
             }
             
-            KillWeMod();
+            Common.TryKillProcess(_config.BrandName);
             var startupInfo = new Imports.StartupInfo { cb = Marshal.SizeOf(typeof(Imports.StartupInfo)) };
-            if(!Imports.CreateProcessA(_exePath, 
+            if(!Imports.CreateProcessA(_config.ExecutablePath, 
                    null, 
                    IntPtr.Zero, 
                    IntPtr.Zero, 
@@ -118,56 +116,29 @@ namespace WeModPatcher.Core
                 
         public static void Patch(PatchConfig config, Action<string, ELogType> logger)
         {
-            if (config.Path == null)
+            if (config.AppProps == null)
             {
                 throw new Exception("Path is not specified");
             }
             
-            var parent = Directory.GetParent(config.Path)?.FullName ?? config.Path;
-            var latestPath = Extensions.FindLatestWeMod(parent) ?? config.Path;
+            var parent = Directory.GetParent(config.AppProps.RootDirectory)?.FullName ?? config.AppProps.RootDirectory;
+            var latestWeModConfig = config.AutoApplyPatches ? Extensions.FindLatestWeMod(parent) ?? config.AppProps : config.AppProps;
 
-            if (!Extensions.CheckWeModPath(latestPath))
+            if (Extensions.CheckWeModPath(latestWeModConfig.RootDirectory) == null)
             {
                 throw new Exception("Invalid WeMod path");
             }
             
-            if(!File.Exists(Path.Combine(latestPath, "resources", "app.asar.backup")))
+            if(!File.Exists(Path.Combine(latestWeModConfig.RootDirectory, "resources", "app.asar.backup")))
             {
                 config.PatchMethod = EPatchProcessMethod.None;
-                new StaticPatcher(latestPath, logger, config).Patch();
+                new StaticPatcher(latestWeModConfig, logger, config).Patch();
             }
             
-            new RuntimePatcher(Path.Combine(latestPath, Constants.WeModExeName))
+            new RuntimePatcher(latestWeModConfig)
                 .StartProcess();
         }
         
         
-        
-        public static void KillWeMod()
-        {
-            Process[] processes = Process.GetProcessesByName(Constants.WeModBrandName);
-            for (int i = 0; processes.Length > i || i < 5; i++)
-            {
-                foreach (var process in processes)
-                {
-                    try
-                    {
-                        process.Kill();
-                    }
-                    catch
-                    {
-                        // ignored
-                    }
-                }
-                
-                processes = Process.GetProcessesByName(Constants.WeModBrandName);
-                Thread.Sleep(250);
-            }
-            
-            if (processes.Length > 0)
-            {
-                throw new Exception("Failed to kill WeMod");
-            }
-        }
     }
 }
