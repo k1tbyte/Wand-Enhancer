@@ -1,0 +1,78 @@
+# Build directories
+/build/
+/build-debug/
+/build-release/
+/out/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+install_manifest.txt
+
+# Compiled binaries
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# Debug files
+*.pch
+*.pdb
+*.mod
+*.map
+
+# Generated configuration headers
+config.h
+config.hpp
+
+# Logs
+*.log
+
+# IDE files
+# VS Code
+.vscode/
+*.code-workspace
+
+# CLion
+.idea/
+
+# Visual Studio
+*.user
+*.suo
+*.vcxproj.user
+*.vcxproj.*
+*.sln
+
+# Xcode
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcworkspace/
+xcuserdata/
+
+# OS junk
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Backup files
+*~
+*.swp
+*.tmp
