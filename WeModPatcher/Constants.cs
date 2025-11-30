@@ -12,16 +12,18 @@ namespace WeModPatcher
         public static readonly string RepositoryUrl = $"https://github.com/{Owner}/{RepoName}";
         public static readonly Version Version;
         public static readonly string[] WeModBrandNames = { "Wand", "WeMod" };
+        
+        public const string ProxyDllResouceName = "proxydll";
 
         // cmp     dword ptr [rdx], 0
         // jnz     loc_XXXXXXXX 
         // mov     rsi, rdx
-        public static Signature ExePatchSignature = new Signature(
+        /*public static Signature ExePatchSignature = new Signature(
             "83 3A 00 0F ?? ?? 01 00 00 48 89 D6 48 B8",
             4,
             new byte[]{ 0x84, 0x17 },
             new byte[]{ 0x85, 0x22 }
-        );
+        );*/
         
         /*// ...
         // test eax, eax (0x85 for	r/m16/32/64)

@@ -39,6 +39,9 @@
     </PropertyGroup>
     <PropertyGroup>
         <StartupObject>WeModPatcher.Program</StartupObject>
+        <CMakeSourceDir>..\tools\asar-fuses-bypass</CMakeSourceDir>
+        <CMakeBuildDir>$(CMakeSourceDir)\cmake-build-release</CMakeBuildDir>
+        <ProxyDllPath>$(CMakeBuildDir)\version.dll</ProxyDllPath>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -65,8 +68,7 @@
         <Compile Include="Constants.cs" />
         <Compile Include="Converters\BaseBooleanConverter.cs" />
         <Compile Include="Converters\ToVisibilityConverter.cs" />
-        <Compile Include="Core\RuntimePatcher.cs" />
-        <Compile Include="Core\StaticPatcher.cs" />
+        <Compile Include="Core\Patcher.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Models\Signature.cs" />
@@ -76,9 +78,7 @@
         <Compile Include="ReactiveUICore\RelayCommand.cs" />
         <Compile Include="Utils\Common.cs" />
         <Compile Include="Utils\Extensions.cs" />
-        <Compile Include="Utils\MemoryUtils.cs" />
         <Compile Include="Utils\Updater.cs" />
-        <Compile Include="Utils\Win32\Imports.cs" />
         <Compile Include="Utils\Win32\Shortcut.cs" />
         <Compile Include="View\Controls\InfoItem.xaml.cs">
           <DependentUpon>InfoItem.xaml</DependentUpon>
@@ -94,6 +94,9 @@
             <DependentUpon>App.xaml</DependentUpon>
             <SubType>Code</SubType>
         </Compile>
+        <Compile Include="View\Popups\UpdatePopup.xaml.cs">
+          <DependentUpon>UpdatePopup.xaml</DependentUpon>
+        </Compile>
         <Page Include="Style\ColorScheme.xaml" />
         <Page Include="Style\Icons.xaml" />
         <Page Include="Style\Styles.xaml" />
@@ -101,6 +104,7 @@
         <Page Include="View\Controls\PopupHost.xaml" />
         <Page Include="View\MainWindow\MainWindow.xaml" />
         <Page Include="View\Popups\PatchVectorsPopup.xaml" />
+        <Page Include="View\Popups\UpdatePopup.xaml" />
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Properties\AssemblyInfo.cs">
@@ -131,13 +135,27 @@
         <Project>{beaa604a-402a-4387-8903-a53fc913a26e}</Project>
         <Name>AsarSharp</Name>
       </ProjectReference>
+    </ItemGroup> 
+    <ItemGroup>
+        <EmbeddedResource Include="$(ProxyDllPath)">
+            <LogicalName>proxydll</LogicalName>
+        </EmbeddedResource>
     </ItemGroup>
+    
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
       <PropertyGroup>
         <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
       </PropertyGroup>
       <Error Condition="!Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.2.0.41\build\ILRepack.props'))" />
+    </Target>
+
+    <Target Name="EmbedProxyDll" BeforeTargets="BeforeBuild">
+        <Error Text="Proxy DLL not found: $(ProxyDllPath)"
+               Condition="!Exists('$(ProxyDllPath)')" />
+
+        <Message Text="Embedding Proxy DLL as resource from $(ProxyDllPath)"
+                 Importance="high" />
     </Target>
 
     <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">

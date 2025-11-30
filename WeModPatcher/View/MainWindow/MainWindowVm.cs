@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WeModPatcher.Core;
@@ -12,15 +13,14 @@ using Application = System.Windows.Application;
 
 namespace WeModPatcher.View.MainWindow
 {
-
     public class MainWindowVm : ObservableObject
     {
         private readonly MainWindow _view;
         public ObservableCollection<LogEntry> LogList { get; set; } = new ObservableCollection<LogEntry>();
         private static Updater _updater = new Updater();
-        
+
         private WeModConfig _weModConfig;
-        
+
         public WeModConfig WeModInfo
         {
             get => _weModConfig;
@@ -28,15 +28,17 @@ namespace WeModPatcher.View.MainWindow
             {
                 SetProperty(ref _weModConfig, value);
                 if (value == null) return;
-                
+
                 Log($"WeMod directory found at '{_weModConfig}' ({_weModConfig.ExecutableName})", ELogType.Success);
                 if (File.Exists(Path.Combine(_weModConfig.RootDirectory, "resources", "app.asar.backup")))
                 {
-                    Log("WeMod already patched. If you want to patch again, please restore the backup first.", ELogType.Warn);
+                    Log("WeMod already patched. If you want to patch again, please restore the backup first.",
+                        ELogType.Warn);
                     IsPatchEnabled = false;
                     AlreadyPatched = true;
                     return;
                 }
+
                 Log("Ready for patching.", ELogType.Info);
                 IsPatchEnabled = true;
             }
@@ -49,26 +51,28 @@ namespace WeModPatcher.View.MainWindow
             get => _isPatchEnabled;
             set => SetProperty(ref _isPatchEnabled, value);
         }
-        
+
         private bool _alreadyPatched;
+
         public bool AlreadyPatched
         {
             get => _alreadyPatched;
             set => SetProperty(ref _alreadyPatched, value);
         }
-        
+
         private bool _isUpdateAvailable;
+
         public bool IsUpdateAvailable
         {
             get => _isUpdateAvailable;
             set => SetProperty(ref _isUpdateAvailable, value);
         }
-        
+
         public RelayCommand SetFolderPathCommand { get; }
         public RelayCommand ApplyPatchCommand { get; }
         public RelayCommand RestoreBackupCommand { get; }
-        public AsyncRelayCommand UpdateCommand { get; }
-        
+        public RelayCommand UpdateCommand { get; }
+
         private void OnFolderPathSelection(object obj)
         {
             using (var dialog = new FolderBrowserDialog())
@@ -80,7 +84,7 @@ namespace WeModPatcher.View.MainWindow
                 if (dialog.ShowDialog() != DialogResult.OK) return;
                 string selectedPath = dialog.SelectedPath;
                 string fileName = Path.GetFileName(selectedPath);
-                
+
                 var info = Extensions.CheckWeModPath(selectedPath);
 
                 if (info != null)
@@ -99,37 +103,25 @@ namespace WeModPatcher.View.MainWindow
 
         private void OnBackupRestoring(object param)
         {
-            
             var backupPath = Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar.backup");
             if (!File.Exists(backupPath))
             {
                 Log("Backup not found. Please dont delete it manually", ELogType.Error);
                 return;
             }
-            
+
             try
             {
+                // Try to lock the file to see if it's in use
                 using (File.Open(backupPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
                 {
                 }
-
-                // This shit doesn't look at the hash and verify() always returns true 
-                //using X509Certificate2 cert = new X509Certificate2(X509Certificate.CreateFromSignedFile(filePath));
                 
-                var restoreExeResult = MemoryUtils.PatchFile(
-                    WeModInfo.ExecutablePath,
-                    Constants.ExePatchSignature, 
-                    Constants.ExePatchSignature.OriginalBytes
-                );
-                if (restoreExeResult == -1)
+                var proxyDllPath = Path.Combine(WeModInfo.RootDirectory, "version.dll");
+                
+                if(File.Exists(proxyDllPath))
                 {
-                    Log("Failed to restore the backup. Please close the WeMod and try again.", ELogType.Error);
-                }
-                else
-                {
-                    Log(restoreExeResult == 0 ?
-                        "Signature exe is original, does not require restoration"
-                        : $"{WeModInfo.ExecutableName} restored successfully", ELogType.Success);
+                    File.Delete(proxyDllPath);
                 }
             }
             catch
@@ -137,7 +129,7 @@ namespace WeModPatcher.View.MainWindow
                 Log("Backup file is locked. Please close the WeMod and try again.", ELogType.Error);
                 return;
             }
-            
+
             File.Copy(backupPath, Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar"), true);
             File.Delete(backupPath);
             Log("Backup restored successfully.", ELogType.Success);
@@ -152,8 +144,8 @@ namespace WeModPatcher.View.MainWindow
                 Log("Can't be done. Please specify the directory first.", ELogType.Warn);
                 return;
             }
-            
-            MainWindow.Instance.OpenPopup(new PatchVectorsPopup( async config =>
+
+            MainWindow.Instance.OpenPopup(new PatchVectorsPopup(async config =>
             {
                 MainWindow.Instance.ClosePopup();
                 IsPatchEnabled = false;
@@ -161,7 +153,7 @@ namespace WeModPatcher.View.MainWindow
                 {
                     try
                     {
-                        new StaticPatcher(WeModInfo, Log, config).Patch();
+                        new Patcher(WeModInfo, Log, config).Patch();
                         AlreadyPatched = true;
                     }
                     catch (Exception e)
@@ -170,7 +162,6 @@ namespace WeModPatcher.View.MainWindow
                         IsPatchEnabled = true;
                     }
                 });
-
             }), "What are we gonna patch?");
         }
 
@@ -190,24 +181,27 @@ namespace WeModPatcher.View.MainWindow
             });
         }
 
-        private async Task OnUpdate(object param)
+        private void OnUpdate(object param)
         {
-            await Task.Run(async () =>
+            MainWindow.Instance.OpenPopup(new UpdatePopup(() =>
             {
-                try
+                Task.Run(async () =>
                 {
-                    await _updater.Update();
-                }
-                catch (Exception e)
-                {
-                    Log($"Failed to update: {e.Message}", ELogType.Error);
-                    return;
-                }
-                
-                Log("WeModPatcher updated successfully. Restarting...", ELogType.Success);
-            });
+                    try
+                    {
+                        await _updater.Update();
+                    }
+                    catch (Exception e)
+                    {
+                        Log($"Failed to update: {e.Message}", ELogType.Error);
+                        return;
+                    }
+
+                    Log("WeModPatcher updated successfully. Restarting...", ELogType.Success);
+                });
+            }), "Update available!");
         }
-        
+
         public MainWindowVm(MainWindow view)
         {
             Task.Run(async () => IsUpdateAvailable = await _updater.CheckForUpdates());
@@ -215,8 +209,8 @@ namespace WeModPatcher.View.MainWindow
             SetFolderPathCommand = new RelayCommand(OnFolderPathSelection);
             ApplyPatchCommand = new RelayCommand(OnPatching);
             RestoreBackupCommand = new RelayCommand(OnBackupRestoring);
-            UpdateCommand = new AsyncRelayCommand(OnUpdate);
-            
+            UpdateCommand = new RelayCommand(OnUpdate);
+
             WeModInfo = Extensions.FindWeMod();
             if (WeModInfo == null)
             {

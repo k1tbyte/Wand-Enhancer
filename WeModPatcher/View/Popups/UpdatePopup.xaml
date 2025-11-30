@@ -1,0 +1,20 @@
+﻿<UserControl x:Class="WeModPatcher.View.Popups.UpdatePopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:WeModPatcher.View.Popups"
+             mc:Ignorable="d"
+             d:DesignHeight="Auto" d:DesignWidth="Auto"
+             Background="{DynamicResource Background}"
+             Foreground="{DynamicResource MutedForeground}"
+             FontWeight="Medium"
+             FontSize="13">
+    <StackPanel>
+        
+        <TextBlock Foreground="Red" MaxWidth="320" TextAlignment="Center" Text="Before updating, it is strongly recommended to roll back patches if they have been applied" TextWrapping="Wrap" />
+        
+        <Button Padding="0 5 0 5" Margin="0 15 0 0" Content="Update now"
+                Click="OnUpdateClick" />
+    </StackPanel>
+</UserControl>

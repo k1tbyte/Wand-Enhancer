@@ -14,7 +14,7 @@ using Application = System.Windows.Application;
 
 namespace WeModPatcher.Core
 {
-    public class StaticPatcher
+    public class Patcher
     {
         private class PatchEntry
         {
@@ -54,7 +54,7 @@ namespace WeModPatcher.Core
         private readonly string _unpackedPath;
         private int _sumOfPatches = 0;
 
-        public StaticPatcher(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
+        public Patcher(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
         {
             _weModConfig = weModConfig;
             _logger = logger;
@@ -138,59 +138,22 @@ namespace WeModPatcher.Core
             }
         }
 
-        private void PatchPe()
+        private void AttachProxyDll()
         {
-            _logger("[PATCHER] Patching PE...", ELogType.Info);
-            var patchResult = MemoryUtils.PatchFile(
-                _weModConfig.ExecutablePath, 
-                Constants.ExePatchSignature, 
-                Constants.ExePatchSignature.PatchBytes
-            );
-            if(patchResult == -1)
+            var assembly = Assembly.GetExecutingAssembly();
+            var dll = assembly.GetManifestResourceStream(Constants.ProxyDllResouceName);
+            if (dll == null)
             {
-                _logger("[PATCHER] Failed to patch PE", ELogType.Error);
-                return;
+                throw new Exception("[PATCHER] Proxy DLL resource not found");
             }
-            _logger(patchResult == 0 ? "[PATCHER] PE already patched!" : "[PATCHER] PE patched successfully!", ELogType.Success);
+            var destPath = Path.Combine(_weModConfig.RootDirectory, "version.dll");
+            using (var fileStream = File.Create(destPath))
+            {
+                dll.CopyTo(fileStream);
+            }
+            _logger("[PATCHER] Proxy DLL attached", ELogType.Info);
         }
-        
-        private void CreateShortcut()
-        {
-            // invoke file dialog save file
 
-            var fileDialog = new SaveFileDialog()
-            {
-                CheckPathExists = true,
-                AddExtension = true,
-                SupportMultiDottedExtensions = false,
-                FileName = _weModConfig.BrandName,
-            };
-            
-            if(fileDialog.ShowDialog() != DialogResult.OK)
-            {
-                return;
-            }
-            
-            _config.Path = _weModConfig.RootDirectory;
-            var json = JsonConvert.SerializeObject(_config, new JsonSerializerSettings
-            {
-                NullValueHandling = NullValueHandling.Ignore,
-                DefaultValueHandling = DefaultValueHandling.Ignore,
-                Formatting = Formatting.None
-            });
-            
-            Utils.Win32.Shortcut.CreateShortcut(
-                fileName: fileDialog.FileName + ".lnk",
-                targetPath: Assembly.GetExecutingAssembly().Location,
-                arguments: Extensions.Base64Encode(json),
-                workingDirectory:  Common.GetCurrentDir(),
-                description: null,
-                iconPath: _weModConfig.ExecutablePath
-            );
-            
-            _logger("[PATCHER] The shortcut has been created, now you should only run WeMod through this shortcut", ELogType.Success);
-        }
-        
         public void Patch()
         {
             Common.TryKillProcess(_weModConfig.BrandName);
@@ -232,15 +195,8 @@ namespace WeModPatcher.Core
             {
                 throw new Exception($"[PATCHER] Failed to pack app.asar: {e.Message}");
             }
-
-            if (_config.PatchMethod == EPatchProcessMethod.Static)
-            {
-                PatchPe();
-            }
-            else if(_config.PatchMethod == EPatchProcessMethod.Runtime)
-            {
-                Application.Current.Dispatcher.Invoke(CreateShortcut);
-            }
+            
+            AttachProxyDll();
             
             _logger("[PATCHER] Done!", ELogType.Success);
         }

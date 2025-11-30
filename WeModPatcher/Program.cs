@@ -1,15 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Newtonsoft.Json;
-using WeModPatcher.Core;
-using WeModPatcher.Models;
-using WeModPatcher.Utils;
 using WeModPatcher.View.MainWindow;
 
 namespace WeModPatcher
@@ -25,28 +17,7 @@ namespace WeModPatcher
             List<LogEntry> logEntries = new List<LogEntry>();
             if (args.Length > 0)
             {
-                try
-                {
-                    var patchConfig = JsonConvert.DeserializeObject<PatchConfig>(Extensions.Base64Decode(args[0]));
-                    RuntimePatcher.Patch(patchConfig, (message, type) =>
-                    {
-                        logEntries.Add(new LogEntry
-                        {
-                            Message = message,
-                            LogType = type
-                        });
-                    });
-                    Environment.Exit(0);
-                }
-                catch (Exception e)
-                {
-                    logEntries.Add(new LogEntry
-                    {
-                        Message = "Runtime patching failed: " + e.Message,
-                        LogType = ELogType.Error
-                    });
-                }
-
+                // TODO: Command line arguments handling
             }
 
             var application = new App();
