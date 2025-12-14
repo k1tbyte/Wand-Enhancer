@@ -50,7 +50,7 @@
                             ToolTip="Click to update"
                             Command="{Binding UpdateCommand}"
                             Visibility="{Binding IsUpdateAvailable, Converter={StaticResource ToVisibilityConverter}}"
-                            Content="A new version is available"/>
+                            Content="{DynamicResource mw_update_available}"/>
                 </StackPanel>
                                 
                 <StackPanel  HorizontalAlignment="Right" Orientation="Horizontal">
@@ -59,6 +59,7 @@
                         Width="25" Height="25" Padding="5.5"
                         Style="{StaticResource IconButton}"
                         Tag="{StaticResource CogIcon}"
+                        Command="{Binding OpenSettingsCommand}"
                         />
                     <Button
                         Margin="9 0 15 0"
@@ -95,9 +96,9 @@
                 
                 <Grid Margin="10" Cursor="Hand" Background="Transparent">
                     <TextBox Style="{StaticResource TitledTextBox}"
-                             Uid="Folder path"  IsReadOnly="True"
+                             IsReadOnly="True"
                              Text="{Binding WeModInfo.RootDirectory, Mode=OneWay}"
-                             VerticalAlignment="Center" Tag="Folder not found">
+                             VerticalAlignment="Center">
                     </TextBox>
                     <Grid.InputBindings>
                         <MouseBinding Gesture="LeftClick" Command="{Binding SetFolderPathCommand}" />
@@ -169,14 +170,15 @@
                             <Button Style="{StaticResource ColoredButton}"
                                     IsEnabled="{Binding IsPatchEnabled}"
                                     FontWeight="Bold" FontSize="16" Width="200" 
-                                    Command="{Binding ApplyPatchCommand}">Patch</Button>
+                                    Command="{Binding ApplyPatchCommand}"
+                                    Content="{DynamicResource mw_patch}"/>
                         </Grid>
                         <Button HorizontalAlignment="Right"
                                 Command="{Binding RestoreBackupCommand }"
                                 FontWeight="Bold" FontSize="16" Width="200" 
                                 Style="{StaticResource ColoredButton}"
                                 Visibility="{Binding AlreadyPatched, Converter={StaticResource ToVisibilityConverter}}"
-                                Content="Restore"/>
+                                Content="{DynamicResource mw_restore}"/>
                     </Grid>
                 </StackPanel>
 
@@ -194,13 +196,13 @@
                         </Viewbox>
                         <Grid>
                             <TextBlock Margin="8 0 0 0"  FontSize="10" Foreground="{DynamicResource AccentForeground}">
-                                <Hyperlink Foreground="{DynamicResource AccentForeground}">Source code </Hyperlink>
+                                <Hyperlink Foreground="{DynamicResource AccentForeground}"><Run Text="{DynamicResource mw_source_code}"/></Hyperlink>
                                 <LineBreak/>
-                                <Run>Made with ❤️ by k1tbyte</Run>
+                                <Run Text="{DynamicResource mw_made_by}"/>
                                 
                                 
                                 <LineBreak/>
-                                <Run Foreground="{DynamicResource MutedForeground}">Put a star if you found this helpful ;)</Run>
+                                <Run Foreground="{DynamicResource MutedForeground}" Text="{DynamicResource mw_star_hint}"/>
                             </TextBlock>
                         </Grid>
                     </StackPanel>

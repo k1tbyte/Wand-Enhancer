@@ -20,14 +20,14 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="Activate WeMod Pro" />
+            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="{DynamicResource pv_activate_pro}" />
             <CheckBox Grid.Row="0" x:Name="ActivateProBox" HorizontalAlignment="Right" VerticalAlignment="Center"
                       IsChecked="True" />
 
-            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="DevTools on F12" />
+            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="{DynamicResource pv_devtools}" />
             <CheckBox Grid.Row="1" x:Name="DevToolsHotkeyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
-            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Disable updates" />
+            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="{DynamicResource pv_disable_updates}" />
             <CheckBox Grid.Row="2" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
             <!--<TextBlock
@@ -39,7 +39,7 @@
             <CheckBox Grid.Row="3" x:Name="AutoUpdates" HorizontalAlignment="Right" VerticalAlignment="Center"
                       IsChecked="True" />-->
 
-            <Button Grid.Row="3" Padding="0 5 0 5" Margin="0 15 0 0" Content="Start"
+            <Button Grid.Row="3" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
                     Click="OnPatchButtonClick" />
         </Grid>
     </Grid>

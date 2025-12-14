@@ -12,9 +12,9 @@
              FontSize="13">
     <StackPanel>
         
-        <TextBlock Foreground="Red" MaxWidth="320" TextAlignment="Center" Text="Before updating, it is strongly recommended to roll back patches if they have been applied" TextWrapping="Wrap" />
+        <TextBlock Foreground="Red" MaxWidth="320" TextAlignment="Center" Text="{DynamicResource up_warning}" TextWrapping="Wrap" />
         
-        <Button Padding="0 5 0 5" Margin="0 15 0 0" Content="Update now"
+        <Button Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource up_update_now}"
                 Click="OnUpdateClick" />
     </StackPanel>
 </UserControl>

@@ -138,3 +138,7 @@ dist
 packages
 */bin/
 */obj/
+*/obj/.nuget/
+
+# App settings (user preferences)
+appsettings.json

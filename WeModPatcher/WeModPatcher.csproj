@@ -70,6 +70,8 @@
         <Compile Include="Converters\ToVisibilityConverter.cs" />
         <Compile Include="Core\Patcher.cs" />
         <Compile Include="Core\PatcherConfig.cs" />
+        <Compile Include="Core\Services\LocalizationManager.cs" />
+        <Compile Include="Core\Services\SettingsManager.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Models\Signature.cs" />
@@ -91,6 +93,9 @@
         <Compile Include="View\Popups\PatchVectorsPopup.xaml.cs">
           <DependentUpon>PatchVectorsPopup.xaml</DependentUpon>
         </Compile>
+        <Compile Include="View\Popups\SettingsPopup.xaml.cs">
+          <DependentUpon>SettingsPopup.xaml</DependentUpon>
+        </Compile>
         <Compile Include="App.xaml.cs">
             <DependentUpon>App.xaml</DependentUpon>
             <SubType>Code</SubType>
@@ -98,6 +103,18 @@
         <Compile Include="View\Popups\UpdatePopup.xaml.cs">
           <DependentUpon>UpdatePopup.xaml</DependentUpon>
         </Compile>
+        <Page Include="Locale\lang.en-US.xaml" />
+        <Page Include="Locale\lang.zh-CN.xaml" />
+        <Page Include="Locale\lang.de-DE.xaml" />
+        <Page Include="Locale\lang.fr-FR.xaml" />
+        <Page Include="Locale\lang.es-ES.xaml" />
+        <Page Include="Locale\lang.it-IT.xaml" />
+        <Page Include="Locale\lang.pt-BR.xaml" />
+        <Page Include="Locale\lang.pl-PL.xaml" />
+        <Page Include="Locale\lang.ru-RU.xaml" />
+        <Page Include="Locale\lang.uk-UA.xaml" />
+        <Page Include="Locale\lang.ja-JP.xaml" />
+        <Page Include="Locale\lang.tr-TR.xaml" />
         <Page Include="Style\ColorScheme.xaml" />
         <Page Include="Style\Icons.xaml" />
         <Page Include="Style\Styles.xaml" />
@@ -105,6 +122,7 @@
         <Page Include="View\Controls\PopupHost.xaml" />
         <Page Include="View\MainWindow\MainWindow.xaml" />
         <Page Include="View\Popups\PatchVectorsPopup.xaml" />
+        <Page Include="View\Popups\SettingsPopup.xaml" />
         <Page Include="View\Popups\UpdatePopup.xaml" />
     </ItemGroup>
     <ItemGroup>

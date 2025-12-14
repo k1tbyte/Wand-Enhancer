@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!--#region Language Metadata -->
+    <s:String x:Key="language_display_name">Polski</s:String>
+    <!--#endregion -->
+
+    <!--#region MainWindow -->
+    <s:String x:Key="mw_title">WeMod Patcher</s:String>
+    <s:String x:Key="mw_update_available">Dostępna jest nowa wersja</s:String>
+    <s:String x:Key="mw_folder_path">Ścieżka folderu</s:String>
+    <s:String x:Key="mw_folder_not_found">Folder nie znaleziony</s:String>
+    <s:String x:Key="mw_patch">Patchuj</s:String>
+    <s:String x:Key="mw_restore">Przywróć</s:String>
+    <s:String x:Key="mw_source_code">Kod źródłowy</s:String>
+    <s:String x:Key="mw_made_by">Wykonane z ❤️ przez k1tbyte</s:String>
+    <s:String x:Key="mw_star_hint">Daj gwiazdkę, jeśli ci pomogło ;)</s:String>
+    <!--#endregion -->
+
+    <!--#region Settings -->
+    <s:String x:Key="settings_title">Ustawienia</s:String>
+    <s:String x:Key="settings_language">Język</s:String>
+    <s:String x:Key="settings_save">Zapisz</s:String>
+    <!--#endregion -->
+
+    <!--#region PatchVectorsPopup -->
+    <s:String x:Key="pv_activate_pro">Aktywuj WeMod Pro</s:String>
+    <s:String x:Key="pv_devtools">DevTools na F12</s:String>
+    <s:String x:Key="pv_disable_updates">Wyłącz aktualizacje</s:String>
+    <s:String x:Key="pv_start">Rozpocznij</s:String>
+    <s:String x:Key="pv_popup_title">Co będziemy patchować?</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_warning">Przed aktualizacją zdecydowanie zaleca się cofnięcie patchów, jeśli zostały zastosowane</s:String>
+    <s:String x:Key="up_update_now">Aktualizuj teraz</s:String>
+    <s:String x:Key="up_popup_title">Dostępna aktualizacja!</s:String>
+    <!--#endregion -->
+
+</ResourceDictionary>

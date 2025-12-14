@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!--#region Language Metadata -->
+    <s:String x:Key="language_display_name">Українська</s:String>
+    <!--#endregion -->
+
+    <!--#region MainWindow -->
+    <s:String x:Key="mw_title">WeMod Patcher</s:String>
+    <s:String x:Key="mw_update_available">Доступна нова версія</s:String>
+    <s:String x:Key="mw_folder_path">Шлях до папки</s:String>
+    <s:String x:Key="mw_folder_not_found">Папку не знайдено</s:String>
+    <s:String x:Key="mw_patch">Патч</s:String>
+    <s:String x:Key="mw_restore">Відновити</s:String>
+    <s:String x:Key="mw_source_code">Вихідний код</s:String>
+    <s:String x:Key="mw_made_by">Зроблено з ❤️ by k1tbyte</s:String>
+    <s:String x:Key="mw_star_hint">Поставте зірку, якщо це було корисно ;)</s:String>
+    <!--#endregion -->
+
+    <!--#region Settings -->
+    <s:String x:Key="settings_title">Налаштування</s:String>
+    <s:String x:Key="settings_language">Мова</s:String>
+    <s:String x:Key="settings_save">Зберегти</s:String>
+    <!--#endregion -->
+
+    <!--#region PatchVectorsPopup -->
+    <s:String x:Key="pv_activate_pro">Активувати WeMod Pro</s:String>
+    <s:String x:Key="pv_devtools">DevTools на F12</s:String>
+    <s:String x:Key="pv_disable_updates">Вимкнути оновлення</s:String>
+    <s:String x:Key="pv_start">Почати</s:String>
+    <s:String x:Key="pv_popup_title">Що будемо патчити?</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_warning">Перед оновленням наполегливо рекомендується відкотити патчі, якщо вони були застосовані</s:String>
+    <s:String x:Key="up_update_now">Оновити зараз</s:String>
+    <s:String x:Key="up_popup_title">Доступне оновлення!</s:String>
+    <!--#endregion -->
+
+</ResourceDictionary>

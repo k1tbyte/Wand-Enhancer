@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!--#region Language Metadata -->
+    <s:String x:Key="language_display_name">简体中文</s:String>
+    <!--#endregion -->
+
+    <!--#region MainWindow -->
+    <s:String x:Key="mw_title">WeMod Patcher</s:String>
+    <s:String x:Key="mw_update_available">有新版本可用</s:String>
+    <s:String x:Key="mw_folder_path">文件夹路径</s:String>
+    <s:String x:Key="mw_folder_not_found">未找到文件夹</s:String>
+    <s:String x:Key="mw_patch">补丁</s:String>
+    <s:String x:Key="mw_restore">恢复</s:String>
+    <s:String x:Key="mw_source_code">源代码</s:String>
+    <s:String x:Key="mw_made_by">由 k1tbyte 用 ❤️ 制作</s:String>
+    <s:String x:Key="mw_star_hint">如果这对您有帮助，请给个星标 ;)</s:String>
+    <!--#endregion -->
+
+    <!--#region Settings -->
+    <s:String x:Key="settings_title">设置</s:String>
+    <s:String x:Key="settings_language">语言</s:String>
+    <s:String x:Key="settings_save">保存</s:String>
+    <!--#endregion -->
+
+    <!--#region PatchVectorsPopup -->
+    <s:String x:Key="pv_activate_pro">激活 WeMod Pro</s:String>
+    <s:String x:Key="pv_devtools">按 F12 打开开发者工具</s:String>
+    <s:String x:Key="pv_disable_updates">禁用更新</s:String>
+    <s:String x:Key="pv_start">开始</s:String>
+    <s:String x:Key="pv_popup_title">我们要打什么补丁？</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_warning">在更新之前，强烈建议回滚已应用的补丁</s:String>
+    <s:String x:Key="up_update_now">立即更新</s:String>
+    <s:String x:Key="up_popup_title">有更新可用！</s:String>
+    <!--#endregion -->
+
+</ResourceDictionary>

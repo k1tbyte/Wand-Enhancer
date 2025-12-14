@@ -72,6 +72,7 @@ namespace WeModPatcher.View.MainWindow
         public RelayCommand ApplyPatchCommand { get; }
         public RelayCommand RestoreBackupCommand { get; }
         public RelayCommand UpdateCommand { get; }
+        public RelayCommand OpenSettingsCommand { get; }
 
         private void OnFolderPathSelection(object obj)
         {
@@ -162,7 +163,7 @@ namespace WeModPatcher.View.MainWindow
                         IsPatchEnabled = true;
                     }
                 });
-            }), "What are we gonna patch?");
+            }), Application.Current.FindResource("pv_popup_title") as string);
         }
 
         private void Log(string message, ELogType logType)
@@ -199,7 +200,12 @@ namespace WeModPatcher.View.MainWindow
 
                     Log("WeModPatcher updated successfully. Restarting...", ELogType.Success);
                 });
-            }), "Update available!");
+            }), Application.Current.FindResource("up_popup_title") as string);
+        }
+
+        private void OnOpenSettings(object param)
+        {
+            MainWindow.Instance.OpenPopup(new SettingsPopup(), Application.Current.FindResource("settings_title") as string);
         }
 
         public MainWindowVm(MainWindow view)
@@ -210,6 +216,7 @@ namespace WeModPatcher.View.MainWindow
             ApplyPatchCommand = new RelayCommand(OnPatching);
             RestoreBackupCommand = new RelayCommand(OnBackupRestoring);
             UpdateCommand = new RelayCommand(OnUpdate);
+            OpenSettingsCommand = new RelayCommand(OnOpenSettings);
 
             WeModInfo = Extensions.FindWeMod();
             if (WeModInfo == null)

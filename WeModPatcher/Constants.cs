@@ -12,6 +12,7 @@ namespace WeModPatcher
         public static readonly string RepositoryUrl = $"https://github.com/{Owner}/{RepoName}";
         public static readonly Version Version;
         public static readonly string[] WeModBrandNames = { "Wand", "WeMod" };
+        public const string AppSettingsFileName = "appsettings.json";
         
         public const string ProxyDllResouceName = "proxydll";
 
