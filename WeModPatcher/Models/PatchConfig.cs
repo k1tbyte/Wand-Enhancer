@@ -11,7 +11,8 @@ namespace WeModPatcher.Models
     {
         ActivatePro = 1,
         DisableUpdates = 2,
-        DisableTelemetry = 4
+        DisableTelemetry = 4,
+        DevToolsOnF12 = 8
     }
     
     public sealed class PatchConfig

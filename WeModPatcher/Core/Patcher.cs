@@ -16,35 +16,8 @@ namespace WeModPatcher.Core
 {
     public class Patcher
     {
-        private class PatchEntry
-        {
-            public Regex Target { get; set; }
-            public string Patch { get; set; }
-            public bool Applied { get; set; }
-            public bool SingleMatch { get; set; } = true;
-            public bool DynamicFieldResolve { get; set; }
-        }
 
-        private static readonly Dictionary<EPatchType, PatchEntry> Patches = new Dictionary<EPatchType, PatchEntry>()
-        {
-            {
-                EPatchType.ActivatePro,
-                new PatchEntry
-                {
-                    DynamicFieldResolve = true,
-                    Target = new Regex(@"getUserAccount\(\)\{.*?return\s+this\.#\w+\.fetch\(\{.*?\}\)\}", RegexOptions.Singleline),
-                    Patch = "getUserAccount(){return this.#<fetch_field_name>.fetch({endpoint:\"/v3/account\",method:\"GET\",name:\"/v3/account\",collectMetrics:0}).then(response=>{response.subscription={period:\"yearly\",state:\"active\"};response.flags=78;return response;})}"
-                }
-            },
-            {
-                EPatchType.DisableUpdates,
-                new PatchEntry
-                {
-                    Target = new Regex(@"registerHandler\(""ACTION_CHECK_FOR_UPDATE"".*?\)\)\)\)", RegexOptions.Singleline),
-                    Patch = "registerHandler(\"ACTION_CHECK_FOR_UPDATE\",(e=>expectUpdateFeedUrl(e,(e=>null)))"
-                }
-            }
-        };
+
         
         private readonly WeModConfig _weModConfig;
         private readonly Action<string, ELogType> _logger;
@@ -52,7 +25,6 @@ namespace WeModPatcher.Core
         private readonly string _asarPath;
         private readonly string _backupPath;
         private readonly string _unpackedPath;
-        private int _sumOfPatches = 0;
 
         public Patcher(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
         {
@@ -65,49 +37,46 @@ namespace WeModPatcher.Core
             _backupPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar.backup");
         }
         
-        private static string GetFetchFieldName(string targetFunction)
-        {
-            var fetchMatch = Regex.Match(targetFunction, @"return\s+this\.#(\w+)\.fetch");
-            return fetchMatch.Success ? fetchMatch.Groups[1].Value : null;
-        }
-
-        private void ApplyJsPatch(string fileName, string js, PatchEntry patch, EPatchType patchType)
+        private string ApplyJsPatch(string fileName, string js, PatcherConfig.PatchEntry patch, EPatchType patchType)
         {
             if (patch.Applied)
             {
-                return;
+                return js;
             }
             
             var matches = patch.Target.Matches(js);
             if (matches.Count == 0)
             {
-                return;
+                return js;
             }
+            
+            var prefix = $"[PATCHER] [{patchType} -> {patch.Name}]";
             
             if(matches.Count > 1 && patch.SingleMatch)
             {
                 throw new Exception(
-                    $"[PATCHER] [{patchType}] Patch failed. Multiple target functions found. Looks like the version is not supported");
+                    $"{prefix} Patch failed. Multiple target functions found. Looks like the version is not supported");
             }
 
-            if (patch.DynamicFieldResolve)
+            if (patch.Resolver != null)
             {
-                string fetchFieldName = GetFetchFieldName(matches[0].Value);
-                if (string.IsNullOrEmpty(fetchFieldName))
+                string resolvedField = patch.Resolver.Handler(matches[0].Value);
+                if (string.IsNullOrEmpty(resolvedField))
                 {
-                    throw new Exception($"[PATCHER] [{patchType}] Fetch field name not found");
+                    throw new Exception($"{prefix} Resolver failed to find field name");
                 }
                 
-                patch.Patch = patch.Patch.Replace("<fetch_field_name>", fetchFieldName);
+                patch.Patch = patch.Patch.Replace(patch.Resolver.Placeholder, resolvedField);
             }
             
-            _logger($"[PATCHER] [{patchType}] Found target function in: " + Path.GetFileName(fileName), ELogType.Info);
-
+            _logger($"{prefix} Found target function in: " + Path.GetFileName(fileName), ELogType.Info);
             
-            File.WriteAllText(fileName, patch.Target.Replace(js, patch.Patch));
-            _logger($"[PATCHER] [{patchType}] Patch applied", ELogType.Success);
+            string newJs = patch.Target.Replace(js, patch.Patch);
+            File.WriteAllText(fileName, newJs);
+            _logger($"{prefix} Patch applied", ELogType.Success);
             patch.Applied = true;
-            _sumOfPatches -= (int)patchType;
+            
+            return newJs;
         }
 
         private void PatchAsar()
@@ -121,20 +90,41 @@ namespace WeModPatcher.Core
                 throw new Exception("[PATCHER] No app bundle found");
             }
             
-            var requestedPatches = _config.PatchTypes.ToList();
-            requestedPatches.ForEach(patch => _sumOfPatches += (int)patch);
+            // Track patches that still need to be completed
+            var remainingPatches = new HashSet<EPatchType>(_config.PatchTypes);
+            var patcherConfig = PatcherConfig.GetInstance();
+
             foreach (var item in items)
             {
-                if (_sumOfPatches <= 0)
+                if (remainingPatches.Count == 0)
                 {
                     break;
                 }
                 
                 string data = File.ReadAllText(item);
-                foreach (var entry in requestedPatches)
+                
+                // Iterate over a copy of the list so we can modify the HashSet
+                foreach (var entry in remainingPatches.ToList())
                 {
-                    ApplyJsPatch(item, data, Patches[entry], entry);
+                    var entries = patcherConfig[entry];
+                    foreach (var patchEntry in entries)
+                    {
+                        // Update data in memory so subsequent patches in the same file work on latest content
+                        data = ApplyJsPatch(item, data, patchEntry, entry);
+                    }
+
+                    // Check if all entries for this patch type are applied
+                    if (entries.All(x => x.Applied))
+                    {
+                        remainingPatches.Remove(entry);
+                    }
                 }
+            }
+            
+            if(remainingPatches.Count > 0)
+            {
+                var failedPatches = string.Join(", ", remainingPatches.Select(p => p.ToString()));
+                throw new Exception($"[PATCHER] Failed to apply patches: {failedPatches}. The version may not be supported.");
             }
         }
 

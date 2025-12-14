@@ -24,8 +24,8 @@
             <CheckBox Grid.Row="0" x:Name="ActivateProBox" HorizontalAlignment="Right" VerticalAlignment="Center"
                       IsChecked="True" />
 
-            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Disable telemetry" />
-            <CheckBox Grid.Row="1" x:Name="DisableTelemetryBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="DevTools on F12" />
+            <CheckBox Grid.Row="1" x:Name="DevToolsHotkeyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
             <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Disable updates" />
             <CheckBox Grid.Row="2" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center" />

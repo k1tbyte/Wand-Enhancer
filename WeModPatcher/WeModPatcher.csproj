@@ -69,6 +69,7 @@
         <Compile Include="Converters\BaseBooleanConverter.cs" />
         <Compile Include="Converters\ToVisibilityConverter.cs" />
         <Compile Include="Core\Patcher.cs" />
+        <Compile Include="Core\PatcherConfig.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Models\Signature.cs" />

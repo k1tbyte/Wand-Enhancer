@@ -135,3 +135,6 @@ dist
 ./AsarSharp/obj/
 ./AsarSharp/bin/
 .idea
+packages
+*/bin/
+*/obj/

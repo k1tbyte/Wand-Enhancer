@@ -20,7 +20,7 @@ namespace WeModPatcher.View.Popups
         private void OnPatchButtonClick(object sender, RoutedEventArgs e)
         {
             if (ActivateProBox.IsChecked != true && DisableUpdateBox.IsChecked != true &&
-                DisableTelemetryBox.IsChecked != true)
+                DevToolsHotkeyBox.IsChecked != true)
             {
                 return;
             }
@@ -34,6 +34,11 @@ namespace WeModPatcher.View.Popups
             if (DisableUpdateBox.IsChecked == true)
             {
                 result.Add(EPatchType.DisableUpdates);
+            }
+
+            if (DevToolsHotkeyBox.IsChecked == true)
+            {
+                result.Add(EPatchType.DevToolsOnF12);
             }
 
             _onApply(new PatchConfig
