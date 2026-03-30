@@ -1,0 +1,70 @@
+name: Bug report
+description: Create a report to help us improve
+title: '[Bug]: '
+labels: ["bug"]
+assignees:
+  - k1tbyte
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **🚨 STOP BEFORE YOU POST: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS. 🚨**
+        If you downloaded an executable from a YouTube video link, you downloaded a virus/password stealer from a scammer. **Run an antivirus immediately and change your passwords.** Do not open issues about stolen accounts here — this project is not related to those videos.
+
+  - type: checkboxes
+    id: scam_check
+    attributes:
+      label: ⚠️ Download Source Confirmation (REQUIRED)
+      description: You must check this box to proceed.
+      options:
+        - label: I confirm that I downloaded this tool DIRECTLY from this official GitHub repository, and NOT from a YouTube video, Discord, or any other third-party website.
+          required: true
+
+  - type: input
+    id: client_version
+    attributes:
+      label: Client (Wand) version
+      description: What version of the client are you using? (e.g., 9.0.0)
+    validations:
+      required: true
+
+  - type: input
+    id: enhancer_version
+    attributes:
+      label: Enhancer version
+      description: What version of this tool are you using?
+    validations:
+      required: true
+
+  - type: textarea
+    id: bug_description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      value: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Screenshots & Additional context
+      description: Drag and drop screenshots here, or add any other context about the problem.

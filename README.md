@@ -15,10 +15,6 @@ There are no official videos showing how to install or use this tool. Scammers a
 
 Yes. This project is entirely open-source, allowing anyone to audit the code. It operates strictly locally, does not require internet access, and makes zero network requests. It simply adjusts local client settings to enhance your user experience.
 
-## 💻 Compatibility
-
-This tool is designed to maintain compatibility with recent updates of the local client environment, ensuring customized settings persist.
-
 ## 💫 What features are improved?
 
 ✅ Local environment configuration management <br/>
