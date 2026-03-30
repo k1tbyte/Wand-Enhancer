@@ -1,6 +1,6 @@
-﻿# Contributing to WeMod Patcher
+﻿# Contributing to WandEnhancer
 
-Thank you for your interest in the WeMod Patcher project! This document provides guidelines for contributing to the project.
+Thank you for your interest in the WandEnhancer project! This document provides guidelines for contributing to the project.
 
 ## Table of Contents
 
@@ -20,9 +20,9 @@ By participating in this project, you commit to maintaining respectful interacti
 
 The project consists of the following main components:
 
-- **WeModPatcher** - Main project containing the patcher logic and user interface
+- **WandEnhancer** - Main project containing the enhancement logic and user interface
 - **AsarSharp** - Library for working with ASAR archives (used for unpacking and modifying WeMod files)
-- **Core** - Core of the patcher, including static and dynamic patching
+- **Core** - Core of the enhancement flow, including static and dynamic modifications
 - **Models** - Data models used in the project
 - **View** - User interface components
 
@@ -30,10 +30,10 @@ The project consists of the following main components:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/k1tbyte/Wemod-Patcher.git
+   git clone https://github.com/k1tbyte/Wand-Enhancer.git
    ```
 
-2. Open the solution `Wemod-Patcher.sln` in Visual Studio or JetBrains Rider.
+2. Open the solution `Wand-Enhancer.sln` in Visual Studio or JetBrains Rider.
 
 3. Restore NuGet packages.
 
@@ -43,7 +43,7 @@ The project consists of the following main components:
 
 If you've found a bug, please create an Issue with a detailed description:
 
-- WeMod Patcher version
+- WandEnhancer version
 - WeMod version where the problem occurred
 - Detailed steps to reproduce the bug
 - Expected and actual behavior
@@ -108,4 +108,4 @@ By contributing, you agree that your contributions will be licensed under the [A
 
 ---
 
-Thank you for contributing to the WeMod Patcher project!
+Thank you for contributing to the WandEnhancer project!

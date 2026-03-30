@@ -1,0 +1,21 @@
+﻿<Application x:Class="WandEnhancer.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:WandEnhancer"
+             xmlns:converters="clr-namespace:WandEnhancer.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Locale/lang.en-US.xaml"/>
+                <ResourceDictionary Source="Style/ColorScheme.xaml"/>
+                <ResourceDictionary Source="Style/Styles.xaml"/>
+                <ResourceDictionary Source="Style/Icons.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            
+            <FontFamily x:Key="Inter" >pack://application:,,,/Style/#Inter 18pt 18pt</FontFamily>
+            
+            <converters:ToVisibilityConverter x:Key="ToVisibilityConverter"/>
+            <converters:ToVisibilityInvertedConverter x:Key="ToVisibilityInvertedConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

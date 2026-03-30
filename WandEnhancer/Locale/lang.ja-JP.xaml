@@ -1,0 +1,41 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!--#region Language Metadata -->
+    <s:String x:Key="language_display_name">日本語</s:String>
+    <!--#endregion -->
+
+    <!--#region MainWindow -->
+    <s:String x:Key="mw_title">WandEnhancer</s:String>
+    <s:String x:Key="mw_update_available">新しいバージョンが利用可能です</s:String>
+    <s:String x:Key="mw_folder_path">フォルダパス</s:String>
+    <s:String x:Key="mw_folder_not_found">フォルダが見つかりません</s:String>
+    <s:String x:Key="mw_patch">適用</s:String>
+    <s:String x:Key="mw_restore">復元</s:String>
+    <s:String x:Key="mw_source_code">ソースコード</s:String>
+    <s:String x:Key="mw_made_by">k1tbyte が ❤️ を込めて作成</s:String>
+    <s:String x:Key="mw_star_hint">役に立ったらスターをつけてください ;)</s:String>
+    <!--#endregion -->
+
+    <!--#region Settings -->
+    <s:String x:Key="settings_title">設定</s:String>
+    <s:String x:Key="settings_language">言語</s:String>
+    <s:String x:Key="settings_save">保存</s:String>
+    <!--#endregion -->
+
+    <!--#region EnhanceVectorsPopup -->
+    <s:String x:Key="pv_activate_pro">WeMod Pro を有効化</s:String>
+    <s:String x:Key="pv_devtools">F12でDevTools</s:String>
+    <s:String x:Key="pv_disable_updates">アップデートを無効化</s:String>
+    <s:String x:Key="pv_start">開始</s:String>
+    <s:String x:Key="pv_popup_title">何を改善しますか？</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_warning">アップデート前に、変更が適用されている場合はロールバックすることを強くお勧めします</s:String>
+    <s:String x:Key="up_update_now">今すぐ更新</s:String>
+    <s:String x:Key="up_popup_title">アップデート利用可能！</s:String>
+    <!--#endregion -->
+
+</ResourceDictionary>

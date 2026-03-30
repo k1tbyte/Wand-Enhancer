@@ -3,54 +3,42 @@
 ![logo](./assets/icon.svg)
 
 ---
-  <h1>WeMod Patcher</h1>
+# WandEnhancer
 </div>
 
-<h4>WeMod patcher allows you to get some WeMod Pro features absolutely free. This script patches WeMod, thereby removing the daily usage limit (2h), etc.</h4>
+<h4>An open-source interoperability tool designed to extend local client-side configurations and improve the UX of the Wand application.</h4>
 
-## 👾 No malware? Is it safe for me?
+**🚨 IMPORTANT NOTICE: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS OR GUIDES. 🚨
+There are no official videos showing how to install or use this tool. Scammers are creating fake tutorials using this project's name and placing malware/password stealers in the video descriptions. If you downloaded an .exe or archive from a YouTube link, YOU HAVE DOWNLOADED MALWARE. The only official, safe, and original source for this project is this exact GitHub repository. We are not responsible for third-party downloads.**
 
-Yes, this is safe. This script is open-source, and you can check the code yourself. I have no intention of harming you or your computer. The script does absolutely nothing with your computer and does not require Internet access. It only affects WeMod files.
+## 👾 Is it safe to use?
 
-## 💻 Does this script only work with older versions of WeMod like other unlockers?
+Yes. This project is entirely open-source, allowing anyone to audit the code. It operates strictly locally, does not require internet access, and makes zero network requests. It simply adjusts local client settings to enhance your user experience.
 
-With this patch you will be able to use the latest version together with Pro.
+## 💫 What features are improved?
 
-## 💫  What features will be available?
-
-✅ Unlimited usage time <br/>
-✅ Disabling automatic updates (optional) <br/>
-✅ Automatic patching of new WeMod versions <br/>
-✅ AI Game guides <br/>
-✅ Saving mods <br/>
-✅ Exclusive to pro subscription customization for hacks <br/>
-✅ Hotkeys (hotkey functionality is broken after static patching for unknown reason) <br/>
-❌ Connect phone <br/>
-
+✅ Local environment configuration management <br/>
+✅ Automated compatibility adjustments for new client versions <br/>
+✅ Advanced layout and theme customization (Client-side only) <br/>
+✅ AI Features
+❌ Remote/Mobile connectivity features <br/>
 
 ## 👀 How to use?
 
-1. Go to [Releases](https://github.com/k1tbyte/Wemod-Patcher/releases) page.
-2. Download latest version
-3. Run and click the patch
+1. Go to the [Releases](https://github.com/k1tbyte/Wand-Enhancer/releases) page.
+2. Download the latest source or binary.
+3. Run the enhancer to apply local client modifications.
 
 ---
 
 ## ❓ Q&A
 
-- I applied the patch but when I inject I get stuck on 'Loading mods...'.
-  - Just close WeMod and try again
-- During the game, some hacks are enabled without my input
-  - This is a bug after the static patch, you have to turn off hotkeys in WeMod settings
-- VirusTotal claims that this program is a malware/trojan.
-  - Perhaps the patcher does have the same signatures as malware (virtual memory patching). But this is a false positive, you can look at the source code or even build the patcher yourself.
-- Does this application transfer any data to the Internet from my computer?
-  - The short answer is NO. This application does not need access to the Internet. The most it does is download updates if you want it to.
-- What makes this application better than other patchers?
-  - All actions related to patches are performed on your computer. No files of unknown origin will be downloaded.
+- **I applied the configuration but get stuck on 'Loading...'**
+  - Just close the application completely and restart it.
+- **Does this send data anywhere?**
+  - No. All operations are strictly offline and local to your machine. 
 
 ---
-
 ## 🖼️ Screenshots
 ![1](./assets/screenshots/app1.png)
 ![2](./assets/screenshots/app2.png)
@@ -65,4 +53,9 @@ This project is licensed under the Apache-2.0 - see the [LICENSE](LICENSE.md) fi
 
 ---
 
-[![Star History Chart](https://api.star-history.com/svg?repos=k1tbyte/Wemod-Patcher&type=Date)](https://www.star-history.com/#k1tbyte/Wemod-Patcher&Date)
+> **Legal Disclaimer:**
+> This project is a third-party enhancement tool intended solely for educational, research, and local interoperability purposes. It does not distribute any proprietary code or bypass server-side validations. All modifications are performed locally to customize the user's interface.
+
+---
+
+[![Star History Chart](https://api.star-history.com/svg?repos=k1tbyte/Wand-Enhancer&type=Date)](https://www.star-history.com/#k1tbyte/Wand-Enhancer&Date)

@@ -130,8 +130,8 @@ dist
 .pnp.*
 
 
-./WeModPatcher/obj/
-./WeModPatcher/bin/
+./WandEnhancer/obj/
+./WandEnhancer/bin/
 ./AsarSharp/obj/
 ./AsarSharp/bin/
 .idea
