@@ -41,7 +41,6 @@ Yes. This project is entirely open-source, allowing anyone to audit the code. It
 ---
 ## 🖼️ Screenshots
 ![1](./assets/screenshots/app1.png)
-![2](./assets/screenshots/app2.png)
 ---
 
 ## 📜 License
