@@ -4,27 +4,45 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using System.Windows.Forms;
 using AsarSharp;
-using Newtonsoft.Json;
 using WandEnhancer.Models;
 using WandEnhancer.Utils;
 using WandEnhancer.View.MainWindow;
-using Application = System.Windows.Application;
 
 namespace WandEnhancer.Core
 {
     public class Enhancer
     {
+        private const string ResourcesDirectoryName = "resources";
+        private const string AppAsarFileName = "app.asar";
+        private const string AppAsarUnpackedDirectoryName = "app.asar.unpacked";
+        private const string AppAsarBackupFileName = "app.asar.backup";
+        private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
+        private const string WebPanelDirectoryName = "web-panel";
+        private const string WebPanelDistDirectoryName = "dist";
+        private const string WebPanelBridgeDirectoryName = "bridge";
+        private const string WebPanelScriptsDirectoryName = "scripts";
+        private const string DefaultScriptsDirectoryName = "default";
+        private const string LocalCustomScriptsDirectoryName = "renderer-scripts";
+        private const string RemotePanelDirectoryName = "remote-panel";
+        private const string RemoteBridgeSourceFileName = "wand-remote-bridge.cjs";
+        private const string RemoteBridgeTargetFileName = "bridge.cjs";
+        private const string RemoteRendererScriptsDirectoryName = "renderer-scripts";
+        private const string EmbeddedRemotePanelDistPrefix = "remote-panel/dist/";
+        private const string EmbeddedRemotePanelBridgeResourceName = "remote-panel/bridge.cjs";
+        private const string EmbeddedRemotePanelDefaultScriptsPrefix = "remote-panel/renderer-scripts/";
+        private const string JavaScriptFileExtension = ".js";
+        private const string JavaScriptFileSearchPattern = "*.js";
+        private const string DuplicateScriptSuffix = ".custom";
+        private const int FirstDuplicateScriptIndex = 1;
 
-
-        
         private readonly WeModConfig _weModConfig;
         private readonly Action<string, ELogType> _logger;
         private readonly PatchConfig _config;
         private readonly string _asarPath;
         private readonly string _backupPath;
         private readonly string _unpackedPath;
+        private readonly string _unpackedBackupPath;
 
         public Enhancer(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
         {
@@ -32,9 +50,10 @@ namespace WandEnhancer.Core
             _logger = logger;
             _config = config;
 
-            _asarPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar");
-            _unpackedPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar.unpacked");
-            _backupPath = Path.Combine(weModConfig.RootDirectory, "resources", "app.asar.backup");
+            _asarPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarFileName);
+            _unpackedPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedDirectoryName);
+            _backupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarBackupFileName);
+            _unpackedBackupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedBackupDirectoryName);
         }
         
         private string ApplyJsPatch(string fileName, string js, EnhancerConfig.PatchEntry patch, EPatchType patchType)
@@ -90,7 +109,6 @@ namespace WandEnhancer.Core
                 throw new Exception("[ENHANCER] No app bundle found");
             }
             
-            // Track patches that still need to be completed
             var remainingPatches = new HashSet<EPatchType>(_config.PatchTypes);
             var enhancerConfig = EnhancerConfig.GetInstance();
 
@@ -103,17 +121,14 @@ namespace WandEnhancer.Core
                 
                 string data = File.ReadAllText(item);
                 
-                // Iterate over a copy of the list so we can modify the HashSet
                 foreach (var entry in remainingPatches.ToList())
                 {
                     var entries = enhancerConfig[entry];
                     foreach (var patchEntry in entries)
                     {
-                        // Update data in memory so subsequent patches in the same file work on latest content
                         data = ApplyJsPatch(item, data, patchEntry, entry);
                     }
 
-                    // Check if all entries for this patch type are applied
                     if (entries.All(x => x.Applied))
                     {
                         remainingPatches.Remove(entry);
@@ -126,6 +141,215 @@ namespace WandEnhancer.Core
                 var failedPatches = string.Join(", ", remainingPatches.Select(p => p.ToString()));
                 throw new Exception($"[ENHANCER] Failed to apply patches: {failedPatches}. The version may not be supported.");
             }
+        }
+
+        private static string FindWorkspacePath(params string[] segments)
+        {
+            string current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            while (!string.IsNullOrEmpty(current))
+            {
+                string candidate = Path.Combine(new[] { current }.Concat(segments).ToArray());
+                if (Directory.Exists(candidate) || File.Exists(candidate))
+                {
+                    return candidate;
+                }
+
+                current = Directory.GetParent(current)?.FullName;
+            }
+
+            throw new FileNotFoundException($"Required workspace artifact not found: {Path.Combine(segments)}");
+        }
+
+        private static void CopyDirectory(string sourceDir, string destinationDir)
+        {
+            Directory.CreateDirectory(destinationDir);
+
+            foreach (var directory in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var relativePath = directory.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                Directory.CreateDirectory(Path.Combine(destinationDir, relativePath));
+            }
+
+            foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+            {
+                var relativePath = file.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                var destinationPath = Path.Combine(destinationDir, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? destinationDir);
+                File.Copy(file, destinationPath, true);
+            }
+        }
+
+        private static int CopyJavaScriptFiles(string sourceDir, string destinationDir)
+        {
+            if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
+            {
+                return 0;
+            }
+
+            Directory.CreateDirectory(destinationDir);
+
+            int copied = 0;
+            foreach (var file in Directory.GetFiles(sourceDir, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly))
+            {
+                File.Copy(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
+                copied++;
+            }
+
+            return copied;
+        }
+
+        private static string GetAvailableScriptPath(string destinationDir, string fileName)
+        {
+            string destinationPath = Path.Combine(destinationDir, fileName);
+            if (!File.Exists(destinationPath))
+            {
+                return destinationPath;
+            }
+
+            string name = Path.GetFileNameWithoutExtension(fileName);
+            string extension = Path.GetExtension(fileName);
+            for (int index = FirstDuplicateScriptIndex; ; index++)
+            {
+                destinationPath = Path.Combine(destinationDir, $"{name}{DuplicateScriptSuffix}{index}{extension}");
+                if (!File.Exists(destinationPath))
+                {
+                    return destinationPath;
+                }
+            }
+        }
+
+        private static int CopyEmbeddedDirectory(string resourcePrefix, string destinationDir)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceNames = assembly.GetManifestResourceNames()
+                .Where(name => name.StartsWith(resourcePrefix, StringComparison.Ordinal))
+                .ToList();
+
+            if (resourceNames.Count == 0)
+            {
+                return 0;
+            }
+
+            Directory.CreateDirectory(destinationDir);
+
+            foreach (var resourceName in resourceNames)
+            {
+                var relativePath = resourceName.Substring(resourcePrefix.Length)
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                var destinationPath = Path.Combine(destinationDir, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? destinationDir);
+
+                using (var resource = assembly.GetManifestResourceStream(resourceName))
+                {
+                    if (resource == null)
+                    {
+                        throw new FileNotFoundException($"Embedded resource not found: {resourceName}");
+                    }
+
+                    using (var output = File.Create(destinationPath))
+                    {
+                        resource.CopyTo(output);
+                    }
+                }
+            }
+
+            return resourceNames.Count;
+        }
+
+        private static bool CopyEmbeddedFile(string resourceName, string destinationPath)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using (var resource = assembly.GetManifestResourceStream(resourceName))
+            {
+                if (resource == null)
+                {
+                    return false;
+                }
+
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? ".");
+                using (var output = File.Create(destinationPath))
+                {
+                    resource.CopyTo(output);
+                }
+            }
+
+            return true;
+        }
+
+        private static string FindLocalCustomScriptsPath()
+        {
+            string executableDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            if (string.IsNullOrEmpty(executableDirectory))
+            {
+                return null;
+            }
+
+            string localScripts = Path.Combine(executableDirectory, LocalCustomScriptsDirectoryName);
+            return Directory.Exists(localScripts) ? localScripts : null;
+        }
+
+        private static int CopySelectedJavaScriptFiles(IEnumerable<string> files, string destinationDir)
+        {
+            if (files == null)
+            {
+                return 0;
+            }
+
+            Directory.CreateDirectory(destinationDir);
+
+            int copied = 0;
+            foreach (var file in files.Where(IsJavaScriptFile).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                File.Copy(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
+                copied++;
+            }
+
+            return copied;
+        }
+
+        private static bool IsJavaScriptFile(string file)
+        {
+            return File.Exists(file) && string.Equals(Path.GetExtension(file), JavaScriptFileExtension, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void InjectRemotePanelFiles()
+        {
+            if (!_config.PatchTypes.Contains(EPatchType.RemoteWebPanelPreview))
+            {
+                return;
+            }
+
+            string localCustomScriptsRoot = FindLocalCustomScriptsPath();
+            string targetRoot = Path.Combine(_unpackedPath, RemotePanelDirectoryName);
+            string targetScriptsRoot = Path.Combine(targetRoot, RemoteRendererScriptsDirectoryName);
+            string targetBridgePath = Path.Combine(targetRoot, RemoteBridgeTargetFileName);
+
+            if (Directory.Exists(targetRoot))
+            {
+                Directory.Delete(targetRoot, true);
+            }
+
+            if (CopyEmbeddedDirectory(EmbeddedRemotePanelDistPrefix, targetRoot) == 0)
+            {
+                CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), targetRoot);
+            }
+
+            if (!CopyEmbeddedFile(EmbeddedRemotePanelBridgeResourceName, targetBridgePath))
+            {
+                File.Copy(FindWorkspacePath(WebPanelDirectoryName, WebPanelBridgeDirectoryName, RemoteBridgeSourceFileName), targetBridgePath, true);
+            }
+
+            int defaultScriptCount = CopyEmbeddedDirectory(EmbeddedRemotePanelDefaultScriptsPrefix, targetScriptsRoot);
+            if (defaultScriptCount == 0)
+            {
+                defaultScriptCount = CopyJavaScriptFiles(FindWorkspacePath(WebPanelDirectoryName, WebPanelScriptsDirectoryName, DefaultScriptsDirectoryName), targetScriptsRoot);
+            }
+
+            int selectedScriptCount = CopySelectedJavaScriptFiles(_config.CustomScriptPaths, targetScriptsRoot);
+            int localScriptCount = CopyJavaScriptFiles(localCustomScriptsRoot, targetScriptsRoot);
+
+            _logger($"[ENHANCER] Injected remote panel assets and renderer scripts into app.asar (default: {defaultScriptCount}, selected: {selectedScriptCount}, local: {localScriptCount})", ELogType.Info);
         }
 
         private void AttachProxyDll()
@@ -154,7 +378,28 @@ namespace WandEnhancer.Core
             }
             else
             {
-                _logger("[ENHANCER] Backup already exists", ELogType.Warn);
+                _logger("[ENHANCER] Backup found, restoring pristine app.asar before patching...", ELogType.Info);
+                File.Copy(_backupPath, _asarPath, true);
+            }
+
+            if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
+            {
+                _logger("[ENHANCER] Creating backup of app.asar.unpacked...", ELogType.Info);
+                CopyDirectory(_unpackedPath, _unpackedBackupPath);
+            }
+            else if (Directory.Exists(_unpackedBackupPath))
+            {
+                _logger("[ENHANCER] Restoring pristine app.asar.unpacked before patching...", ELogType.Info);
+                if (Directory.Exists(_unpackedPath))
+                {
+                    Directory.Delete(_unpackedPath, true);
+                }
+
+                CopyDirectory(_unpackedBackupPath, _unpackedPath);
+            }
+            else if (!Directory.Exists(_unpackedPath))
+            {
+                throw new Exception("[ENHANCER] app.asar.unpacked is missing and no backup exists. Restore the original Wand installation files or reinstall Wand, then patch again.");
             }
 
             if(!File.Exists(_asarPath))
@@ -173,6 +418,7 @@ namespace WandEnhancer.Core
             }
             
             PatchAsar();
+            InjectRemotePanelFiles();
 
             try
             {

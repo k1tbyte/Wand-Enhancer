@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">源代码</s:String>
     <s:String x:Key="mw_made_by">由 k1tbyte 用 ❤️ 制作</s:String>
     <s:String x:Key="mw_star_hint">如果这对您有帮助，请给个星标 ;)</s:String>
+    <s:String x:Key="mw_copy_logs">复制日志到剪贴板</s:String>
+    <s:String x:Key="mw_export_logs">将日志导出到文件</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">激活 WeMod Pro</s:String>
     <s:String x:Key="pv_devtools">按 F12 打开开发者工具</s:String>
     <s:String x:Key="pv_disable_updates">禁用更新</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">启用远程访问（beta）</s:String>
+    <s:String x:Key="pv_custom_scripts">自定义脚本</s:String>
+    <s:String x:Key="pv_add_js_scripts">添加 .js</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">选中的 .js 文件会打包到 Wand 并在渲染器中加载。</s:String>
+    <s:String x:Key="pv_no_custom_scripts">未选择脚本</s:String>
     <s:String x:Key="pv_start">开始</s:String>
     <s:String x:Key="pv_popup_title">我们要增强什么？</s:String>
     <!--#endregion -->

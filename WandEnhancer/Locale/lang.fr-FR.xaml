@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">Code source</s:String>
     <s:String x:Key="mw_made_by">Fait avec ❤️ par k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Mettez une étoile si cela vous a aidé ;)</s:String>
+    <s:String x:Key="mw_copy_logs">Copier les logs dans le presse-papiers</s:String>
+    <s:String x:Key="mw_export_logs">Exporter les logs dans un fichier</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">Activer WeMod Pro</s:String>
     <s:String x:Key="pv_devtools">DevTools sur F12</s:String>
     <s:String x:Key="pv_disable_updates">Désactiver les mises à jour</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">Activer l'accès à distance (bêta)</s:String>
+    <s:String x:Key="pv_custom_scripts">Scripts personnalisés</s:String>
+    <s:String x:Key="pv_add_js_scripts">Ajouter .js</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">Les fichiers .js sélectionnés sont intégrés dans Wand et chargés dans le renderer.</s:String>
+    <s:String x:Key="pv_no_custom_scripts">Aucun script sélectionné</s:String>
     <s:String x:Key="pv_start">Démarrer</s:String>
     <s:String x:Key="pv_popup_title">Qu'allons-nous modifier ?</s:String>
     <!--#endregion -->

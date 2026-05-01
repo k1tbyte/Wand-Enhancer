@@ -96,12 +96,41 @@ namespace AsarSharp
                         // it's a file, try to extract it
                         try
                         {
-                            byte[] content;
-     
-                            content = Disk.ReadFileSync(filesystem, filename, file);
-                            
-                            File.WriteAllBytes(destFilename, content);
-                            
+                            // Unpacked entries already live on disk next to the archive in
+                            // "<archive>.unpacked". When the caller extracts INTO that same
+                            // directory (e.g. re-extracting in place to repack later) reading +
+                            // writing the file is a self-copy that needlessly fails when the
+                            // file is locked by another process (TrainerLib_x64.dll) or has been
+                            // removed from disk by an installer (auxiliary/GameLauncher.exe).
+                            if (file.Unpacked == true)
+                            {
+                                string unpackedSourcePath = Path.GetFullPath(
+                                    Path.Combine($"{filesystem.GetRootPath()}.unpacked", filename));
+                                string unpackedDestPath = Path.GetFullPath(destFilename);
+
+                                if (string.Equals(unpackedSourcePath, unpackedDestPath, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // Nothing to do – the file is already at the destination.
+                                    continue;
+                                }
+
+                                if (!File.Exists(unpackedSourcePath))
+                                {
+                                    // The header references an unpacked file that no longer
+                                    // exists on disk; skip it instead of aborting the whole
+                                    // extraction so the rest of the asar can still be repacked.
+                                    continue;
+                                }
+
+                                Directory.CreateDirectory(Extensions.GetDirectoryName(destFilename));
+                                File.Copy(unpackedSourcePath, destFilename, true);
+                            }
+                            else
+                            {
+                                byte[] content = Disk.ReadFileSync(filesystem, filename, file);
+                                File.WriteAllBytes(destFilename, content);
+                            }
+
                             if (file.Executable == true && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                             {
                                 Extensions.SetUnixFilePermission(destFilename, "755");

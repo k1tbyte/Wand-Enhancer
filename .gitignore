@@ -142,3 +142,4 @@ packages
 
 # App settings (user preferences)
 appsettings.json
+*DotSettings.user

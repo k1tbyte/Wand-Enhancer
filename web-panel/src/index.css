@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --background: oklch(0.122 0.022 255);
+    --foreground: oklch(0.968 0.016 96);
+    --card: oklch(0.18 0.028 252);
+    --card-foreground: oklch(0.968 0.016 96);
+    --popover: oklch(0.16 0.026 252);
+    --popover-foreground: oklch(0.968 0.016 96);
+    --primary: oklch(0.812 0.184 142);
+    --primary-foreground: oklch(0.13 0.032 145);
+    --secondary: oklch(0.251 0.046 252);
+    --secondary-foreground: oklch(0.92 0.025 94);
+    --muted: oklch(0.235 0.031 252);
+    --muted-foreground: oklch(0.72 0.025 248);
+    --accent: oklch(0.742 0.153 55);
+    --accent-foreground: oklch(0.16 0.028 50);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.32 0.042 252);
+    --input: oklch(0.255 0.038 252);
+    --ring: oklch(0.812 0.184 142);
+    --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply min-h-svh bg-background text-foreground antialiased;
+    }
+  html {
+    @apply font-sans;
+    }
+}

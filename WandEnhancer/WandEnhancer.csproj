@@ -160,6 +160,17 @@
             <LogicalName>proxydll</LogicalName>
         </EmbeddedResource>
     </ItemGroup>
+    <ItemGroup>
+      <EmbeddedResource Include="..\web-panel\dist\**\*.*" Condition="Exists('..\web-panel\dist\index.html')">
+        <LogicalName>remote-panel/dist/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="..\web-panel\bridge\wand-remote-bridge.cjs" Condition="Exists('..\web-panel\bridge\wand-remote-bridge.cjs')">
+        <LogicalName>remote-panel/bridge.cjs</LogicalName>
+      </EmbeddedResource>
+      <EmbeddedResource Include="..\web-panel\scripts\default\*.js" Condition="Exists('..\web-panel\scripts\default')">
+        <LogicalName>remote-panel/renderer-scripts/%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
     
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

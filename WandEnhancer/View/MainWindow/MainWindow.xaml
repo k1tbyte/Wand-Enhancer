@@ -109,7 +109,8 @@
                     <Border Grid.Row="1" BorderBrush="{DynamicResource Border}" BorderThickness="1"
                             Margin="10 0 10 10"
                             CornerRadius="5">
-                        <ListBox ItemsSource="{Binding LogList}" SelectionMode="Single"
+                        <Grid>
+                            <ListBox ItemsSource="{Binding LogList}" SelectionMode="Single"
                                  BorderBrush="Transparent" BorderThickness="0"
                                  Background="Transparent" 
                                  x:Name="LogList"
@@ -152,6 +153,20 @@
                     </Style>
                             </ListBox.ItemContainerStyle>
                         </ListBox>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0 4 4 0">
+                                <Button Width="22" Height="22" Padding="4"
+                                        Style="{StaticResource IconButton}"
+                                        Tag="{StaticResource CopyIcon}"
+                                        ToolTip="{DynamicResource mw_copy_logs}"
+                                        Command="{Binding CopyLogsCommand}"/>
+                                <Button Width="22" Height="22" Padding="4" Margin="4 0 0 0"
+                                        Style="{StaticResource IconButton}"
+                                        Tag="{StaticResource ExportIcon}"
+                                        ToolTip="{DynamicResource mw_export_logs}"
+                                        Command="{Binding ExportLogsCommand}"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
                 
 

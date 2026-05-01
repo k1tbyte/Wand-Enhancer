@@ -1,0 +1,26 @@
+name: Mirror to GitLab
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    tags:
+      - '*'
+  workflow_dispatch:
+
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Push to GitLab
+        env:
+          GITLAB_USERNAME: kitbyte
+          GITLAB_REPO: Wand-Enhancer
+        run: |
+          git remote add gitlab https://oauth2:${{ secrets.GITLAB_TOKEN }}@gitlab.com/$GITLAB_USERNAME/$GITLAB_REPO.git
+          git push gitlab --all --force
+          git push gitlab --tags --force

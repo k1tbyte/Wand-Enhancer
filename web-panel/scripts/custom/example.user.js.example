@@ -1,0 +1,8 @@
+(function installUserHudMarker(WandEnhancer) {
+  if (globalThis.__wandEnhancerUserHudMarkerInstalled) {
+    return;
+  }
+
+  globalThis.__wandEnhancerUserHudMarkerInstalled = true;
+  WandEnhancer.log('user script loaded', WandEnhancer.remoteUrl);
+})(globalThis.WandEnhancer);

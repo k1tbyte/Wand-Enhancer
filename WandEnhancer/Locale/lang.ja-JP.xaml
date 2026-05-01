@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">ソースコード</s:String>
     <s:String x:Key="mw_made_by">k1tbyte が ❤️ を込めて作成</s:String>
     <s:String x:Key="mw_star_hint">役に立ったらスターをつけてください ;)</s:String>
+    <s:String x:Key="mw_copy_logs">ログをクリップボードにコピー</s:String>
+    <s:String x:Key="mw_export_logs">ログをファイルにエクスポート</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">WeMod Pro を有効化</s:String>
     <s:String x:Key="pv_devtools">F12でDevTools</s:String>
     <s:String x:Key="pv_disable_updates">アップデートを無効化</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">リモートアクセスを有効化（ベータ）</s:String>
+    <s:String x:Key="pv_custom_scripts">カスタムスクリプト</s:String>
+    <s:String x:Key="pv_add_js_scripts">.js を追加</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">選択した .js ファイルは Wand に組み込まれ、レンダラーで読み込まれます。</s:String>
+    <s:String x:Key="pv_no_custom_scripts">スクリプトが選択されていません</s:String>
     <s:String x:Key="pv_start">開始</s:String>
     <s:String x:Key="pv_popup_title">何を改善しますか？</s:String>
     <!--#endregion -->

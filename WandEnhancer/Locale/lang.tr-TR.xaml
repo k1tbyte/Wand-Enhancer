@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">Kaynak kodu</s:String>
     <s:String x:Key="mw_made_by">k1tbyte tarafından ❤️ ile yapıldı</s:String>
     <s:String x:Key="mw_star_hint">Yardımcı olduysa yıldız verin ;)</s:String>
+    <s:String x:Key="mw_copy_logs">Günlükleri panoya kopyala</s:String>
+    <s:String x:Key="mw_export_logs">Günlükleri dosyaya aktar</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">WeMod Pro'yu Etkinleştir</s:String>
     <s:String x:Key="pv_devtools">F12 ile DevTools</s:String>
     <s:String x:Key="pv_disable_updates">Güncellemeleri devre dışı bırak</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">Uzaktan erişimi etkinleştir (beta)</s:String>
+    <s:String x:Key="pv_custom_scripts">Özel betikler</s:String>
+    <s:String x:Key="pv_add_js_scripts">.js ekle</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">Seçilen .js dosyaları Wand içine paketlenir ve renderer'da yüklenir.</s:String>
+    <s:String x:Key="pv_no_custom_scripts">Betik seçilmedi</s:String>
     <s:String x:Key="pv_start">Başlat</s:String>
     <s:String x:Key="pv_popup_title">Neyi geliştireceğiz?</s:String>
     <!--#endregion -->

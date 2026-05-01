@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">Вихідний код</s:String>
     <s:String x:Key="mw_made_by">Зроблено з ❤️ by k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Поставте зірку, якщо це було корисно ;)</s:String>
+    <s:String x:Key="mw_copy_logs">Скопіювати логи до буфера обміну</s:String>
+    <s:String x:Key="mw_export_logs">Експортувати логи у файл</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">Активувати WeMod Pro</s:String>
     <s:String x:Key="pv_devtools">DevTools на F12</s:String>
     <s:String x:Key="pv_disable_updates">Вимкнути оновлення</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">Увімкнути віддалений доступ (бета)</s:String>
+    <s:String x:Key="pv_custom_scripts">Користувацькі скрипти</s:String>
+    <s:String x:Key="pv_add_js_scripts">Додати .js</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">Вибрані файли .js пакуються у Wand і завантажуються в рендерері.</s:String>
+    <s:String x:Key="pv_no_custom_scripts">Скрипти не вибрано</s:String>
     <s:String x:Key="pv_start">Почати</s:String>
     <s:String x:Key="pv_popup_title">Що будемо покращувати?</s:String>
     <!--#endregion -->

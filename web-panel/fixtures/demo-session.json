@@ -1,0 +1,140 @@
+{
+  "trainerMeta": {
+    "session": {
+      "instanceId": "mock-instance"
+    },
+    "trainer": {
+      "trainerId": "mock-trainer-1",
+      "gameId": "mock-game-1",
+      "displayName": "Mock Adventure",
+      "titleId": "mock-title-1",
+      "gameVersion": "1.0.0",
+      "trainerLoading": false,
+      "gameInstalled": true,
+      "needsCompatibilityWarning": false,
+      "language": "en-US",
+      "themeId": "default",
+      "isTimeLimitExpired": false,
+      "notesReadHash": null
+    },
+    "schema": {
+      "categories": ["player", "inventory", "world"],
+      "cheats": [
+        {
+          "uuid": "toggle-god-mode",
+          "target": "god_mode",
+          "type": "toggle",
+          "name": "God Mode",
+          "description": "Ignore incoming damage.",
+          "instructions": null,
+          "category": "player",
+          "parent": null,
+          "args": {}
+        },
+        {
+          "uuid": "slider-health",
+          "target": "player_health",
+          "type": "slider",
+          "name": "Health",
+          "description": "Tune player health in real time.",
+          "instructions": null,
+          "category": "player",
+          "parent": null,
+          "args": {
+            "min": 0,
+            "max": 100,
+            "step": 1
+          }
+        },
+        {
+          "uuid": "number-money",
+          "target": "player_money",
+          "type": "number",
+          "name": "Money",
+          "description": "Set the current money amount.",
+          "instructions": null,
+          "category": "inventory",
+          "parent": null,
+          "args": {
+            "min": 0,
+            "max": 999999,
+            "step": 100
+          }
+        },
+        {
+          "uuid": "button-restock",
+          "target": "restock_ammo",
+          "type": "button",
+          "name": "Restock Ammo",
+          "description": "Apply a one-shot action.",
+          "instructions": "Click once to refill ammo.",
+          "category": "inventory",
+          "parent": null,
+          "args": {}
+        },
+        {
+          "uuid": "selection-difficulty",
+          "target": "difficulty",
+          "type": "selection",
+          "name": "Difficulty",
+          "description": "Pick one predefined option.",
+          "instructions": null,
+          "category": "world",
+          "parent": null,
+          "args": {
+            "options": [
+              { "label": "Easy", "value": "easy" },
+              { "label": "Normal", "value": "normal" },
+              { "label": "Hard", "value": "hard" }
+            ]
+          }
+        },
+        {
+          "uuid": "scalar-speed",
+          "target": "game_speed",
+          "type": "scalar",
+          "name": "Game Speed",
+          "description": "Scalar-style preset selector.",
+          "instructions": null,
+          "category": "world",
+          "parent": null,
+          "args": {
+            "postfix": "x",
+            "default": 1,
+            "options": [0.5, 1, 1.5, 2]
+          }
+        },
+        {
+          "uuid": "incremental-time",
+          "target": "time_of_day",
+          "type": "incremental",
+          "name": "Time of Day",
+          "description": "Step through a small sequence of values.",
+          "instructions": null,
+          "category": "world",
+          "parent": null,
+          "args": {
+            "options": [
+              { "label": "Dawn", "value": "dawn" },
+              { "label": "Day", "value": "day" },
+              { "label": "Dusk", "value": "dusk" },
+              { "label": "Night", "value": "night" }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "trainerValues": {
+    "trainerId": "mock-trainer-1",
+    "values": {
+      "god_mode": false,
+      "player_health": 83,
+      "player_money": 15000,
+      "restock_ammo": 0,
+      "difficulty": "normal",
+      "game_speed": 1,
+      "time_of_day": "day"
+    }
+  }
+}

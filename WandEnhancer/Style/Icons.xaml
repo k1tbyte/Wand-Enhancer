@@ -27,6 +27,14 @@
     <Geometry x:Key="ArrowLeft">
         M5.05 11.94l5-5v3.99H19l-.03 2.01H10.05v4Z
     </Geometry>
+
+    <Geometry x:Key="CopyIcon">
+        M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1Z
+    </Geometry>
+
+    <Geometry x:Key="ExportIcon">
+        M14 13h-3v3H9v-3H6v-2h3V8h2v3h3m-1-9H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9l-7-7M5 4h7v5h5v11H5V4Z
+    </Geometry>
     
     <!--<Geometry x:Key="">
         

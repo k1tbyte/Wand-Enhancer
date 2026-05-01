@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WandEnhancer.Core;
@@ -73,6 +74,8 @@ namespace WandEnhancer.View.MainWindow
         public RelayCommand RestoreBackupCommand { get; }
         public RelayCommand UpdateCommand { get; }
         public RelayCommand OpenSettingsCommand { get; }
+        public RelayCommand CopyLogsCommand { get; }
+        public RelayCommand ExportLogsCommand { get; }
 
         private void OnFolderPathSelection(object obj)
         {
@@ -208,6 +211,64 @@ namespace WandEnhancer.View.MainWindow
             MainWindow.Instance.OpenPopup(new SettingsPopup(), Application.Current.FindResource("settings_title") as string);
         }
 
+        private string BuildLogReport()
+        {
+            var builder = new StringBuilder();
+            foreach (var entry in LogList)
+            {
+                builder.AppendLine(entry.Message);
+            }
+            return builder.ToString();
+        }
+
+        private void OnCopyLogs(object param)
+        {
+            if (LogList.Count == 0)
+            {
+                return;
+            }
+
+            try
+            {
+                System.Windows.Clipboard.SetText(BuildLogReport());
+                Log("Logs copied to clipboard.", ELogType.Success);
+            }
+            catch (Exception e)
+            {
+                Log($"Failed to copy logs: {e.Message}", ELogType.Error);
+            }
+        }
+
+        private void OnExportLogs(object param)
+        {
+            if (LogList.Count == 0)
+            {
+                return;
+            }
+
+            using (var dialog = new SaveFileDialog
+            {
+                Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                FileName = $"wand-enhancer-log-{DateTime.Now:yyyyMMdd-HHmmss}.txt"
+            })
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    File.WriteAllText(dialog.FileName, BuildLogReport());
+                    Log($"Logs exported to '{dialog.FileName}'.", ELogType.Success);
+                }
+                catch (Exception e)
+                {
+                    Log($"Failed to export logs: {e.Message}", ELogType.Error);
+                }
+            }
+        }
+
         public MainWindowVm(MainWindow view)
         {
             Task.Run(async () => IsUpdateAvailable = await _updater.CheckForUpdates());
@@ -217,6 +278,8 @@ namespace WandEnhancer.View.MainWindow
             RestoreBackupCommand = new RelayCommand(OnBackupRestoring);
             UpdateCommand = new RelayCommand(OnUpdate);
             OpenSettingsCommand = new RelayCommand(OnOpenSettings);
+            CopyLogsCommand = new RelayCommand(OnCopyLogs);
+            ExportLogsCommand = new RelayCommand(OnExportLogs);
 
             WeModInfo = Extensions.FindWeMod();
             if (WeModInfo == null)

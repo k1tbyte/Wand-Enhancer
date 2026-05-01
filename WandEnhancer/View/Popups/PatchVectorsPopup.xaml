@@ -11,35 +11,87 @@
              Foreground="{DynamicResource MutedForeground}"
              FontWeight="Medium"
              FontSize="13">
-    <Grid>
+    <Grid MinWidth="430">
         <Grid Visibility="Visible" Margin="0 0 5 0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="{DynamicResource pv_activate_pro}" />
-            <CheckBox Grid.Row="0" x:Name="ActivateProBox" HorizontalAlignment="Right" VerticalAlignment="Center"
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_activate_pro}" />
+            <CheckBox Grid.Row="0" Grid.Column="1" x:Name="ActivateProBox" HorizontalAlignment="Right" VerticalAlignment="Center"
                       IsChecked="True" />
 
-            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="{DynamicResource pv_devtools}" />
-            <CheckBox Grid.Row="1" x:Name="DevToolsHotkeyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_devtools}" />
+            <CheckBox Grid.Row="1" Grid.Column="1" x:Name="DevToolsHotkeyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
-            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="{DynamicResource pv_disable_updates}" />
-            <CheckBox Grid.Row="2" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_disable_updates}" />
+            <CheckBox Grid.Row="2" Grid.Column="1" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
-            <!--<TextBlock
-                ToolTip="Disable if you want to use older versions separately and manage versions manually via different shortcuts"
-                ToolTipService.InitialShowDelay="300"
-                Grid.Row="3" VerticalAlignment="Center">
-                Apply the patch to new versions <LineBreak />  automatically (hover to see more)
-            </TextBlock>
-            <CheckBox Grid.Row="3" x:Name="AutoUpdates" HorizontalAlignment="Right" VerticalAlignment="Center"
-                      IsChecked="True" />-->
+            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_remote_web_panel_preview}" />
+            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="RemoteWebPanelPreviewBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
-            <Button Grid.Row="3" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
+            <Border Grid.Row="4" Grid.ColumnSpan="2" Margin="0 14 0 0" Padding="10"
+                    BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="4"
+                    Background="{DynamicResource Muted}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Foreground}"
+                                   Text="{DynamicResource pv_custom_scripts}" />
+                        <Button Grid.Column="1" Padding="10 4" Content="{DynamicResource pv_add_js_scripts}"
+                                Click="OnAddScriptClick" />
+                    </Grid>
+
+                    <TextBlock Margin="0 7 0 0" FontSize="11" TextWrapping="Wrap"
+                               Opacity="0.8"
+                               Text="{DynamicResource pv_custom_scripts_hint}" />
+
+                    <ItemsControl x:Name="ScriptList" Margin="0 2 0 0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0 6 6 0" Padding="8 3"
+                                        Background="{DynamicResource Card}"
+                                        BorderBrush="{DynamicResource Border}"
+                                        BorderThickness="1"
+                                        CornerRadius="3">
+                                    <DockPanel LastChildFill="True">
+                                        <Button DockPanel.Dock="Right" Tag="{Binding}" Content="x"
+                                                BorderThickness="0" Padding="6 0" Margin="6 0 0 0"
+                                                Click="OnRemoveScriptClick" />
+                                        <TextBlock VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource Foreground}"
+                                                   Text="{Binding FileName}" />
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock x:Name="NoScriptsText" Margin="0 7 0 0" FontSize="11"
+                               Opacity="0.7"
+                               Text="{DynamicResource pv_no_custom_scripts}" />
+                </StackPanel>
+            </Border>
+
+            <Button Grid.Row="5" Grid.ColumnSpan="2" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
                     Click="OnPatchButtonClick" />
         </Grid>
     </Grid>

@@ -16,6 +16,8 @@
     <s:String x:Key="mw_source_code">Исходный код</s:String>
     <s:String x:Key="mw_made_by">Сделано с ❤️ by k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Поставьте звезду, если это было полезно ;)</s:String>
+    <s:String x:Key="mw_copy_logs">Скопировать логи в буфер обмена</s:String>
+    <s:String x:Key="mw_export_logs">Экспортировать логи в файл</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
@@ -28,6 +30,11 @@
     <s:String x:Key="pv_activate_pro">Активировать WeMod Pro</s:String>
     <s:String x:Key="pv_devtools">DevTools на F12</s:String>
     <s:String x:Key="pv_disable_updates">Отключить обновления</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">Remote-доступ (beta)</s:String>
+    <s:String x:Key="pv_custom_scripts">Свои скрипты</s:String>
+    <s:String x:Key="pv_add_js_scripts">Добавить .js</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">Выбранные .js попадут в Wand и загрузятся в renderer.</s:String>
+    <s:String x:Key="pv_no_custom_scripts">Скрипты не выбраны</s:String>
     <s:String x:Key="pv_start">Начать</s:String>
     <s:String x:Key="pv_popup_title">Что будем улучшать?</s:String>
     <!--#endregion -->

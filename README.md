@@ -20,8 +20,20 @@ Yes. This project is entirely open-source, allowing anyone to audit the code. It
 ✅ Local environment configuration management <br/>
 ✅ Automated compatibility adjustments for new client versions <br/>
 ✅ Advanced layout and theme customization (Client-side only) <br/>
-✅ AI Features
-❌ Remote/Mobile connectivity features <br/>
+✅ AI Features <br/>
+✅ Remote web panel (Remote Connect on mobile) <br/>
+
+## 🌐 Remote Web Panel
+WandEnhancer includes a built-in **Remote Web Panel** allowing you to control app features directly from your phone.
+
+### Quick Start:
+1. Ensure both your PC and phone are on the **same Wi-Fi network**.
+2. Hover over the **Connect** button in the top bar of WandEnhancer.
+3. Scan the displayed **QR code** with your phone's camera.
+
+### Troubleshooting & Remote Access:
+- **Page isn't loading?** First, ensure both your PC and phone are connected to the **exact same Wi-Fi network**. Next, make sure **Network Discovery** is turned on in your Windows network settings. If it still doesn't work, Windows Firewall might be blocking the connection—you may need to manually allow inbound traffic on TCP port `3223`.
+- **Using mobile data or a different network?** If you want to use the panel over mobile data (LTE/5G) or from an entirely different network, you can use [Tailscale](https://tailscale.com/) or similar VPN tools.
 
 ## 👀 How to use?
 
@@ -41,7 +53,11 @@ Yes. This project is entirely open-source, allowing anyone to audit the code. It
 ---
 ## 🖼️ Screenshots
 ![1](./assets/screenshots/app1.png)
+<div align='center'>
+
 ![2](./assets/screenshots/app2.png)
+</div>
+
 ---
 
 ## 📜 License
