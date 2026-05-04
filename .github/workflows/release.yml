@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish-release:
+    if: github.repository == 'k1tbyte/Wand-Enhancer'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    env:
+      RELEASE_VERSION: ${{ github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-panel/pnpm-lock.yaml
+
+      - name: Validate release metadata
+        shell: pwsh
+        run: ./scripts/validate-release-metadata.ps1 -ExpectedVersion $env:RELEASE_VERSION
+
+      - name: Extract release notes from changelog
+        shell: pwsh
+        run: ./scripts/get-changelog-section.ps1 -Version $env:RELEASE_VERSION -OutputPath release-notes.md
+
+      - name: Build release
+        shell: pwsh
+        run: ./build.ps1 -Configuration Release
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: |
+            WandEnhancer/bin/Release/WandEnhancer.exe
+            CHANGELOG.md
+          fail_on_unmatched_files: true

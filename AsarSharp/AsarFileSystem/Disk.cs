@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using AsarSharp.PickleTools;
@@ -9,6 +9,7 @@ namespace AsarSharp.AsarFileSystem
 {
     public static class Disk
     {
+        private const int StreamBufferSize = 1024 * 1024;
         private static Dictionary<string, Filesystem> _filesystemCache = new Dictionary<string, Filesystem>();
 
         public class ArchiveHeader
@@ -35,7 +36,7 @@ namespace AsarSharp.AsarFileSystem
         
         public static ArchiveHeader ReadArchiveHeaderSync(string archivePath)
         {
-            using (FileStream fs = File.OpenRead(archivePath))
+            using (var fs = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
             { 
                 // read the size of the header (8 bytes)
                 byte[] sizeBuf = new byte[8];
@@ -103,7 +104,7 @@ namespace AsarSharp.AsarFileSystem
             }
 
             // Read from the ASAR archive
-            using (FileStream fs = File.OpenRead(filesystem.GetRootPath()))
+            using (var fs = new FileStream(filesystem.GetRootPath(), FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
             {
                 // Important: the offset must take into account the size of the Pickle header (8 bytes)
                 // and the size of the header itself
@@ -145,19 +146,29 @@ namespace AsarSharp.AsarFileSystem
             if(dest == null || rootPath == null || filename == null)
                 throw new ArgumentNullException();
 
-            if (dest == rootPath)
+            string normalizedDestRoot = Path.GetFullPath(dest)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string normalizedRootPath = Path.GetFullPath(rootPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+            if (string.Equals(normalizedDestRoot, normalizedRootPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
             
-            string sourcePath = Path.Combine(rootPath, filename);
-            string destPath = Path.Combine(dest, filename);
+            string sourcePath = Path.GetFullPath(Path.Combine(rootPath, filename));
+            string destPath = Path.GetFullPath(Path.Combine(dest, filename));
+
+            if (string.Equals(sourcePath, destPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
 
             Directory.CreateDirectory(Path.GetDirectoryName(destPath) ?? throw new InvalidOperationException());
-            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read))
-            using (var destinationStream = new FileStream(destPath, FileMode.Create, FileAccess.Write))
+            using (var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
+            using (var destinationStream = new FileStream(destPath, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
             {
-                sourceStream.CopyTo(destinationStream);
+                sourceStream.CopyTo(destinationStream, StreamBufferSize);
             }
         }
         
@@ -179,7 +190,7 @@ namespace AsarSharp.AsarFileSystem
             sizePickle.WriteUInt32((uint)headerBuf.Length);
             var sizeBuf = sizePickle.ToBuffer();
             
-            using (FileStream fs = File.Create(dest))
+            using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
             {
                 fs.Write(sizeBuf, 0, sizeBuf.Length);
                 fs.Write(headerBuf, 0, headerBuf.Length);
@@ -192,9 +203,9 @@ namespace AsarSharp.AsarFileSystem
                         CopyFile($"{dest}.unpacked", fileSystem.GetRootPath(), filename);
                         continue;
                     }
-                    using (var transformedFileStream = new FileStream(file.Filename, FileMode.Open, FileAccess.Read))
+                    using (var transformedFileStream = new FileStream(file.Filename, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
                     {
-                        transformedFileStream.CopyTo(fs);
+                        transformedFileStream.CopyTo(fs, StreamBufferSize);
                     }
                 }
             }

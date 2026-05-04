@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.IO;
 using System.Text;
 
 namespace AsarSharp.PickleTools
@@ -12,10 +13,10 @@ namespace AsarSharp.PickleTools
         public const int SIZE_FLOAT = 4;
         public const int SIZE_DOUBLE = 8;
 
-        // Size of memory allocation unit for payload
-        public const int PAYLOAD_UNIT = 64;
+        // Initial payload allocation. Bumped from 64 — large headers used to
+        // realloc many times when growing geometrically from 64.
+        public const int PAYLOAD_UNIT = 4096;
 
-        // Maximum value for read-only
         public const long CAPACITY_READ_ONLY = 9007199254740992;
 
         private byte[] _header;
@@ -57,55 +58,40 @@ namespace AsarSharp.PickleTools
                 SetPayloadSize(0);
             }
         }
-        
-        public static Pickle CreateEmpty()
-        {
-            return new Pickle();
-        }
-        
-        public static Pickle CreateFromBuffer(byte[] buffer)
-        {
-            return new Pickle(buffer);
-        }
 
-        public byte[] GetHeader()
-        {
-            return _header;
-        }
+        public static Pickle CreateEmpty() => new Pickle();
+        public static Pickle CreateFromBuffer(byte[] buffer) => new Pickle(buffer);
 
-        public int GetHeaderSize()
-        {
-            return _headerSize;
-        }
-        
-        public PickleIterator CreateIterator()
-        {
-            return new PickleIterator(this);
-        }
+        public byte[] GetHeader() => _header;
+        public int GetHeaderSize() => _headerSize;
 
-        /// <summary>
-        /// Converts Pickle to a byte array
-        /// </summary>
+        public PickleIterator CreateIterator() => new PickleIterator(this);
+
+        /// <summary>Total byte length of the serialised pickle (header + payload).</summary>
+        public int GetTotalSize() => _headerSize + GetPayloadSize();
+
+        /// <summary>Materialise the pickle into a fresh byte array (allocates).</summary>
         public byte[] ToBuffer()
         {
-            int resultSize = _headerSize + GetPayloadSize();
+            int resultSize = GetTotalSize();
             byte[] result = new byte[resultSize];
-            Array.Copy(_header, 0, result, 0, resultSize);
+            Buffer.BlockCopy(_header, 0, result, 0, resultSize);
             return result;
         }
 
-
-        public bool WriteBool(bool value)
+        /// <summary>Write the serialised pickle straight to <paramref name="stream"/> — no extra copy.</summary>
+        public void WriteTo(Stream stream)
         {
-            return WriteInt(value ? 1 : 0);
+            stream.Write(_header, 0, GetTotalSize());
         }
-        
+
+
+        public bool WriteBool(bool value) => WriteInt(value ? 1 : 0);
+
         public bool WriteInt(int value)
         {
-            EnsureCapacity(SIZE_INT32);
-
-            var dataLength = AlignInt(SIZE_INT32, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_INT32; // already 4-byte aligned
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
@@ -113,13 +99,6 @@ namespace AsarSharp.PickleTools
             }
 
             WriteInt32LE(value, _headerSize + _writeOffset);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_INT32;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_INT32; i++)
-            {
-                _header[i] = 0;
-            }
-
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
@@ -128,10 +107,8 @@ namespace AsarSharp.PickleTools
 
         public bool WriteUInt32(uint value)
         {
-            EnsureCapacity(SIZE_UINT32);
-
-            var dataLength = AlignInt(SIZE_UINT32, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_UINT32;
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
@@ -139,24 +116,15 @@ namespace AsarSharp.PickleTools
             }
 
             WriteUInt32LE(value, _headerSize + _writeOffset);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_UINT32;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_UINT32; i++)
-            {
-                _header[i] = 0;
-            }
-
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
         }
-        
+
         public bool WriteInt64(long value)
         {
-            EnsureCapacity(SIZE_INT64);
-
-            var dataLength = AlignInt(SIZE_INT64, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_INT64;
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
@@ -164,13 +132,6 @@ namespace AsarSharp.PickleTools
             }
 
             WriteInt64LE(value, _headerSize + _writeOffset);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_INT64;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_INT64; i++)
-            {
-                _header[i] = 0;
-            }
-
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
@@ -179,10 +140,8 @@ namespace AsarSharp.PickleTools
 
         public bool WriteUInt64(ulong value)
         {
-            EnsureCapacity(SIZE_UINT64);
-
-            var dataLength = AlignInt(SIZE_UINT64, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_UINT64;
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
@@ -190,102 +149,69 @@ namespace AsarSharp.PickleTools
             }
 
             WriteUInt64LE(value, _headerSize + _writeOffset);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_UINT64;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_UINT64; i++)
-            {
-                _header[i] = 0;
-            }
-
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
         }
-        
+
         public bool WriteFloat(float value)
         {
-            EnsureCapacity(SIZE_FLOAT);
-
-            var dataLength = AlignInt(SIZE_FLOAT, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_FLOAT;
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
                 Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
             }
 
-            byte[] bytes = BitConverter.GetBytes(value);
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            Array.Copy(bytes, 0, _header, _headerSize + _writeOffset, SIZE_FLOAT);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_FLOAT;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_FLOAT; i++)
-            {
-                _header[i] = 0;
-            }
+            int bits = BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
+            WriteInt32LE(bits, _headerSize + _writeOffset);
 
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
         }
-        
+
         public bool WriteDouble(double value)
         {
-            EnsureCapacity(SIZE_DOUBLE);
-
-            var dataLength = AlignInt(SIZE_DOUBLE, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            const int dataLength = SIZE_DOUBLE;
+            int newSize = _writeOffset + dataLength;
 
             if (newSize > _capacityAfterHeader)
             {
                 Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
             }
 
-            byte[] bytes = BitConverter.GetBytes(value);
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(bytes);
-            }
-
-            Array.Copy(bytes, 0, _header, _headerSize + _writeOffset, SIZE_DOUBLE);
-
-            var endOffset = _headerSize + _writeOffset + SIZE_DOUBLE;
-            for (int i = endOffset; i < endOffset + dataLength - SIZE_DOUBLE; i++)
-            {
-                _header[i] = 0;
-            }
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            WriteInt64LE(bits, _headerSize + _writeOffset);
 
             SetPayloadSize(newSize);
             _writeOffset = newSize;
             return true;
         }
-        
+
         public bool WriteString(string value)
         {
-            byte[] strBytes = Encoding.UTF8.GetBytes(value);
-            int length = strBytes.Length;
+            int byteLen = Encoding.UTF8.GetByteCount(value);
 
-            if (!WriteInt(length))
+            if (!WriteInt(byteLen))
             {
                 return false;
             }
 
-            var dataLength = AlignInt(length, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
+            int aligned = AlignInt(byteLen, SIZE_UINT32);
+            int newSize = _writeOffset + aligned;
 
             if (newSize > _capacityAfterHeader)
             {
                 Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
             }
 
-            Array.Copy(strBytes, 0, _header, _headerSize + _writeOffset, length);
+            int writeStart = _headerSize + _writeOffset;
+            Encoding.UTF8.GetBytes(value, 0, value.Length, _header, writeStart);
 
-            var endOffset = _headerSize + _writeOffset + length;
-            for (int i = endOffset; i < endOffset + dataLength - length; i++)
+            // zero alignment padding
+            for (int i = writeStart + byteLen; i < writeStart + aligned; i++)
             {
                 _header[i] = 0;
             }
@@ -294,132 +220,80 @@ namespace AsarSharp.PickleTools
             _writeOffset = newSize;
             return true;
         }
-        
+
         public void SetPayloadSize(int payloadSize)
         {
             WriteUInt32LE((uint)payloadSize, 0);
         }
-        
-        public int GetPayloadSize()
-        {
-            return (int)ReadUInt32LE(0);
-        }
-        
+
+        public int GetPayloadSize() => (int)ReadUInt32LE(0);
+
         private void Resize(int newCapacity)
         {
             newCapacity = AlignInt(newCapacity, PAYLOAD_UNIT);
             byte[] newHeader = new byte[_header.Length + newCapacity];
-            Array.Copy(_header, 0, newHeader, 0, _header.Length);
+            Buffer.BlockCopy(_header, 0, newHeader, 0, _header.Length);
             _header = newHeader;
             _capacityAfterHeader = newCapacity;
         }
-        
+
         public static int AlignInt(int i, int alignment)
         {
             return i + ((alignment - (i % alignment)) % alignment);
-        }
-        
-        private void EnsureCapacity(int additionalSize)
-        {
-            var dataLength = AlignInt(additionalSize, SIZE_UINT32);
-            var newSize = _writeOffset + dataLength;
-
-            if (newSize > _capacityAfterHeader)
-            {
-                Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
-            }
         }
 
         #region Auxiliary methods for reading/writing values in Little Endian
 
         private uint ReadUInt32LE(int offset)
         {
-            if (BitConverter.IsLittleEndian)
-            {
-                return BitConverter.ToUInt32(_header, offset);
-            }
-            else
-            {
-                return (uint)(_header[offset] |
-                              (_header[offset + 1] << 8) |
-                              (_header[offset + 2] << 16) |
-                              (_header[offset + 3] << 24));
-            }
+            // _header is allocated by us so always little-endian-friendly when on LE host.
+            return (uint)(_header[offset] |
+                          (_header[offset + 1] << 8) |
+                          (_header[offset + 2] << 16) |
+                          (_header[offset + 3] << 24));
         }
 
         private void WriteInt32LE(int value, int offset)
         {
-            if (BitConverter.IsLittleEndian)
-            {
-                byte[] bytes = BitConverter.GetBytes(value);
-                Array.Copy(bytes, 0, _header, offset, 4);
-            }
-            else
-            {
-                _header[offset] = (byte)value;
-                _header[offset + 1] = (byte)(value >> 8);
-                _header[offset + 2] = (byte)(value >> 16);
-                _header[offset + 3] = (byte)(value >> 24);
-            }
+            _header[offset]     = (byte)value;
+            _header[offset + 1] = (byte)(value >> 8);
+            _header[offset + 2] = (byte)(value >> 16);
+            _header[offset + 3] = (byte)(value >> 24);
         }
 
         private void WriteUInt32LE(uint value, int offset)
         {
-            if (BitConverter.IsLittleEndian)
-            {
-                byte[] bytes = BitConverter.GetBytes(value);
-                Array.Copy(bytes, 0, _header, offset, 4);
-            }
-            else
-            {
-                _header[offset] = (byte)value;
-                _header[offset + 1] = (byte)(value >> 8);
-                _header[offset + 2] = (byte)(value >> 16);
-                _header[offset + 3] = (byte)(value >> 24);
-            }
+            _header[offset]     = (byte)value;
+            _header[offset + 1] = (byte)(value >> 8);
+            _header[offset + 2] = (byte)(value >> 16);
+            _header[offset + 3] = (byte)(value >> 24);
         }
 
         private void WriteInt64LE(long value, int offset)
         {
-            if (BitConverter.IsLittleEndian)
-            {
-                byte[] bytes = BitConverter.GetBytes(value);
-                Array.Copy(bytes, 0, _header, offset, 8);
-            }
-            else
-            {
-                _header[offset] = (byte)value;
-                _header[offset + 1] = (byte)(value >> 8);
-                _header[offset + 2] = (byte)(value >> 16);
-                _header[offset + 3] = (byte)(value >> 24);
-                _header[offset + 4] = (byte)(value >> 32);
-                _header[offset + 5] = (byte)(value >> 40);
-                _header[offset + 6] = (byte)(value >> 48);
-                _header[offset + 7] = (byte)(value >> 56);
-            }
-        }
-        
-        private void WriteUInt64LE(ulong value, int offset)
-        {
-            if (BitConverter.IsLittleEndian)
-            {
-                byte[] bytes = BitConverter.GetBytes(value);
-                Array.Copy(bytes, 0, _header, offset, 8);
-            }
-            else
-            {
-                _header[offset] = (byte)value;
-                _header[offset + 1] = (byte)(value >> 8);
-                _header[offset + 2] = (byte)(value >> 16);
-                _header[offset + 3] = (byte)(value >> 24);
-                _header[offset + 4] = (byte)(value >> 32);
-                _header[offset + 5] = (byte)(value >> 40);
-                _header[offset + 6] = (byte)(value >> 48);
-                _header[offset + 7] = (byte)(value >> 56);
-            }
+            _header[offset]     = (byte)value;
+            _header[offset + 1] = (byte)(value >> 8);
+            _header[offset + 2] = (byte)(value >> 16);
+            _header[offset + 3] = (byte)(value >> 24);
+            _header[offset + 4] = (byte)(value >> 32);
+            _header[offset + 5] = (byte)(value >> 40);
+            _header[offset + 6] = (byte)(value >> 48);
+            _header[offset + 7] = (byte)(value >> 56);
         }
 
-        
+        private void WriteUInt64LE(ulong value, int offset)
+        {
+            _header[offset]     = (byte)value;
+            _header[offset + 1] = (byte)(value >> 8);
+            _header[offset + 2] = (byte)(value >> 16);
+            _header[offset + 3] = (byte)(value >> 24);
+            _header[offset + 4] = (byte)(value >> 32);
+            _header[offset + 5] = (byte)(value >> 40);
+            _header[offset + 6] = (byte)(value >> 48);
+            _header[offset + 7] = (byte)(value >> 56);
+        }
+
+
         #endregion
     }
 }

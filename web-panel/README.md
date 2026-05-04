@@ -5,8 +5,8 @@ Local mobile-friendly web panel scaffold for Wand.
 ## Commands
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Hosted access on the local machine:
@@ -16,7 +16,7 @@ Hosted access on the local machine:
 Hosted access on the LAN:
 
 ```bash
-npm run dev:host
+pnpm run dev:host
 ```
 
 Then open the machine IP on port `4173`.

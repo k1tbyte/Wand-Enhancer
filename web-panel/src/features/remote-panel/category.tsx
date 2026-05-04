@@ -1,4 +1,5 @@
 import { Icon, type IconName } from '@/components/ui/icon';
+import { formatHumanLabel } from '@/lib/utils';
 import type { CheatSchema, TrainerMetaPayload, TrainerSummary } from './protocol';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -41,19 +42,6 @@ const CATEGORY_ICONS: Record<string, IconName> = {
   world: 'world',
 };
 
-const CATEGORY_ACCENTS: Record<string, string> = {
-  challenge: 'text-orange-300 bg-orange-500/12 ring-orange-300/30',
-  enemies: 'text-red-300 bg-red-500/12 ring-red-300/30',
-  inventory: 'text-amber-200 bg-amber-500/12 ring-amber-200/30',
-  physics: 'text-cyan-200 bg-cyan-500/12 ring-cyan-200/30',
-  player: 'text-emerald-200 bg-emerald-500/12 ring-emerald-200/30',
-  stats: 'text-fuchsia-200 bg-fuchsia-500/12 ring-fuchsia-200/30',
-  teleport: 'text-sky-200 bg-sky-500/12 ring-sky-200/30',
-  vehicles: 'text-lime-200 bg-lime-500/12 ring-lime-200/30',
-  weapons: 'text-rose-200 bg-rose-500/12 ring-rose-200/30',
-  world: 'text-teal-200 bg-teal-500/12 ring-teal-200/30',
-};
-
 export type CategoryGroup = {
   id: string;
   label: string;
@@ -61,16 +49,7 @@ export type CategoryGroup = {
 };
 
 export function formatCategoryName(category: string): string {
-  const key = category.toLowerCase();
-  if (CATEGORY_LABELS[key]) {
-    return CATEGORY_LABELS[key];
-  }
-
-  return category
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return CATEGORY_LABELS[category.toLowerCase()] ?? formatHumanLabel(category);
 }
 
 export function groupCheatsByCategory(trainerMeta: TrainerMetaPayload | null): CategoryGroup[] {
@@ -144,10 +123,6 @@ function cheatMatchesQuery(cheat: CheatSchema, query: string): boolean {
 
 export function getTrainerDisplayName(trainer: TrainerSummary): string {
   return trainer.displayName?.trim() || trainer.gameId || trainer.titleId || trainer.trainerId;
-}
-
-export function getCategoryAccent(category: string): string {
-  return CATEGORY_ACCENTS[category.toLowerCase()] ?? 'text-emerald-200 bg-emerald-500/12 ring-emerald-200/30';
 }
 
 export function CategoryIcon({ category, className }: { category: string; className?: string }) {

@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Güncellemeden önce, değişiklikler uygulandıysa geri almak şiddetle tavsiye edilir</s:String>
+    <s:String x:Key="up_current_version">Geçerli sürüm</s:String>
+    <s:String x:Key="up_latest_version">En son sürüm</s:String>
+    <s:String x:Key="up_release_notes">Sürüm notları</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Bu sürüm için sürüm notları kullanılamıyor.</s:String>
+    <s:String x:Key="up_show_more">Tüm changelog'u göster</s:String>
+    <s:String x:Key="up_show_less">Yalnızca güncel notları göster</s:String>
+    <s:String x:Key="up_loading_changelog">Changelog yükleniyor...</s:String>
+    <s:String x:Key="up_changelog_failed">Tam changelog yüklenemedi. Bunun yerine güncel notlar gösteriliyor.</s:String>
     <s:String x:Key="up_update_now">Şimdi güncelle</s:String>
     <s:String x:Key="up_popup_title">Güncelleme mevcut!</s:String>
     <!--#endregion -->

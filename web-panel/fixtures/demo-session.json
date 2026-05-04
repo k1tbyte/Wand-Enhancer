@@ -50,15 +50,33 @@
           "uuid": "number-money",
           "target": "player_money",
           "type": "number",
-          "name": "Money",
-          "description": "Set the current money amount.",
+          "name": "Runes",
+          "description": "Set the current rune amount.",
           "instructions": null,
           "category": "inventory",
           "parent": null,
           "args": {
             "min": 0,
-            "max": 999999,
-            "step": 100
+            "max": 9999999,
+            "step": 1000
+          }
+        },
+        {
+          "uuid": "selection-spawn-item",
+          "target": "spawn_item",
+          "type": "selection",
+          "name": "Spawn Item",
+          "description": "Choose the item to spawn.",
+          "instructions": null,
+          "category": "inventory",
+          "parent": null,
+          "args": {
+            "options": [
+              { "label": "Erdtree Greatshield", "value": "erdtree_greatshield" },
+              { "label": "Rivers of Blood", "value": "rivers_of_blood" },
+              { "label": "Moonveil Katana", "value": "moonveil_katana" },
+              { "label": "Blasphemous Blade", "value": "blasphemous_blade" }
+            ]
           }
         },
         {
@@ -93,15 +111,17 @@
           "uuid": "scalar-speed",
           "target": "game_speed",
           "type": "scalar",
-          "name": "Game Speed",
-          "description": "Scalar-style preset selector.",
+          "name": "Time Scale",
+          "description": "Tune simulation speed in real time.",
           "instructions": null,
           "category": "world",
           "parent": null,
           "args": {
+            "min": 0,
+            "max": 5,
+            "step": 0.01,
             "postfix": "x",
-            "default": 1,
-            "options": [0.5, 1, 1.5, 2]
+            "default": 1
           }
         },
         {
@@ -130,7 +150,8 @@
     "values": {
       "god_mode": false,
       "player_health": 83,
-      "player_money": 15000,
+      "player_money": 2400000,
+      "spawn_item": "erdtree_greatshield",
       "restock_ammo": 0,
       "difficulty": "normal",
       "game_speed": 1,

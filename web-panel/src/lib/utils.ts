@@ -1,5 +1,13 @@
 type ClassValue = string | number | false | null | undefined | ClassValue[] | Record<string, boolean | null | undefined>
 
+export function formatHumanLabel(value: string): string {
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export function cn(...inputs: ClassValue[]) {
   const classes: string[] = []
 

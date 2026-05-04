@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">アップデート前に、変更が適用されている場合はロールバックすることを強くお勧めします</s:String>
+    <s:String x:Key="up_current_version">現在のバージョン</s:String>
+    <s:String x:Key="up_latest_version">最新バージョン</s:String>
+    <s:String x:Key="up_release_notes">リリースノート</s:String>
+    <s:String x:Key="up_release_notes_unavailable">このリリースのリリースノートは利用できません。</s:String>
+    <s:String x:Key="up_show_more">完全な変更履歴を表示</s:String>
+    <s:String x:Key="up_show_less">最新のリリースノートのみ表示</s:String>
+    <s:String x:Key="up_loading_changelog">変更履歴を読み込み中...</s:String>
+    <s:String x:Key="up_changelog_failed">完全な変更履歴を読み込めませんでした。代わりに最新のリリースノートを表示しています。</s:String>
     <s:String x:Key="up_update_now">今すぐ更新</s:String>
     <s:String x:Key="up_popup_title">アップデート利用可能！</s:String>
     <!--#endregion -->

@@ -1,12 +1,12 @@
-(function installRemotePopupCleanup(WandEnhancer) {
+;(function installRemotePopupCleanup(WandEnhancer) {
   if (globalThis.__wandRemotePopupCleanupInstalled) {
-    return;
+    return
   }
 
-  globalThis.__wandRemotePopupCleanupInstalled = true;
+  globalThis.__wandRemotePopupCleanupInstalled = true
 
-  const style = document.createElement('style');
-  style.id = 'wand-remote-popup-cleanup-style';
+  const style = document.createElement("style")
+  style.id = "wand-remote-popup-cleanup-style"
   style.textContent = `
     remote-tooltip .remote-tooltip .top-wrapper,
     remote-tooltip .remote-tooltip .remote-tooltip-section-divider,
@@ -59,36 +59,37 @@
       border-radius: 12px !important;
       transform: none !important;
     }
-  `;
+  `
 
   const installStyle = () => {
     if (!document.getElementById(style.id)) {
-      document.head.appendChild(style);
+      document.head.appendChild(style)
     }
-  };
+  }
 
   const updateLinks = () => {
-    const remoteUrl = globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl;
+    const remoteUrl =
+      globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl
     if (!remoteUrl) {
-      return;
+      return
     }
 
-    for (const anchor of document.querySelectorAll('remote-tooltip a[href]')) {
-      anchor.setAttribute('href', remoteUrl);
-      anchor.textContent = remoteUrl.replace(/\/$/, '');
+    for (const anchor of document.querySelectorAll("remote-tooltip a[href]")) {
+      anchor.setAttribute("href", remoteUrl)
+      anchor.textContent = remoteUrl.replace(/\/$/, "")
     }
-  };
+  }
 
-  installStyle();
-  updateLinks();
+  installStyle()
+  updateLinks()
 
   const observer = new MutationObserver(() => {
-    installStyle();
-    updateLinks();
-  });
+    installStyle()
+    updateLinks()
+  })
 
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
-  });
-})(globalThis.WandEnhancer);
+  })
+})(globalThis.WandEnhancer)

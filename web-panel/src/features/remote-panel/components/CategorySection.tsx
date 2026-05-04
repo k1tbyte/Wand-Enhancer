@@ -1,7 +1,11 @@
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useMemo, useState } from 'react';
+
+import { Icon } from '@/components/ui/icon';
+
 import { cn } from '@/lib/utils';
-import { CategoryIcon, type CategoryGroup, getCategoryAccent } from '../category';
+import { CategoryIcon, type CategoryGroup } from '../category';
 import type { CheatSchema } from '../protocol';
+import { ECheatType } from '../protocol';
 import { CheatTile } from './CheatTile';
 
 type CategorySectionProps = {
@@ -10,38 +14,49 @@ type CategorySectionProps = {
   pendingTargets: Record<string, boolean>;
   pinnedTargets: Record<string, true>;
   disabled: boolean;
+  openByDefault?: boolean;
+  forceOpen?: boolean;
   onCheatChange: (cheat: CheatSchema, nextValue: unknown) => void;
   onTogglePin: (cheat: CheatSchema) => void;
 };
 
-export function CategorySection({
+export const CategorySection = ({
   group,
   values,
   pendingTargets,
   pinnedTargets,
   disabled,
+  openByDefault = true,
+  forceOpen = false,
   onCheatChange,
   onTogglePin,
-}: CategorySectionProps) {
-  return (
-    <section className="space-y-2 sm:space-y-3">
-      <header className="flex items-center justify-between gap-2 sm:gap-3">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className={cn('flex size-8 items-center justify-center rounded-[8px] ring-1 sm:size-10', getCategoryAccent(group.id))}>
-            <CategoryIcon category={group.id} className="size-4 sm:size-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white sm:text-xl">{group.label}</h3>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-muted-foreground sm:text-xs">{group.id}</p>
-          </div>
-        </div>
-        <Badge className="border-white/10 bg-white/5 text-white" variant="outline">
-          {group.cheats.length} nodes
-        </Badge>
-      </header>
+}: CategorySectionProps) => {
+  const [open, setOpen] = useState(openByDefault);
+  const enabledCount = useMemo(() => getEnabledToggleCount(group.cheats, values), [group.cheats, values]);
+  const toggleCount = useMemo(() => getToggleCount(group.cheats), [group.cheats]);
+  const handleToggle = () => setOpen((current) => !current);
 
-      <div className="grid gap-2 sm:gap-3 lg:grid-cols-2 xl:grid-cols-3">
-        {group.cheats.map((cheat) => (
+  useEffect(() => {
+    if (forceOpen) {
+      setOpen(true);
+    }
+  }, [forceOpen]);
+
+  return (
+    <section className="mb-2.5 overflow-hidden rounded-[14px] border border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,.05)] backdrop-blur-2xl">
+      <button type="button" className="flex w-full items-center gap-2.5 px-3.5 py-3 text-left text-(--deck-fg)" onClick={handleToggle}>
+        <span className="flex size-[30px] shrink-0 items-center justify-center rounded-[8px] border border-[color-mix(in_oklab,var(--deck-accent)_22%,transparent)] bg-white/[0.04] text-(--deck-accent)">
+          <CategoryIcon category={group.id} className="size-[15px]" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{group.label}</span>
+          <span className="mt-0.5 block font-mono text-[10.5px] text-(--deck-fg-4)">{formatSummary(group.cheats.length, enabledCount, toggleCount)}</span>
+        </span>
+        {enabledCount > 0 ? <span className="inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-(--deck-accent) px-1.5 text-center font-mono text-[10px] font-bold leading-none tabular-nums text-black">{enabledCount}</span> : null}
+        <Icon className={cn('size-4 text-(--deck-fg-3) transition-transform', open ? 'rotate-0' : '-rotate-90')} name="chevron-down" />
+      </button>
+      <div className={cn('overflow-hidden transition-[max-height] duration-300', open ? 'max-h-[4000px]' : 'max-h-0')}>
+        {group.cheats.map((cheat, index) => (
           <CheatTile
             key={cheat.uuid}
             cheat={cheat}
@@ -49,6 +64,7 @@ export function CategorySection({
             pending={Boolean(pendingTargets[cheat.target])}
             pinned={Boolean(pinnedTargets[cheat.target])}
             disabled={disabled}
+            first={index === 0}
             onChange={(nextValue) => onCheatChange(cheat, nextValue)}
             onTogglePin={() => onTogglePin(cheat)}
           />
@@ -56,4 +72,20 @@ export function CategorySection({
       </div>
     </section>
   );
+};
+
+function getEnabledToggleCount(cheats: CheatSchema[], values: Record<string, unknown>): number {
+  return cheats.filter((cheat) => cheat.type === ECheatType.Toggle && Boolean(values[cheat.target])).length;
+}
+
+function getToggleCount(cheats: CheatSchema[]): number {
+  return cheats.filter((cheat) => cheat.type === ECheatType.Toggle).length;
+}
+
+function formatSummary(cheatCount: number, enabledCount: number, toggleCount: number): string {
+  if (toggleCount <= 0) {
+    return `${cheatCount} mods`;
+  }
+
+  return `${cheatCount} mods · ${enabledCount}/${toggleCount} on`;
 }

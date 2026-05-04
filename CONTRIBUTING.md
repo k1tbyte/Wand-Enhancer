@@ -8,6 +8,7 @@ Thank you for your interest in the WandEnhancer project! This document provides 
 - [Bug Reports](#bug-reports)
 - [Feature Suggestions](#feature-suggestions)
 - [Creating a Pull Request](#creating-a-pull-request)
+- [Release Process](#release-process)
 - [Code Style](#code-style)
 - [Testing](#testing)
 - [License](#license)
@@ -81,6 +82,22 @@ Suggestions for new features or improvements are welcome! Create an Issue descri
 6. Create a Pull Request to the main repository.
 
 7. In the Pull Request description, explain the changes made and why they're necessary.
+
+## Release Process
+
+1. Update `WandEnhancer/Properties/AssemblyInfo.cs`.
+2. Add a new top section with the same version to `CHANGELOG.md`.
+3. Configure local hooks once:
+   ```
+   git config core.hooksPath .githooks
+   ```
+4. Commit and push the version/changelog changes.
+5. Create and push a tag matching the same version exactly, for example:
+   ```
+   git tag 1.0.8.0
+   git push origin 1.0.8.0
+   ```
+6. GitHub Actions will validate the version, build the project, extract the matching changelog section, and publish the release automatically.
 
 ## Code Style
 

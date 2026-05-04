@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Vor dem Update wird dringend empfohlen, Änderungen rückgängig zu machen, falls sie angewendet wurden</s:String>
+    <s:String x:Key="up_current_version">Aktuelle Version</s:String>
+    <s:String x:Key="up_latest_version">Neueste Version</s:String>
+    <s:String x:Key="up_release_notes">Versionshinweise</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Für diese Version sind keine Versionshinweise verfügbar.</s:String>
+    <s:String x:Key="up_show_more">Gesamtes Changelog anzeigen</s:String>
+    <s:String x:Key="up_show_less">Nur aktuelle Hinweise anzeigen</s:String>
+    <s:String x:Key="up_loading_changelog">Changelog wird geladen...</s:String>
+    <s:String x:Key="up_changelog_failed">Das vollständige Changelog konnte nicht geladen werden. Stattdessen werden die aktuellen Hinweise angezeigt.</s:String>
     <s:String x:Key="up_update_now">Jetzt aktualisieren</s:String>
     <s:String x:Key="up_popup_title">Update verfügbar!</s:String>
     <!--#endregion -->

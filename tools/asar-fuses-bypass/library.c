@@ -2,87 +2,146 @@
 // Created by kitbyte on 30.11.2025.
 //
 #include <Windows.h>
+#include <winver.h>
 
 extern BOOL disable_asar_integrity(void);
 
-#ifdef _WIN64
-    #define WRAPPER_GENFUNC(name) \
-        FARPROC orig_##name; \
-        void _##name(); \
-        __asm__( \
-            ".global _" #name "\n" \
-            "_" #name ":\n" \
-            "    movq orig_" #name "(%rip), %rax\n" \
-            "    jmp *%rax\n" \
-        );
-#else
-    #define WRAPPER_GENFUNC(name) \
-        FARPROC orig_##name; \
-        __declspec(naked) void _##name() \
+static HMODULE g_originalVersionDll;
+
+#define FOR_EACH_VERSION_FORWARDER(X) \
+    X(GetFileVersionInfoA, BOOL, FALSE, \
+        (LPCSTR filename, DWORD handle, DWORD length, LPVOID data), \
+        (filename, handle, length, data)) \
+    X(GetFileVersionInfoExA, BOOL, FALSE, \
+        (DWORD flags, LPCSTR filename, DWORD handle, DWORD length, LPVOID data), \
+        (flags, filename, handle, length, data)) \
+    X(GetFileVersionInfoExW, BOOL, FALSE, \
+        (DWORD flags, LPCWSTR filename, DWORD handle, DWORD length, LPVOID data), \
+        (flags, filename, handle, length, data)) \
+    X(GetFileVersionInfoSizeA, DWORD, 0, \
+        (LPCSTR filename, LPDWORD handle), \
+        (filename, handle)) \
+    X(GetFileVersionInfoSizeExA, DWORD, 0, \
+        (DWORD flags, LPCSTR filename, LPDWORD handle), \
+        (flags, filename, handle)) \
+    X(GetFileVersionInfoSizeExW, DWORD, 0, \
+        (DWORD flags, LPCWSTR filename, LPDWORD handle), \
+        (flags, filename, handle)) \
+    X(GetFileVersionInfoSizeW, DWORD, 0, \
+        (LPCWSTR filename, LPDWORD handle), \
+        (filename, handle)) \
+    X(GetFileVersionInfoW, BOOL, FALSE, \
+        (LPCWSTR filename, DWORD handle, DWORD length, LPVOID data), \
+        (filename, handle, length, data)) \
+    X(VerFindFileA, DWORD, 0, \
+        (DWORD flags, LPCSTR fileName, LPCSTR winDir, LPCSTR appDir, LPSTR curDir, PUINT curDirLen, LPSTR destDir, PUINT destDirLen), \
+        (flags, fileName, winDir, appDir, curDir, curDirLen, destDir, destDirLen)) \
+    X(VerFindFileW, DWORD, 0, \
+        (DWORD flags, LPCWSTR fileName, LPCWSTR winDir, LPCWSTR appDir, LPWSTR curDir, PUINT curDirLen, LPWSTR destDir, PUINT destDirLen), \
+        (flags, fileName, winDir, appDir, curDir, curDirLen, destDir, destDirLen)) \
+    X(VerInstallFileA, DWORD, 0, \
+        (DWORD flags, LPCSTR srcFileName, LPCSTR destFileName, LPCSTR srcDir, LPCSTR destDir, LPCSTR curDir, LPSTR tempFile, PUINT tempFileLen), \
+        (flags, srcFileName, destFileName, srcDir, destDir, curDir, tempFile, tempFileLen)) \
+    X(VerInstallFileW, DWORD, 0, \
+        (DWORD flags, LPCWSTR srcFileName, LPCWSTR destFileName, LPCWSTR srcDir, LPCWSTR destDir, LPCWSTR curDir, LPWSTR tempFile, PUINT tempFileLen), \
+        (flags, srcFileName, destFileName, srcDir, destDir, curDir, tempFile, tempFileLen)) \
+    X(VerLanguageNameA, DWORD, 0, \
+        (DWORD language, LPSTR buffer, DWORD bufferLength), \
+        (language, buffer, bufferLength)) \
+    X(VerLanguageNameW, DWORD, 0, \
+        (DWORD language, LPWSTR buffer, DWORD bufferLength), \
+        (language, buffer, bufferLength)) \
+    X(VerQueryValueA, BOOL, FALSE, \
+        (LPCVOID block, LPCSTR subBlock, LPVOID* buffer, PUINT bufferLength), \
+        (block, subBlock, buffer, bufferLength)) \
+    X(VerQueryValueW, BOOL, FALSE, \
+        (LPCVOID block, LPCWSTR subBlock, LPVOID* buffer, PUINT bufferLength), \
+        (block, subBlock, buffer, bufferLength))
+
+#if defined(_MSC_VER) && !defined(_WIN64)
+
+#define DECLARE_FORWARDER(name, return_type, default_value, params, args) \
+    static FARPROC s_##name; \
+    __declspec(naked) return_type WINAPI name params \
+    { \
+        __asm \
         { \
-            asm("jmp *_orig_"#name); \
-        }
+            jmp dword ptr [s_##name] \
+        } \
+    }
+
+#define LOAD_FORWARDER(name, return_type, default_value, params, args) \
+    s_##name = GetProcAddress(g_originalVersionDll, #name);
+
+#else
+
+#define DECLARE_FORWARDER(name, return_type, default_value, params, args) \
+    typedef return_type (WINAPI *name##_fn) params; \
+    static name##_fn s_##name; \
+    return_type WINAPI name params \
+    { \
+        if (s_##name == NULL) \
+        { \
+            SetLastError(ERROR_PROC_NOT_FOUND); \
+            return default_value; \
+        } \
+        return s_##name args; \
+    }
+
+#define LOAD_FORWARDER(name, return_type, default_value, params, args) \
+    s_##name = (name##_fn)GetProcAddress(g_originalVersionDll, #name);
+
 #endif
 
-WRAPPER_GENFUNC(GetFileVersionInfoA)
-WRAPPER_GENFUNC(GetFileVersionInfoByHandle)
-WRAPPER_GENFUNC(GetFileVersionInfoExW)
-WRAPPER_GENFUNC(GetFileVersionInfoExA)
-WRAPPER_GENFUNC(GetFileVersionInfoSizeA)
-WRAPPER_GENFUNC(GetFileVersionInfoSizeExA)
-WRAPPER_GENFUNC(GetFileVersionInfoSizeExW)
-WRAPPER_GENFUNC(GetFileVersionInfoSizeW)
-WRAPPER_GENFUNC(GetFileVersionInfoW)
-WRAPPER_GENFUNC(VerFindFileA)
-WRAPPER_GENFUNC(VerFindFileW)
-WRAPPER_GENFUNC(VerInstallFileA)
-WRAPPER_GENFUNC(VerInstallFileW)
-WRAPPER_GENFUNC(VerLanguageNameA)
-WRAPPER_GENFUNC(VerLanguageNameW)
-WRAPPER_GENFUNC(VerQueryValueA)
-WRAPPER_GENFUNC(VerQueryValueW)
+FOR_EACH_VERSION_FORWARDER(DECLARE_FORWARDER)
 
-#define WRAPPER_FUNC(name) orig_##name = GetProcAddress(hOriginalDll, #name);
-
-void SourceInit()
+BOOL WINAPI GetFileVersionInfoByHandle(void)
 {
-    TCHAR source[MAX_PATH];
-    GetSystemDirectory(source, MAX_PATH);
-    strcat_s(source, sizeof source, "\\version.dll");
-    HMODULE hOriginalDll = LoadLibrary(source);
-
-    WRAPPER_FUNC(GetFileVersionInfoA);
-    WRAPPER_FUNC(GetFileVersionInfoByHandle);
-    WRAPPER_FUNC(GetFileVersionInfoExW);
-    WRAPPER_FUNC(GetFileVersionInfoExA);
-    WRAPPER_FUNC(GetFileVersionInfoSizeA);
-    WRAPPER_FUNC(GetFileVersionInfoSizeExW);
-    WRAPPER_FUNC(GetFileVersionInfoSizeExA);
-    WRAPPER_FUNC(GetFileVersionInfoSizeW);
-    WRAPPER_FUNC(GetFileVersionInfoW);
-    WRAPPER_FUNC(VerFindFileA);
-    WRAPPER_FUNC(VerFindFileW);
-    WRAPPER_FUNC(VerInstallFileA);
-    WRAPPER_FUNC(VerInstallFileW);
-    WRAPPER_FUNC(VerLanguageNameA);
-    WRAPPER_FUNC(VerLanguageNameW);
-    WRAPPER_FUNC(VerQueryValueA);
-    WRAPPER_FUNC(VerQueryValueW);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
 }
 
-
-void Payload()
+static BOOL SourceInit(void)
 {
-    disable_asar_integrity();
+    WCHAR source[MAX_PATH];
+    UINT sourceLength = GetSystemDirectoryW(source, MAX_PATH);
+
+    if (sourceLength == 0 || sourceLength >= MAX_PATH)
+    {
+        return FALSE;
+    }
+
+    if (wcscat_s(source, MAX_PATH, L"\\version.dll") != 0)
+    {
+        return FALSE;
+    }
+
+    g_originalVersionDll = LoadLibraryW(source);
+    if (!g_originalVersionDll)
+    {
+        return FALSE;
+    }
+
+    FOR_EACH_VERSION_FORWARDER(LOAD_FORWARDER);
+
+    return TRUE;
 }
 
 BOOL WINAPI DllMain(HMODULE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
+    (void)lpvReserved;
+
     if (fdwReason == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hinstDLL);
-        SourceInit();
-        Payload();
+
+        if (!SourceInit())
+        {
+            return FALSE;
+        }
+
+        disable_asar_integrity();
     }
+
     return TRUE;
 }

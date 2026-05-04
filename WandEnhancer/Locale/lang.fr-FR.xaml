@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Avant la mise à jour, il est fortement recommandé d'annuler les modifications si elles ont été appliquées</s:String>
+    <s:String x:Key="up_current_version">Version actuelle</s:String>
+    <s:String x:Key="up_latest_version">Dernière version</s:String>
+    <s:String x:Key="up_release_notes">Notes de version</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Les notes de version ne sont pas disponibles pour cette version.</s:String>
+    <s:String x:Key="up_show_more">Afficher le changelog complet</s:String>
+    <s:String x:Key="up_show_less">Afficher uniquement les notes actuelles</s:String>
+    <s:String x:Key="up_loading_changelog">Chargement du changelog...</s:String>
+    <s:String x:Key="up_changelog_failed">Impossible de charger le changelog complet. Les notes actuelles sont affichées à la place.</s:String>
     <s:String x:Key="up_update_now">Mettre à jour maintenant</s:String>
     <s:String x:Key="up_popup_title">Mise à jour disponible !</s:String>
     <!--#endregion -->

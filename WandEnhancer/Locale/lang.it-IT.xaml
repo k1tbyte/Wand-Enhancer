@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Prima dell'aggiornamento, si consiglia vivamente di annullare le modifiche se sono state applicate</s:String>
+    <s:String x:Key="up_current_version">Versione corrente</s:String>
+    <s:String x:Key="up_latest_version">Ultima versione</s:String>
+    <s:String x:Key="up_release_notes">Note di rilascio</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Le note di rilascio non sono disponibili per questa versione.</s:String>
+    <s:String x:Key="up_show_more">Mostra il changelog completo</s:String>
+    <s:String x:Key="up_show_less">Mostra solo le note correnti</s:String>
+    <s:String x:Key="up_loading_changelog">Caricamento del changelog...</s:String>
+    <s:String x:Key="up_changelog_failed">Impossibile caricare il changelog completo. Vengono mostrate solo le note correnti.</s:String>
     <s:String x:Key="up_update_now">Aggiorna ora</s:String>
     <s:String x:Key="up_popup_title">Aggiornamento disponibile!</s:String>
     <!--#endregion -->

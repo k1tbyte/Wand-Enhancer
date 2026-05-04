@@ -40,8 +40,11 @@
     <PropertyGroup>
         <StartupObject>WandEnhancer.Program</StartupObject>
         <CMakeSourceDir>..\tools\asar-fuses-bypass</CMakeSourceDir>
-        <CMakeBuildDir>$(CMakeSourceDir)\cmake-build-release</CMakeBuildDir>
-        <ProxyDllPath>$(CMakeBuildDir)\version.dll</ProxyDllPath>
+      <NativeBuildRoot>..\.tmp\cmake</NativeBuildRoot>
+      <NativeBuildConfiguration Condition="'$(Configuration)' == 'Debug'">Debug</NativeBuildConfiguration>
+      <NativeBuildConfiguration Condition="'$(NativeBuildConfiguration)' == ''">Release</NativeBuildConfiguration>
+        <CMakeBuildDir>$(NativeBuildRoot)\asar-fuses-bypass</CMakeBuildDir>
+        <ProxyDllPath>$(CMakeBuildDir)\$(NativeBuildConfiguration)\version.dll</ProxyDllPath>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -151,10 +154,10 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\AsarSharp\AsarSharp.csproj">
-        <Project>{beaa604a-402a-4387-8903-a53fc913a26e}</Project>
+        <Project>{BEAA604A-402A-4387-8903-A53FC913A26E}</Project>
         <Name>AsarSharp</Name>
       </ProjectReference>
-    </ItemGroup> 
+    </ItemGroup>
     <ItemGroup>
         <EmbeddedResource Include="$(ProxyDllPath)">
             <LogicalName>proxydll</LogicalName>
@@ -163,12 +166,6 @@
     <ItemGroup>
       <EmbeddedResource Include="..\web-panel\dist\**\*.*" Condition="Exists('..\web-panel\dist\index.html')">
         <LogicalName>remote-panel/dist/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
-      </EmbeddedResource>
-      <EmbeddedResource Include="..\web-panel\bridge\wand-remote-bridge.cjs" Condition="Exists('..\web-panel\bridge\wand-remote-bridge.cjs')">
-        <LogicalName>remote-panel/bridge.cjs</LogicalName>
-      </EmbeddedResource>
-      <EmbeddedResource Include="..\web-panel\scripts\default\*.js" Condition="Exists('..\web-panel\scripts\default')">
-        <LogicalName>remote-panel/renderer-scripts/%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
     
@@ -180,7 +177,7 @@
       <Error Condition="!Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.2.0.41\build\ILRepack.props'))" />
     </Target>
 
-    <Target Name="EmbedProxyDll" BeforeTargets="BeforeBuild">
+    <Target Name="ValidateNativeArtifacts" BeforeTargets="BeforeBuild">
         <Error Text="Proxy DLL not found: $(ProxyDllPath)"
                Condition="!Exists('$(ProxyDllPath)')" />
 
@@ -195,13 +192,15 @@
         </PropertyGroup>
 
         <ItemGroup>
-            <AssemblyList Include="$(OutputPath)*.dll" />
+        <AssemblyList Include="$(OutputPath)*.dll" />
         </ItemGroup>
 
         <PropertyGroup>
             <DllList>@(AssemblyList->'%(FullPath)', ' ')</DllList>
         </PropertyGroup>
 
+        <Delete Files="$(OutputPath)$(AssemblyName).pdb" ContinueOnError="true" />
         <Exec Command="&quot;$(ILRepackExe)&quot; /allowMultiple /copyattrs /out:&quot;$(OutputPath)$(AssemblyName).exe&quot; &quot;$(MainAssembly)&quot; $(DllList)" />
+        <Delete Files="@(AssemblyList)" ContinueOnError="true" />
     </Target>
 </Project>  

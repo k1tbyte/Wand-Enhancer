@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">在更新之前，强烈建议回滚已应用的修改</s:String>
+    <s:String x:Key="up_current_version">当前版本</s:String>
+    <s:String x:Key="up_latest_version">最新版本</s:String>
+    <s:String x:Key="up_release_notes">更新说明</s:String>
+    <s:String x:Key="up_release_notes_unavailable">此版本的更新说明不可用。</s:String>
+    <s:String x:Key="up_show_more">显示完整更新日志</s:String>
+    <s:String x:Key="up_show_less">仅显示当前说明</s:String>
+    <s:String x:Key="up_loading_changelog">正在加载更新日志...</s:String>
+    <s:String x:Key="up_changelog_failed">无法加载完整更新日志。当前仅显示本次说明。</s:String>
     <s:String x:Key="up_update_now">立即更新</s:String>
     <s:String x:Key="up_popup_title">有更新可用！</s:String>
     <!--#endregion -->

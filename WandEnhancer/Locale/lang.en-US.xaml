@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Before updating, it is strongly recommended to roll back modifications if they have been applied</s:String>
+    <s:String x:Key="up_current_version">Current version</s:String>
+    <s:String x:Key="up_latest_version">Latest version</s:String>
+    <s:String x:Key="up_release_notes">Release notes</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Release notes are unavailable for this release.</s:String>
+    <s:String x:Key="up_show_more">Show full changelog</s:String>
+    <s:String x:Key="up_show_less">Show latest notes</s:String>
+    <s:String x:Key="up_loading_changelog">Loading changelog...</s:String>
+    <s:String x:Key="up_changelog_failed">Failed to load the full changelog. The latest notes are shown instead.</s:String>
     <s:String x:Key="up_update_now">Update now</s:String>
     <s:String x:Key="up_popup_title">Update available!</s:String>
     <!--#endregion -->

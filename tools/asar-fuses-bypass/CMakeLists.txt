@@ -10,6 +10,8 @@ add_executable(asar_fuses_bypass main.c)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_STATIC_LIBRARY_PREFIX "")
 
-add_link_options(-static -static-libgcc -static-libstdc++)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+	add_link_options(-static -static-libgcc -static-libstdc++)
+endif()
 
 add_library(version SHARED library.c library.def fuses.c)

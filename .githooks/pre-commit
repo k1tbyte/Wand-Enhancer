@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo_root=$(dirname "$script_dir")
+script_path="$repo_root/scripts/validate-release-metadata.ps1"
+
+if command -v cygpath >/dev/null 2>&1; then
+    script_path=$(cygpath -w "$script_path")
+fi
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$script_path"

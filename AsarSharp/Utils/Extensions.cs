@@ -1,11 +1,19 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace AsarSharp.Utils
 {
     internal static class Extensions
     {
+        /// <summary>
+        /// Compute path relative to <paramref name="relativeTo"/>.
+        /// Fast common-case (path is inside relativeTo): plain prefix-strip.
+        /// Falls back to <see cref="Path.GetFullPath"/> + manual relativisation
+        /// when paths must be normalised or '..' segments are required.
+        /// Replaces previous URI-based implementation which was a large hot-path cost.
+        /// </summary>
         public static string GetRelativePath(string relativeTo, string path)
         {
             if (string.IsNullOrEmpty(relativeTo))
@@ -13,84 +21,134 @@ namespace AsarSharp.Utils
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentNullException(nameof(path));
 
-            var fullRelativeTo = Path.GetFullPath(relativeTo);
-            var fullPath = Path.GetFullPath(path);
+            // Fast path: literal prefix match (no normalisation). Covers ~all
+            // intra-archive callers where both inputs already come from the
+            // same crawl pass.
+            string baseFast = TrimTrailingSeparators(relativeTo);
+            string pathFast = TrimTrailingSeparators(path);
 
-            if (string.Equals(fullRelativeTo, fullPath, StringComparison.OrdinalIgnoreCase))
-                return "";
+            if (string.Equals(baseFast, pathFast, StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
 
-            var relativeToUri = new Uri(fullRelativeTo.EndsWith(Path.DirectorySeparatorChar.ToString()) 
-                ? fullRelativeTo 
-                : fullRelativeTo + Path.DirectorySeparatorChar);
-            var pathUri = new Uri(fullPath.EndsWith(Path.DirectorySeparatorChar.ToString()) && !File.Exists(fullPath)
-                ? fullPath 
-                : fullPath + (Directory.Exists(fullPath) ? Path.DirectorySeparatorChar.ToString() : ""));
+            if (pathFast.Length > baseFast.Length &&
+                pathFast.StartsWith(baseFast, StringComparison.OrdinalIgnoreCase) &&
+                IsSeparator(pathFast[baseFast.Length]))
+            {
+                return pathFast.Substring(baseFast.Length + 1);
+            }
 
-            var relativeUri = relativeToUri.MakeRelativeUri(pathUri);
-            var relativePath = Uri.UnescapeDataString(relativeUri.ToString())
-                .Replace('/', Path.DirectorySeparatorChar);
-
-            return relativePath.TrimEnd(Path.DirectorySeparatorChar);
+            // Slow path: normalise both sides and compute relative — used for
+            // security checks (out-of-tree symlink/destination guards) and the
+            // rare "go up" case.
+            return GetRelativePathNormalised(relativeTo, path);
         }
-        
+
+        private static string GetRelativePathNormalised(string relativeTo, string path)
+        {
+            string fullBase = Path.GetFullPath(relativeTo);
+            string fullPath = Path.GetFullPath(path);
+
+            fullBase = TrimTrailingSeparators(fullBase);
+            fullPath = TrimTrailingSeparators(fullPath);
+
+            if (string.Equals(fullBase, fullPath, StringComparison.OrdinalIgnoreCase))
+                return string.Empty;
+
+            if (fullPath.Length > fullBase.Length &&
+                fullPath.StartsWith(fullBase, StringComparison.OrdinalIgnoreCase) &&
+                IsSeparator(fullPath[fullBase.Length]))
+            {
+                return fullPath.Substring(fullBase.Length + 1);
+            }
+
+            // Need to walk up the common ancestor.
+            char sep = Path.DirectorySeparatorChar;
+            string[] baseParts = fullBase.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] pathParts = fullPath.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+
+            int common = 0;
+            int max = Math.Min(baseParts.Length, pathParts.Length);
+            while (common < max &&
+                   string.Equals(baseParts[common], pathParts[common], StringComparison.OrdinalIgnoreCase))
+            {
+                common++;
+            }
+
+            var sb = new StringBuilder();
+            for (int i = common; i < baseParts.Length; i++)
+            {
+                if (sb.Length > 0) sb.Append(sep);
+                sb.Append("..");
+            }
+            for (int i = common; i < pathParts.Length; i++)
+            {
+                if (sb.Length > 0) sb.Append(sep);
+                sb.Append(pathParts[i]);
+            }
+            return sb.ToString();
+        }
+
+        private static string TrimTrailingSeparators(string s)
+        {
+            int end = s.Length;
+            while (end > 0 && IsSeparator(s[end - 1])) end--;
+            return end == s.Length ? s : s.Substring(0, end);
+        }
+
+        private static bool IsSeparator(char c) => c == '/' || c == '\\';
+
         public static string GetDirectoryName(string path)
         {
             if (string.IsNullOrEmpty(path))
                 return ".";
 
             string result = Path.GetDirectoryName(path);
-            
-            // If the result is an empty string, return “.” as in Node.js
+
             if (string.IsNullOrEmpty(result))
                 return ".";
-                
+
             return result;
         }
-        
+
         public static void CopyDirectory(string sourceDir, string destinationDir)
         {
-            // Create the destination directory
             Directory.CreateDirectory(destinationDir);
 
-            // Get all files in the source directory
             foreach (var file in Directory.GetFiles(sourceDir))
             {
                 var destFile = Path.Combine(destinationDir, Path.GetFileName(file));
                 File.Copy(file, destFile, true);
             }
 
-            // Recursively copy all subdirectories
             foreach (var dir in Directory.GetDirectories(sourceDir))
             {
                 var destDir = Path.Combine(destinationDir, Path.GetFileName(dir));
                 CopyDirectory(dir, destDir);
             }
         }
-        
+
         public static string GetBasePath(string dir)
         {
-            // Look for the last path delimiter before any pattern
             int wildcardIndex = dir.IndexOfAny(new[] { '*', '?' });
             if (wildcardIndex == -1)
             {
                 return dir;
             }
-    
+
             int lastSeparatorIndex = dir.LastIndexOf(Path.DirectorySeparatorChar, wildcardIndex);
             if (lastSeparatorIndex == -1)
             {
                 return ".";
             }
-    
+
             return dir.Substring(0, lastSeparatorIndex);
         }
-        
+
         public static void SetUnixFilePermission(string filePath, string permission)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return;
 
-            // Use chmod
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
@@ -105,14 +163,12 @@ namespace AsarSharp.Utils
             process.Start();
             process.WaitForExit();
         }
-        
-        
+
+
         public static void CreateSymbolicLink(string linkTarget, string linkPath)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // On Windows, creating symlinks requires special privileges,
-                // so on many systems it simply won't work without administrator privileges
                 NativeMethods.CreateSymbolicLink(linkPath, linkTarget,
                     Directory.Exists(linkTarget)
                         ? NativeMethods.SymLinkFlag.Directory
@@ -120,7 +176,6 @@ namespace AsarSharp.Utils
                 return;
             }
 
-            // In Unix systems we use the corresponding system call
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
@@ -135,8 +190,8 @@ namespace AsarSharp.Utils
             process.Start();
             process.WaitForExit();
         }
-        
-        
+
+
         public static bool IsWindowsPlatform()
         {
             return Environment.OSVersion.Platform == PlatformID.Win32NT;

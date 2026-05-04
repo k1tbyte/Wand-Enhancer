@@ -1,0 +1,18 @@
+name: Validate Release Metadata
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  validate-release-metadata:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version and changelog sync
+        shell: pwsh
+        run: ./scripts/validate-release-metadata.ps1

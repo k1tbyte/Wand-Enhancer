@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Antes de atualizar, é altamente recomendável reverter as modificações se elas foram aplicadas</s:String>
+    <s:String x:Key="up_current_version">Versão atual</s:String>
+    <s:String x:Key="up_latest_version">Versão mais recente</s:String>
+    <s:String x:Key="up_release_notes">Notas da versão</s:String>
+    <s:String x:Key="up_release_notes_unavailable">As notas da versão não estão disponíveis para esta versão.</s:String>
+    <s:String x:Key="up_show_more">Mostrar changelog completo</s:String>
+    <s:String x:Key="up_show_less">Mostrar apenas as notas atuais</s:String>
+    <s:String x:Key="up_loading_changelog">Carregando changelog...</s:String>
+    <s:String x:Key="up_changelog_failed">Falha ao carregar o changelog completo. As notas atuais estão sendo exibidas.</s:String>
     <s:String x:Key="up_update_now">Atualizar agora</s:String>
     <s:String x:Key="up_popup_title">Atualização disponível!</s:String>
     <!--#endregion -->

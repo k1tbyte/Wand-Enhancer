@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Перед обновлением настоятельно рекомендуется откатить изменения, если они были применены</s:String>
+    <s:String x:Key="up_current_version">Текущая версия</s:String>
+    <s:String x:Key="up_latest_version">Новая версия</s:String>
+    <s:String x:Key="up_release_notes">Что нового</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Для этого релиза патчноуты недоступны.</s:String>
+    <s:String x:Key="up_show_more">Показать весь changelog</s:String>
+    <s:String x:Key="up_show_less">Показать только актуальные изменения</s:String>
+    <s:String x:Key="up_loading_changelog">Загрузка changelog...</s:String>
+    <s:String x:Key="up_changelog_failed">Не удалось загрузить полный changelog. Показаны только актуальные изменения.</s:String>
     <s:String x:Key="up_update_now">Обновить сейчас</s:String>
     <s:String x:Key="up_popup_title">Доступно обновление!</s:String>
     <!--#endregion -->

@@ -3,18 +3,102 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:WandEnhancer.View.Popups"
              mc:Ignorable="d"
              d:DesignHeight="Auto" d:DesignWidth="Auto"
              Background="{DynamicResource Background}"
              Foreground="{DynamicResource MutedForeground}"
              FontWeight="Medium"
              FontSize="13">
-    <StackPanel>
-        
-        <TextBlock Foreground="Red" MaxWidth="320" TextAlignment="Center" Text="{DynamicResource up_warning}" TextWrapping="Wrap" />
-        
-        <Button Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource up_update_now}"
-                Click="OnUpdateClick" />
-    </StackPanel>
+    <Grid MinWidth="500" MaxWidth="620">
+        <Grid.Resources>
+            <Style x:Key="UpdateActionButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Background" Value="{DynamicResource Primary}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+                <Setter Property="Foreground" Value="{DynamicResource PrimaryForeground}" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="{DynamicResource Primary}" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </Grid.Resources>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" HorizontalAlignment="Left" MaxWidth="560"
+                Padding="9 4" CornerRadius="4"
+                Background="{DynamicResource Muted}">
+            <DockPanel LastChildFill="True">
+                <Ellipse Width="7" Height="7" Fill="{DynamicResource Destructive}"
+                         Margin="0 0 8 0" VerticalAlignment="Center" />
+                <TextBlock Foreground="{DynamicResource Foreground}" FontSize="11.5"
+                           Text="{DynamicResource up_warning}" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
+        <WrapPanel Grid.Row="1" Margin="0 10 0 0" Orientation="Horizontal">
+            <Border Padding="8 4" Margin="0 0 8 0" CornerRadius="4"
+                    Background="{DynamicResource Muted}" BorderBrush="{DynamicResource Border}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="0 0 7 0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource MutedForeground}" FontSize="10.5"
+                               Text="{DynamicResource up_current_version}" />
+                    <TextBlock x:Name="CurrentVersionValue" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Foreground}" FontSize="12.5" FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="8 4" CornerRadius="4"
+                    Background="{DynamicResource Primary}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Margin="0 0 7 0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PrimaryForeground}" FontSize="10.5"
+                               Text="{DynamicResource up_latest_version}" />
+                    <TextBlock x:Name="LatestVersionValue" VerticalAlignment="Center"
+                               Foreground="{DynamicResource PrimaryForeground}" FontSize="12.5" FontWeight="Bold" />
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <TextBlock Grid.Row="2" Margin="0 12 0 6" Foreground="{DynamicResource Foreground}"
+                   FontSize="14" FontWeight="Bold" Text="{DynamicResource up_release_notes}" />
+
+        <Border Grid.Row="3" 
+                Background="{DynamicResource Muted}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="4">
+            <ScrollViewer x:Name="NotesScrollViewer"
+                          VerticalScrollBarVisibility="Hidden"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="False">
+                <TextBox x:Name="NotesTextBlock" Background="Transparent" 
+                         BorderBrush="Transparent" 
+                         Padding="12"
+                         BorderThickness="0" IsReadOnly="True"
+                         Foreground="{DynamicResource Foreground}"
+                         TextWrapping="Wrap" />
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="4" Margin="0 12 0 0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="ShowMoreButton" Grid.Column="1" Margin="0 0 10 0"
+                    Padding="12 5" Content="{DynamicResource up_show_more}"
+                    Click="OnShowMoreClick" />
+
+            <Button Grid.Column="2" Padding="18 5" Style="{StaticResource UpdateActionButton}"
+                    Content="{DynamicResource up_update_now}"
+                    Click="OnUpdateClick" />
+        </Grid>
+    </Grid>
 </UserControl>

@@ -20,17 +20,14 @@ namespace WandEnhancer.Core
         private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
         private const string WebPanelDirectoryName = "web-panel";
         private const string WebPanelDistDirectoryName = "dist";
-        private const string WebPanelBridgeDirectoryName = "bridge";
-        private const string WebPanelScriptsDirectoryName = "scripts";
-        private const string DefaultScriptsDirectoryName = "default";
         private const string LocalCustomScriptsDirectoryName = "renderer-scripts";
         private const string RemotePanelDirectoryName = "remote-panel";
-        private const string RemoteBridgeSourceFileName = "wand-remote-bridge.cjs";
         private const string RemoteBridgeTargetFileName = "bridge.cjs";
         private const string RemoteRendererScriptsDirectoryName = "renderer-scripts";
         private const string EmbeddedRemotePanelDistPrefix = "remote-panel/dist/";
-        private const string EmbeddedRemotePanelBridgeResourceName = "remote-panel/bridge.cjs";
-        private const string EmbeddedRemotePanelDefaultScriptsPrefix = "remote-panel/renderer-scripts/";
+        private const string AppBundleFilePrefix = "app-";
+        private const string AppBundleFileSuffix = ".bundle.js";
+        private const string IndexBundleFileName = "index.js";
         private const string JavaScriptFileExtension = ".js";
         private const string JavaScriptFileSearchPattern = "*.js";
         private const string DuplicateScriptSuffix = ".custom";
@@ -56,52 +53,63 @@ namespace WandEnhancer.Core
             _unpackedBackupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedBackupDirectoryName);
         }
         
-        private string ApplyJsPatch(string fileName, string js, EnhancerConfig.PatchEntry patch, EPatchType patchType)
+        private string ApplyJsPatch(string fileName, string js, EnhancerConfig.PatchEntry patch, EPatchType patchType, out bool patchApplied)
         {
+            patchApplied = false;
+
             if (patch.Applied)
             {
                 return js;
             }
+
+            if (!CanSearchPatchInFile(fileName, patch) || !ContainsSearchHint(js, patch.SearchHints))
+            {
+                return js;
+            }
             
-            var matches = patch.Target.Matches(js);
-            if (matches.Count == 0)
+            var match = patch.Target.Match(js);
+            if (!match.Success)
             {
                 return js;
             }
             
             var prefix = $"[ENHANCER] [{patchType} -> {patch.Name}]";
             
-            if(matches.Count > 1 && patch.SingleMatch)
+            if(patch.SingleMatch && match.NextMatch().Success)
             {
                 throw new Exception(
                     $"{prefix} Patch failed. Multiple target functions found. Looks like the version is not supported");
             }
 
+            string patchSource = patch.Patch;
+
             if (patch.Resolver != null)
             {
-                string resolvedField = patch.Resolver.Handler(matches[0].Value);
+                string resolvedField = patch.Resolver.Handler(match.Value);
                 if (string.IsNullOrEmpty(resolvedField))
                 {
                     throw new Exception($"{prefix} Resolver failed to find field name");
                 }
                 
-                patch.Patch = patch.Patch.Replace(patch.Resolver.Placeholder, resolvedField);
+                patchSource = patchSource.Replace(patch.Resolver.Placeholder, resolvedField);
             }
             
             _logger($"{prefix} Found target function in: " + Path.GetFileName(fileName), ELogType.Info);
             
-            string newJs = patch.Target.Replace(js, patch.Patch);
-            File.WriteAllText(fileName, newJs);
+            string newJs = patch.SingleMatch
+                ? patch.Target.Replace(js, patchSource, 1)
+                : patch.Target.Replace(js, patchSource);
             _logger($"{prefix} Patch applied", ELogType.Success);
             patch.Applied = true;
+            patchApplied = true;
             
             return newJs;
         }
 
         private void PatchAsar()
         {
-            var items = Directory.EnumerateFiles(_unpackedPath)
-                .Where(file => !Directory.Exists(file) && Regex.IsMatch(Path.GetFileName(file), @"^app-\w+|index\.js"))
+            var items = Directory.EnumerateFiles(_unpackedPath, $"*{JavaScriptFileExtension}", SearchOption.TopDirectoryOnly)
+                .Where(IsCandidateBundleFile)
                 .ToList();
 
             if (!items.Any())
@@ -118,21 +126,34 @@ namespace WandEnhancer.Core
                 {
                     break;
                 }
+
+                if (!CouldFileContainRemainingPatch(item, remainingPatches, enhancerConfig))
+                {
+                    continue;
+                }
                 
                 string data = File.ReadAllText(item);
+                bool fileChanged = false;
                 
                 foreach (var entry in remainingPatches.ToList())
                 {
                     var entries = enhancerConfig[entry];
                     foreach (var patchEntry in entries)
                     {
-                        data = ApplyJsPatch(item, data, patchEntry, entry);
+                        bool patchApplied;
+                        data = ApplyJsPatch(item, data, patchEntry, entry, out patchApplied);
+                        fileChanged = fileChanged || patchApplied;
                     }
 
                     if (entries.All(x => x.Applied))
                     {
                         remainingPatches.Remove(entry);
                     }
+                }
+
+                if (fileChanged)
+                {
+                    File.WriteAllText(item, data);
                 }
             }
             
@@ -141,6 +162,56 @@ namespace WandEnhancer.Core
                 var failedPatches = string.Join(", ", remainingPatches.Select(p => p.ToString()));
                 throw new Exception($"[ENHANCER] Failed to apply patches: {failedPatches}. The version may not be supported.");
             }
+        }
+
+        private static bool IsCandidateBundleFile(string filePath)
+        {
+            string fileName = Path.GetFileName(filePath);
+            return fileName.Equals(IndexBundleFileName, StringComparison.OrdinalIgnoreCase)
+                || (fileName.StartsWith(AppBundleFilePrefix, StringComparison.OrdinalIgnoreCase)
+                    && fileName.EndsWith(AppBundleFileSuffix, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool CouldFileContainRemainingPatch(string filePath, IEnumerable<EPatchType> remainingPatches, Dictionary<EPatchType, EnhancerConfig.PatchEntry[]> enhancerConfig)
+        {
+            foreach (var patchType in remainingPatches)
+            {
+                foreach (var patchEntry in enhancerConfig[patchType])
+                {
+                    if (patchEntry.Applied)
+                    {
+                        continue;
+                    }
+
+                    if (CanSearchPatchInFile(filePath, patchEntry))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool CanSearchPatchInFile(string filePath, EnhancerConfig.PatchEntry patch)
+        {
+            if (patch.CandidateFileNames == null || patch.CandidateFileNames.Length == 0)
+            {
+                return true;
+            }
+
+            string fileName = Path.GetFileName(filePath);
+            return patch.CandidateFileNames.Any(candidate => fileName.Equals(candidate, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static bool ContainsSearchHint(string source, string[] searchHints)
+        {
+            if (searchHints == null || searchHints.Length == 0)
+            {
+                return true;
+            }
+
+            return searchHints.Any(searchHint => source.IndexOf(searchHint, StringComparison.Ordinal) >= 0);
         }
 
         private static string FindWorkspacePath(params string[] segments)
@@ -257,26 +328,6 @@ namespace WandEnhancer.Core
             return resourceNames.Count;
         }
 
-        private static bool CopyEmbeddedFile(string resourceName, string destinationPath)
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            using (var resource = assembly.GetManifestResourceStream(resourceName))
-            {
-                if (resource == null)
-                {
-                    return false;
-                }
-
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? ".");
-                using (var output = File.Create(destinationPath))
-                {
-                    resource.CopyTo(output);
-                }
-            }
-
-            return true;
-        }
-
         private static string FindLocalCustomScriptsPath()
         {
             string executableDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -335,15 +386,17 @@ namespace WandEnhancer.Core
                 CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), targetRoot);
             }
 
-            if (!CopyEmbeddedFile(EmbeddedRemotePanelBridgeResourceName, targetBridgePath))
+            if (!File.Exists(targetBridgePath))
             {
-                File.Copy(FindWorkspacePath(WebPanelDirectoryName, WebPanelBridgeDirectoryName, RemoteBridgeSourceFileName), targetBridgePath, true);
+                throw new FileNotFoundException("[ENHANCER] Remote bridge artifact is missing. Run `cd web-panel && pnpm run build` before patching.", targetBridgePath);
             }
 
-            int defaultScriptCount = CopyEmbeddedDirectory(EmbeddedRemotePanelDefaultScriptsPrefix, targetScriptsRoot);
+            int defaultScriptCount = Directory.Exists(targetScriptsRoot)
+                ? Directory.GetFiles(targetScriptsRoot, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly).Length
+                : 0;
             if (defaultScriptCount == 0)
             {
-                defaultScriptCount = CopyJavaScriptFiles(FindWorkspacePath(WebPanelDirectoryName, WebPanelScriptsDirectoryName, DefaultScriptsDirectoryName), targetScriptsRoot);
+                throw new FileNotFoundException("[ENHANCER] Remote renderer script artifacts are missing. Run `cd web-panel && pnpm run build` before patching.", targetScriptsRoot);
             }
 
             int selectedScriptCount = CopySelectedJavaScriptFiles(_config.CustomScriptPaths, targetScriptsRoot);

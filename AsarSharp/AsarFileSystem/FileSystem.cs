@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using AsarSharp.Integrity;
@@ -150,7 +150,6 @@ namespace AsarSharp.AsarFileSystem
         public static string ReadLink(string path)
         {
             throw new NotImplementedException();
-            return Path.GetFileName(path);
             // TODO , NOT IMPLEMENTED
         }
         

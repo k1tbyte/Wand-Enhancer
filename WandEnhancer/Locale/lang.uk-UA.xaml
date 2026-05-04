@@ -41,6 +41,14 @@
 
     <!--#region UpdatePopup -->
     <s:String x:Key="up_warning">Перед оновленням наполегливо рекомендується відкотити зміни, якщо вони були застосовані</s:String>
+    <s:String x:Key="up_current_version">Поточна версія</s:String>
+    <s:String x:Key="up_latest_version">Остання версія</s:String>
+    <s:String x:Key="up_release_notes">Нотатки до релізу</s:String>
+    <s:String x:Key="up_release_notes_unavailable">Нотатки до цього релізу недоступні.</s:String>
+    <s:String x:Key="up_show_more">Показати весь список змін</s:String>
+    <s:String x:Key="up_show_less">Показати лише актуальні зміни</s:String>
+    <s:String x:Key="up_loading_changelog">Завантаження списку змін...</s:String>
+    <s:String x:Key="up_changelog_failed">Не вдалося завантажити повний список змін. Натомість показано лише актуальні зміни.</s:String>
     <s:String x:Key="up_update_now">Оновити зараз</s:String>
     <s:String x:Key="up_popup_title">Доступне оновлення!</s:String>
     <!--#endregion -->

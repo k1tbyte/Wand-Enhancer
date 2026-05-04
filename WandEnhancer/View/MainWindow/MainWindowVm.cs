@@ -185,10 +185,19 @@ namespace WandEnhancer.View.MainWindow
             });
         }
 
-        private void OnUpdate(object param)
+        private async void OnUpdate(object param)
         {
-            MainWindow.Instance.OpenPopup(new UpdatePopup(() =>
+            var updateInfo = await _updater.GetUpdateInfoAsync();
+            if (updateInfo == null)
             {
+                Log("No update details are available right now.", ELogType.Warn);
+                return;
+            }
+
+            MainWindow.Instance.OpenPopup(new UpdatePopup(Constants.Version.ToString(), updateInfo.Version,
+                updateInfo.LatestNotes, () =>
+            {
+                MainWindow.Instance.ClosePopup();
                 Task.Run(async () =>
                 {
                     try
@@ -203,7 +212,7 @@ namespace WandEnhancer.View.MainWindow
 
                     Log("WandEnhancer updated successfully. Restarting...", ELogType.Success);
                 });
-            }), Application.Current.FindResource("up_popup_title") as string);
+            }, () => _updater.GetFullChangelogAsync()), Application.Current.FindResource("up_popup_title") as string);
         }
 
         private void OnOpenSettings(object param)
@@ -271,7 +280,11 @@ namespace WandEnhancer.View.MainWindow
 
         public MainWindowVm(MainWindow view)
         {
-            Task.Run(async () => IsUpdateAvailable = await _updater.CheckForUpdates());
+            Task.Run(async () =>
+            {
+                var isUpdateAvailable = await _updater.CheckForUpdates();
+                Application.Current.Dispatcher.Invoke(() => IsUpdateAvailable = isUpdateAvailable);
+            });
             _view = view;
             SetFolderPathCommand = new RelayCommand(OnFolderPathSelection);
             ApplyPatchCommand = new RelayCommand(OnPatching);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -28,32 +28,37 @@ namespace AsarSharp.AsarFileSystem
     
     public static class FileSystemCrawler
     {
-        
-        
         public static CrawledFileType DetermineFileType(string filename)
         {
-            var fileInfo = new FileInfo(filename);
-            if (fileInfo.Exists)
+            FileAttributes attributes;
+            try
             {
-                return new CrawledFileType { Type = FileType.File, Stat = fileInfo };
+                attributes = File.GetAttributes(filename);
             }
-    
-            var directoryInfo = new DirectoryInfo(filename);
-            if (directoryInfo.Exists)
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
-                return new CrawledFileType { Type = FileType.Directory, Stat = directoryInfo };
+                return null;
             }
-    
-            var linkInfo = new FileInfo(filename);
-            if (linkInfo.Exists && (linkInfo.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+
+            bool isDirectory = (attributes & FileAttributes.Directory) == FileAttributes.Directory;
+            bool isLink = (attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint;
+            FileSystemInfo info = isDirectory
+                ? (FileSystemInfo)new DirectoryInfo(filename)
+                : new FileInfo(filename);
+
+            if (isLink)
             {
-                return new CrawledFileType { Type = FileType.Link, Stat = linkInfo };
+                return new CrawledFileType { Type = FileType.Link, Stat = info };
             }
-    
-            return null;
+
+            if (isDirectory)
+            {
+                return new CrawledFileType { Type = FileType.Directory, Stat = info };
+            }
+
+            return new CrawledFileType { Type = FileType.File, Stat = info };
         }
-        
-        
+
         public static (List<string> filenames, Dictionary<string, CrawledFileType> metadata) CrawlFileSystem(string dir)
         {
             var metadata = new Dictionary<string, CrawledFileType>();
@@ -73,7 +78,12 @@ namespace AsarSharp.AsarFileSystem
                 filenames.Add(result.filename);
             }
 
-            var filteredFilenames = new List<string>();
+            if (links.Count == 0)
+            {
+                return (filenames, metadata);
+            }
+
+            var filteredFilenames = new List<string>(filenames.Count);
 
             foreach (var filename in filenames)
             {
@@ -107,7 +117,6 @@ namespace AsarSharp.AsarFileSystem
             return (filteredFilenames, metadata);
         }
 
-        
         // (File order is not important!!!)
         public static List<string> CrawlIterative(string dir)
         {

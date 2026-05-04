@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && pnpm run build:bridge",
+    "build:bridge": "node ./bridge/build.mjs",
     "preview": "vite preview",
     "preview:host": "vite preview --host 0.0.0.0",
     "bridge": "node ./bridge/server.mjs"
@@ -22,6 +23,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
+    "esbuild": "0.27.7",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
