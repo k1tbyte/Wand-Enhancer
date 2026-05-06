@@ -13,7 +13,7 @@ namespace AsarSharp.AsarFileSystem
         private int _headerSize;
         private long _offset;
 
-        private const uint UINT32_MAX = 0xFFFFFFFF; // 2^32 - 1
+        private const uint UINT32_MAX = 0xFFFFFFFF;
 
         public Filesystem(string src)
         {
@@ -23,20 +23,9 @@ namespace AsarSharp.AsarFileSystem
             _offset = 0;
         }
 
-        public string GetRootPath()
-        {
-            return _src;
-        }
-
-        public FilesystemEntry GetHeader()
-        {
-            return _header;
-        }
-
-        public int GetHeaderSize()
-        {
-            return _headerSize;
-        }
+        public string GetRootPath() => _src;
+        public FilesystemEntry GetHeader() => _header;
+        public int GetHeaderSize() => _headerSize;
 
         public void SetHeader(FilesystemEntry header, int headerSize)
         {
@@ -47,82 +36,94 @@ namespace AsarSharp.AsarFileSystem
         public FilesystemEntry SearchNodeFromDirectory(string p)
         {
             FilesystemEntry json = _header;
-            
-            // Normalize path delimiters to system delimiters
-            p = p.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-            
-            string[] dirs = p.Split(Path.DirectorySeparatorChar);
-            
-            foreach (string dir in dirs)
+
+            int len = p.Length;
+            int start = 0;
+
+            // skip leading separators
+            while (start < len && (p[start] == '/' || p[start] == '\\')) start++;
+
+            while (start < len)
             {
-                if (dir == "." || string.IsNullOrEmpty(dir)) continue;
-                
-                if (json.IsDirectory)
+                // find next separator
+                int end = start;
+                while (end < len && p[end] != '/' && p[end] != '\\') end++;
+
+                int segLen = end - start;
+                if (segLen == 0 || (segLen == 1 && p[start] == '.'))
                 {
-                    if (!json.Files.ContainsKey(dir))
-                    {
-                        json.Files[dir] = new FilesystemEntry { Files = new Dictionary<string, FilesystemEntry>(StringComparer.Ordinal) };
-                    }
-                    json = json.Files[dir];
+                    start = end + 1;
+                    continue;
                 }
-                else
-                {
+
+                string seg = p.Substring(start, segLen);
+
+                if (!json.IsDirectory)
                     throw new Exception($"Unexpected directory state while traversing: {p}");
+
+                if (!json.Files.TryGetValue(seg, out var child))
+                {
+                    child = new FilesystemEntry { Files = new Dictionary<string, FilesystemEntry>(StringComparer.Ordinal) };
+                    json.Files[seg] = child;
                 }
+                json = child;
+                start = end + 1;
             }
-            
+
             return json;
         }
-        
+
+        public (FilesystemEntry parent, string name) SearchNodeFromPathWithParent(string p)
+        {
+            string rel = Extensions.GetRelativePath(_src, p);
+            if (string.IsNullOrEmpty(rel))
+                return (_header, string.Empty);
+
+            string name = Path.GetFileName(rel);
+            string dir = Extensions.GetDirectoryName(rel);
+            var parent = SearchNodeFromDirectory(dir);
+
+            if (parent.Files == null)
+                parent.Files = new Dictionary<string, FilesystemEntry>(StringComparer.Ordinal);
+
+            if (!parent.Files.ContainsKey(name))
+                parent.Files[name] = new FilesystemEntry();
+
+            return (parent, name);
+        }
+
         public List<string> ListFiles(bool isPack = false)
         {
             var files = new List<string>();
-
             FillFilesFromMetadata("/", _header);
             return files;
 
             void FillFilesFromMetadata(string basePath, FilesystemEntry metadata)
             {
-                if (!metadata.IsDirectory)
-                {
-                    return;
-                }
-
+                if (!metadata.IsDirectory) return;
                 foreach (var entry in metadata.Files)
                 {
-                    string childPath = entry.Key;
-                    FilesystemEntry childMetadata = entry.Value;
-                    string fullPath = Path.Combine(basePath, childPath).Replace('\\', '/');
-                    
-                    string packState = 
-                        childMetadata.Unpacked == true ? "unpack" : "pack  ";
-                    
+                    string fullPath = Path.Combine(basePath, entry.Key).Replace('\\', '/');
+                    string packState = entry.Value.Unpacked == true ? "unpack" : "pack  ";
                     files.Add(isPack ? $"{packState} : {fullPath}" : fullPath);
-                    FillFilesFromMetadata(fullPath, childMetadata);
+                    FillFilesFromMetadata(fullPath, entry.Value);
                 }
             }
         }
 
         public FilesystemEntry GetNode(string p, bool followLinks = true)
         {
-            // Normalize path delimiters
             p = p.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-            
             FilesystemEntry node = SearchNodeFromDirectory(Extensions.GetDirectoryName(p));
             string name = Path.GetFileName(p);
-            
-            // Process symbolic links
+
             if (node.IsLink && followLinks)
-            {
                 return GetNode(Path.Combine(node.Link, name));
-            }
-            
+
             if (!string.IsNullOrEmpty(name))
             {
                 if (node.IsDirectory && node.Files.TryGetValue(name, out var entry))
-                {
                     return entry;
-                }
                 return null;
             }
 
@@ -132,103 +133,62 @@ namespace AsarSharp.AsarFileSystem
         public FilesystemEntry GetFile(string p, bool followLinks = true)
         {
             FilesystemEntry info = GetNode(p, followLinks);
-
-            if (info == null)
-            {
-                throw new Exception($"\"{p}\" was not found in this archive");
-            }
-
-            // If followLinks=false, do not allow symbolic links (TODO)
-            if (info.IsLink && followLinks)
-            {
-                return GetFile(info.Link, followLinks);
-            }
-            
+            if (info == null) throw new Exception($"\"{p}\" was not found in this archive");
+            if (info.IsLink && followLinks) return GetFile(info.Link, followLinks);
             return info;
         }
-        
-        public static string ReadLink(string path)
-        {
-            throw new NotImplementedException();
-            // TODO , NOT IMPLEMENTED
-        }
-        
-        
-        
+
+        public static string ReadLink(string path) => throw new NotImplementedException();
+
         #region Writing
-        
+
         public FilesystemEntry SearchNodeFromPath(string p)
         {
-            p = Extensions.GetRelativePath(_src, p);
-            
-            if (string.IsNullOrEmpty(p))
-            {
-                return _header;
-            }
-            
-            var name = Path.GetFileName(p);
-            var node = SearchNodeFromDirectory(Extensions.GetDirectoryName(p));
-            
-            if (node.Files == null)
-            {
-                node.Files = new Dictionary<string, FilesystemEntry>();
-            }
-            
-            if (!node.Files.ContainsKey(name))
-            {
-                node.Files[name] = new FilesystemEntry();
-            }
-            
-            return node.Files[name];
+            var (parent, name) = SearchNodeFromPathWithParent(p);
+            if (string.IsNullOrEmpty(name)) return _header;
+            return parent.Files[name];
         }
-        
+
         public void InsertDirectory(string p, bool unpack)
         {
             FilesystemEntry node = SearchNodeFromPath(p);
-            node.Files = node.Files ?? new Dictionary<string, FilesystemEntry>();
+            node.Files = node.Files ?? new Dictionary<string, FilesystemEntry>(StringComparer.Ordinal);
             node.Unpacked = unpack;
         }
-        
-        public void InsertFile(string path, bool shouldUnpack, CrawledFileType file)
+
+        public void InsertFile(string path, bool shouldUnpack, CrawledFileType file,
+            IntegrityHelper.FileIntegrity precomputedIntegrity = null)
         {
-            var dirName = Path.GetDirectoryName(path);
-            var dirNode = SearchNodeFromPath(dirName);
+            var (dirNode, _) = SearchNodeFromPathWithParent(Path.GetDirectoryName(path) ?? path);
             var node = SearchNodeFromPath(path);
 
-            long size = 0;
-            if (file.Stat is FileInfo fileInfo)
-            {
-                size = fileInfo.Length;
-            }
+            long size;
+            if (file.Stat is FileInfo fi)
+                size = fi.Length;
             else
-            {
                 throw new Exception($"{path}: stat is not a file");
-            }
-            
+
             if (shouldUnpack || dirNode.Unpacked == true)
             {
                 node.Size = size;
                 node.Unpacked = true;
-                node.Integrity =  IntegrityHelper.GetFileIntegrity(path);
+                node.Integrity = precomputedIntegrity ?? IntegrityHelper.GetFileIntegrity(path);
                 return;
             }
 
-            // Check that the file size does not exceed UINT32_MAX
             if (size > UINT32_MAX)
-            {
                 throw new Exception($"{path}: file size cannot be larger than 4.2GB");
-            }
 
             node.Size = size;
             node.Offset = _offset.ToString();
-            node.Integrity = IntegrityHelper.GetFileIntegrity(path);
+            node.Integrity = precomputedIntegrity ?? IntegrityHelper.GetFileIntegrity(path);
+
             if (!Extensions.IsWindowsPlatform() && (file.Stat.Attributes & FileAttributes.Hidden) != 0)
-            {
                 node.Executable = true;
-            }
+
             _offset += size;
         }
-        
+
         #endregion
     }
 }

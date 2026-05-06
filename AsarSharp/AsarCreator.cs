@@ -36,7 +36,6 @@ namespace AsarSharp
             CreatePackageFromFiles();
         }
 
-
         public void CreatePackageFromFiles()
         {
             var filesystem = new Filesystem(_folderPath);
@@ -49,7 +48,6 @@ namespace AsarSharp
 
             InsertsDone(filesystem, files);
         }
-
 
         private void HandleFile(Filesystem filesystem, string filename, List<Disk.BasicFileInfo> files)
         {
@@ -69,14 +67,9 @@ namespace AsarSharp
                     string parentDir = Path.GetDirectoryName(filename) ?? string.Empty;
                     string relParent = Extensions.GetRelativePath(_folderPath, parentDir);
                     bool shouldUnpack = ShouldUnpackPath(relParent);
+                    long fileSize = file.Stat is FileInfo fi ? fi.Length : 0;
+                    var placeholder = IntegrityHelper.CreatePlaceholder(fileSize);
                     files.Add(new Disk.BasicFileInfo { Filename = filename, Unpack = shouldUnpack });
-
-                    // Build a placeholder integrity record up front. Real
-                    // SHA-256 hashes are filled in by Disk.WriteFileSystem
-                    // during the streamed write — eliminates the second pass
-                    // over each file (open → hash → close → open → copy → close).
-                    long size = (file.Stat is FileInfo fi) ? fi.Length : 0;
-                    var placeholder = IntegrityHelper.CreatePlaceholder(size);
                     filesystem.InsertFile(filename, shouldUnpack, file, placeholder);
                     break;
                 case FileType.Link:

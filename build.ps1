@@ -23,6 +23,26 @@ function Resolve-CommandPath {
     return $command.Source
 }
 
+function Resolve-NuGetPath {
+    $nugetCommand = Get-Command 'nuget.exe' -ErrorAction SilentlyContinue
+    if (-not $nugetCommand) {
+        $nugetCommand = Get-Command 'nuget' -ErrorAction SilentlyContinue
+    }
+
+    if ($nugetCommand) {
+        return $nugetCommand.Source
+    }
+
+    $toolsDir = Join-Path $repoRoot '.tmp/tools'
+    $nugetPath = Join-Path $toolsDir 'nuget.exe'
+    if (-not (Test-Path $nugetPath)) {
+        New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
+        Invoke-WebRequest -Uri 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe' -OutFile $nugetPath
+    }
+
+    return $nugetPath
+}
+
 function Resolve-MSBuildPath {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path $vswhere)) {
@@ -56,6 +76,7 @@ function Invoke-Step {
 }
 
 $cmake = Resolve-CommandPath 'cmake'
+$nuget = Resolve-NuGetPath
 $pnpm = Resolve-CommandPath 'pnpm'
 $msbuild = Resolve-MSBuildPath
 $generator = 'Visual Studio 17 2022'
@@ -74,6 +95,10 @@ Invoke-Step 'Configure asar-fuses-bypass' {
 
 Invoke-Step 'Build asar-fuses-bypass' {
     & $cmake --build $asarFusesBuildDir --config $Configuration
+}
+
+Invoke-Step 'Restore NuGet packages' {
+    & $nuget restore $solutionPath -NonInteractive
 }
 
 Invoke-Step 'Build solution' {

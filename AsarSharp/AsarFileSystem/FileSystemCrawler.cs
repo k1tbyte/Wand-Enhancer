@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using AsarSharp.Utils;
 
 namespace AsarSharp.AsarFileSystem
@@ -25,7 +24,7 @@ namespace AsarSharp.AsarFileSystem
         Directory,
         Link
     }
-    
+
     public static class FileSystemCrawler
     {
         public static CrawledFileType DetermineFileType(string filename)
@@ -46,122 +45,85 @@ namespace AsarSharp.AsarFileSystem
                 ? (FileSystemInfo)new DirectoryInfo(filename)
                 : new FileInfo(filename);
 
-            if (isLink)
-            {
-                return new CrawledFileType { Type = FileType.Link, Stat = info };
-            }
-
-            if (isDirectory)
-            {
-                return new CrawledFileType { Type = FileType.Directory, Stat = info };
-            }
-
+            if (isLink) return new CrawledFileType { Type = FileType.Link, Stat = info };
+            if (isDirectory) return new CrawledFileType { Type = FileType.Directory, Stat = info };
             return new CrawledFileType { Type = FileType.File, Stat = info };
         }
 
         public static (List<string> filenames, Dictionary<string, CrawledFileType> metadata) CrawlFileSystem(string dir)
         {
             var metadata = new Dictionary<string, CrawledFileType>();
-            var crawled = CrawlIterative(dir);
-            var results = crawled.Select(filename => new { filename, type = DetermineFileType(filename) }).ToList();
-
-            var links = new List<string>();
             var filenames = new List<string>();
+            var links = new List<string>();
 
-            foreach (var result in results.Where(result => result.type != null))
+            foreach (var fullPath in CrawlIterative(dir))
             {
-                metadata[result.filename] = result.type;
-                if (result.type.Type == FileType.Link)
-                {
-                    links.Add(result.filename);
-                }
-                filenames.Add(result.filename);
+                var type = DetermineFileType(fullPath);
+                if (type == null) continue;
+                metadata[fullPath] = type;
+                if (type.Type == FileType.Link) links.Add(fullPath);
+                filenames.Add(fullPath);
             }
 
-            if (links.Count == 0)
-            {
-                return (filenames, metadata);
-            }
+            if (links.Count == 0) return (filenames, metadata);
 
-            var filteredFilenames = new List<string>(filenames.Count);
-
+            var filtered = new List<string>(filenames.Count);
             foreach (var filename in filenames)
             {
-                var exactLinkIndex = links.FindIndex(link => filename == link);
-                var isValid = true;
+                bool isValid = true;
+                string fileDir = Path.GetDirectoryName(filename) ?? string.Empty;
 
-                for (var i = 0; i < links.Count; i++)
+                foreach (var link in links)
                 {
-                    if (i == exactLinkIndex)
-                    {
-                        continue;
-                    }
+                    if (string.Equals(filename, link, StringComparison.OrdinalIgnoreCase)) continue;
 
-                    var link = links[i];
-                    var isFileWithinSymlinkDir = filename.StartsWith(link, StringComparison.OrdinalIgnoreCase);
-                    var relativePath = Extensions.GetRelativePath(link, Path.GetDirectoryName(filename) ?? string.Empty);
-
-                    if (isFileWithinSymlinkDir && !relativePath.StartsWith("..", StringComparison.Ordinal))
+                    if (filename.StartsWith(link, StringComparison.OrdinalIgnoreCase))
                     {
-                        isValid = false;
-                        break;
+                        string rel = Extensions.GetRelativePath(link, fileDir);
+                        if (!rel.StartsWith("..", StringComparison.Ordinal))
+                        {
+                            isValid = false;
+                            break;
+                        }
                     }
                 }
 
-                if (isValid)
-                {
-                    filteredFilenames.Add(filename);
-                }
+                if (isValid) filtered.Add(filename);
             }
 
-            return (filteredFilenames, metadata);
+            return (filtered, metadata);
         }
 
-        // (File order is not important!!!)
         public static List<string> CrawlIterative(string dir)
         {
             var result = new List<string>();
-            var stack = new Stack<string>();
+            var stack = new Stack<DirectoryInfo>();
 
- 
             string basePath = Extensions.GetBasePath(dir);
+            if (!Directory.Exists(basePath)) return result;
 
-            if (!Directory.Exists(basePath))
-                return result;
-
-            // Add only the base directory to the stack, but not to the result
-            stack.Push(basePath);
+            stack.Push(new DirectoryInfo(basePath));
 
             while (stack.Count > 0)
             {
-                string currentDir = stack.Pop();
-
+                var current = stack.Pop();
+                FileSystemInfo[] entries;
                 try
                 {
-                    // Add all files from the current directory
-                    result.AddRange(Directory.GetFiles(currentDir, "*", SearchOption.TopDirectoryOnly));
-
-                    // Add subdirectories to the results and to the stack
-                    foreach (var directory in Directory.GetDirectories(currentDir, "*",
-                                 SearchOption.TopDirectoryOnly))
-                    {
-                        // Add subdirectories to the result
-                        if (directory != basePath) // Do not add a base directory
-                        {
-                            result.Add(directory);
-                        }
-
-                        // Add to the stack for processing
-                        stack.Push(directory);
-                    }
+                    entries = current.GetFileSystemInfos();
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    // Skip directories to which there is no access
                     continue;
                 }
+
+                foreach (var entry in entries)
+                {
+                    result.Add(entry.FullName);
+                    if (entry is DirectoryInfo subDir)
+                        stack.Push(subDir);
+                }
             }
-            
 
             return result;
         }
