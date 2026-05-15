@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState, type UIEvent } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type UIEvent } from 'react';
 
 import { buildPinnedGroup, filterGroups, groupCheatsByCategory } from '@/features/remote-panel/category';
 import { CategorySection } from '@/features/remote-panel/components/CategorySection';
@@ -16,7 +16,7 @@ import { loadPinnedGameIds, savePinnedGameIds, togglePinnedGame } from '@/featur
 import { handleProtocolMessage } from '@/features/remote-panel/message-handler';
 import { getPinnedStorageKey, loadPinnedTargets, savePinnedTargets } from '@/features/remote-panel/pinned-storage';
 import { capturePresetValues, createPreset, getPresetStorageKey, loadPresets, savePresets, type RemotePreset } from '@/features/remote-panel/preset-storage';
-import { normalizeOutgoingValue, type CheatSchema, type InstalledAppSummary, type TrainerMetaPayload } from '@/features/remote-panel/protocol';
+import { normalizeOutgoingValue, type CheatSchema, type InstalledAppSummary } from '@/features/remote-panel/protocol';
 import { ECheatType } from '@/features/remote-panel/protocol';
 import { PanelSocketClient } from '@/features/remote-panel/socket-client';
 import { createInitialPanelState, EConnectionStatus, panelReducer } from '@/features/remote-panel/state';
@@ -35,19 +35,27 @@ export const App = () => {
   const [presets, setPresets] = useState<RemotePreset[]>([]);
   const lastScrollRef = useRef(0);
   const clientRef = useRef<PanelSocketClient | null>(null);
-  const trainerMetaRef = useRef<TrainerMetaPayload | null>(state.trainerMeta);
+  const stateRef = useRef(state);
+  const handleConnectRef = useRef<() => void>(() => {});
+  const pinnedStorageKeyRef = useRef<string | null>('');
+  const reconnectTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     setPinnedGameIds(loadPinnedGameIds());
     return () => {
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+      }
       clientRef.current?.disconnect();
       clientRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    trainerMetaRef.current = state.trainerMeta;
-  }, [state.trainerMeta]);
+    stateRef.current = state;
+    handleConnectRef.current = handleConnect;
+    pinnedStorageKeyRef.current = pinnedStorageKey;
+  });
 
   const activeTrainer = state.trainerMeta?.trainer ?? null;
   const libraryGames = useMemo(
@@ -83,8 +91,22 @@ export const App = () => {
     }
   }, []);
 
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === 'visible' && !clientRef.current?.isOpen()) {
+        handleConnectRef.current();
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
+
   function handleConnect(): void {
     clientRef.current?.disconnect();
+    if (reconnectTimeoutRef.current) {
+      window.clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
 
     const wsUrl = state.wsUrl.trim();
     if (!wsUrl) {
@@ -95,8 +117,17 @@ export const App = () => {
     const nextClient = new PanelSocketClient(wsUrl, {
       onConnecting: () => dispatch({ type: 'connecting' }),
       onOpen: () => dispatch({ type: 'connected' }),
-      onMessage: (message) => handleProtocolMessage(dispatch, message, trainerMetaRef.current),
-      onClose: () => dispatch({ type: 'error', message: 'The WebSocket connection closed.' }),
+      onMessage: (message) => handleProtocolMessage(dispatch, message, stateRef.current.trainerMeta),
+      onClose: () => {
+        dispatch({ type: 'error', message: 'The WebSocket connection closed.' });
+        if (document.visibilityState === 'visible') {
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            if (document.visibilityState === 'visible' && stateRef.current.wsUrl.trim()) {
+              handleConnectRef.current();
+            }
+          }, 2000);
+        }
+      },
       onError: (message) => dispatch({ type: 'error', message }),
     });
 
@@ -105,30 +136,36 @@ export const App = () => {
   }
 
   function handleDisconnect(): void {
+    if (reconnectTimeoutRef.current) {
+      window.clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
     clientRef.current?.disconnect();
     clientRef.current = null;
     dispatch({ type: 'disconnected' });
   }
 
-  function handleCheatChange(cheat: CheatSchema, nextValue: unknown): void {
+  const handleCheatChange = useCallback((cheat: CheatSchema, nextValue: unknown): void => {
+    const { connectionStatus, trainerMeta } = stateRef.current;
     const normalizedValue = normalizeOutgoingValue(cheat, nextValue);
     dispatch({ type: 'setPending', target: cheat.target, pending: true });
     dispatch({ type: 'valueChanged', target: cheat.target, value: normalizedValue });
 
-    if (state.connectionStatus !== EConnectionStatus.Connected || !state.trainerMeta || !clientRef.current) {
+    if (connectionStatus !== EConnectionStatus.Connected || !trainerMeta || !clientRef.current) {
       dispatch({ type: 'setPending', target: cheat.target, pending: false });
       return;
     }
 
-    const sent = clientRef.current.setValue(state.trainerMeta.trainer.trainerId, cheat.target, normalizedValue, cheat.uuid);
+    const sent = clientRef.current.setValue(trainerMeta.trainer.trainerId, cheat.target, normalizedValue, cheat.uuid);
     if (!sent) {
       dispatch({ type: 'setPending', target: cheat.target, pending: false });
       dispatch({ type: 'error', message: 'The bridge socket is not open.' });
     }
-  }
+  }, []);
 
-  function handleToggleCheatPin(cheat: CheatSchema): void {
-    const next = { ...state.pinnedTargets };
+  const handleToggleCheatPin = useCallback((cheat: CheatSchema): void => {
+    const { pinnedTargets } = stateRef.current;
+    const next = { ...pinnedTargets };
     if (next[cheat.target]) {
       delete next[cheat.target];
     } else {
@@ -136,8 +173,8 @@ export const App = () => {
     }
 
     dispatch({ type: 'togglePinnedTarget', target: cheat.target });
-    savePinnedTargets(pinnedStorageKey, next);
-  }
+    savePinnedTargets(pinnedStorageKeyRef.current, next);
+  }, []);
 
   function handleToggleGamePin(game: LibraryGame): void {
     const next = togglePinnedGame(game, pinnedGameIds);
@@ -248,11 +285,11 @@ export const App = () => {
     <main className="min-h-svh bg-[#050608] text-(--deck-fg)">
       <div className="flex min-h-svh w-full p-0">
         <section className="relative h-svh w-full overflow-hidden bg-(--deck-bg) shadow-[0_40px_100px_-20px_rgba(0,0,0,.7),0_0_0_1px_rgba(255,255,255,.06)]">
-          <div className="pointer-events-none absolute -inset-12 z-0 bg-[radial-gradient(circle_at_30%_15%,color-mix(in_oklab,var(--deck-accent)_22%,transparent),transparent_45%),radial-gradient(circle_at_80%_85%,color-mix(in_oklab,var(--deck-accent)_16%,transparent),transparent_45%),radial-gradient(circle_at_20%_80%,color-mix(in_oklab,var(--deck-accent)_8%,transparent),transparent_50%)] blur-[50px]" />
+          <div className="pointer-events-none absolute -inset-12 z-0 bg-[radial-gradient(circle_at_30%_15%,color-mix(in_oklab,var(--deck-accent)_22%,transparent),transparent_45%),radial-gradient(circle_at_80%_85%,color-mix(in_oklab,var(--deck-accent)_16%,transparent),transparent_45%),radial-gradient(circle_at_20%_80%,color-mix(in_oklab,var(--deck-accent)_8%,transparent),transparent_50%)]" />
           <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_100%_60%_at_50%_0%,rgba(255,255,255,0.025),transparent)]" />
           <div className="relative z-10 flex h-full flex-col">
             <TopBar status={state.connectionStatus} currentGame={currentGame} runningTrainer={activeTrainer} onOpenSettings={() => setLeftOpen(true)} />
-            <div className="remote-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-[110px]" onScroll={handleScroll}>
+            <div className="remote-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-27.5" onScroll={handleScroll}>
               {!connected ? (
                 <PlaceholderState icon="plug" title="Bridge offline" sub="Open Settings to point Wand at your trainer bridge over WebSocket." action="Open Settings" onAction={() => setLeftOpen(true)} />
               ) : !activeTrainer ? (

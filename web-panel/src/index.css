@@ -166,6 +166,16 @@
             -webkit-backdrop-filter: none;
             backdrop-filter: none;
         }
+
+        .remote-glass-header {
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
+
+        .remote-glass-control {
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+        }
     }
 
     .remote-glass-control {

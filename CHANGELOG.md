@@ -3,6 +3,14 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.8.1] - 2026-05-15
+
+### Fixes
+
+- Fixed a syntax error in the Disable Updates patch that prevented Wand from launching. #70
+- Fixed an issue where the Remote Web Panel WebSocket connection wouldn't automatically reconnect when turning returning to the app or turning on the screen.
+- Reduced battery consumption and device heating on mobile device by optimizing heavy UI blur effects and eliminating unnecessary React re-renders in the Remote Web Panel. #67
+
 ## [1.0.8.0] - 2026-05-06
 
 ### Features

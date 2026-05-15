@@ -35,14 +35,36 @@ WandEnhancer includes a built-in **Remote Web Panel** allowing you to control ap
 3. Scan the displayed **QR code** with your phone's camera.
 
 ### Troubleshooting & Remote Access:
-- **Page isn't loading?** First, ensure both your PC and phone are connected to the **exact same Wi-Fi network**. Next, make sure **Network Discovery** is turned on in your Windows network settings. If it still doesn't work, Windows Firewall might be blocking the connection—you may need to manually allow inbound traffic on TCP port `3223`.
+- **Page isn't loading?** First, ensure both your PC and phone are connected to the **same local network**. Some routers and guest Wi-Fi networks enable client isolation/AP isolation, which blocks devices on the same SSID from reaching each other. If it still does not load, check Windows Firewall and allow inbound traffic on TCP port `3223` for your local network. If Windows marked your connection as **Public**, switching it to **Private** can also help.
 - **Using mobile data or a different network?** If you want to use the panel over mobile data (LTE/5G) or from an entirely different network, you can use [Tailscale](https://tailscale.com/) or similar VPN tools.
 
 ## 👀 How to use?
 
 1. Go to the [Releases](https://github.com/k1tbyte/Wand-Enhancer/releases) page.
-2. Download the latest source or binary.
+2. Download the latest binary release.
 3. Run the enhancer to apply local client modifications.
+
+> Source archives are intended for developers who want to build the project locally. They are not prebuilt binaries.
+
+## 🛠️ How to build from source
+
+Building from source on Windows requires a local development environment.
+
+### Requirements
+
+- `CMake`
+- `Node.js` and `pnpm`
+- `Visual Studio 2022` or `Build Tools for Visual Studio 2022` with `MSBuild`
+- Visual Studio `Desktop development with C++` workload
+- .NET Framework 4.8 desktop build tools / targeting pack
+
+### Build steps
+
+1. Clone this repository.
+2. Install the requirements above and make sure `cmake`, `pnpm`, and `MSBuild` are available.
+3. Run `build.cmd` from Command Prompt or PowerShell.
+
+The build script installs the web panel dependencies, builds the frontend, compiles the native helper with CMake, restores NuGet packages, and builds the WPF solution.
 
 ---
 

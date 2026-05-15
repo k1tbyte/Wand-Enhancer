@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,7 @@ const SWIPE_TRIGGER = 56;
 const SWIPE_DEAD_ZONE = 8;
 const SWIPE_ANIMATION_MS = 220;
 
-export const CheatTile = ({ cheat, value, pending, disabled, pinned, first, onChange, onTogglePin }: CheatTileProps) => {
+const CheatTileBase = ({ cheat, value, pending, disabled, pinned, first, onChange, onTogglePin }: CheatTileProps) => {
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [armed, setArmed] = useState(false);
@@ -126,6 +126,8 @@ export const CheatTile = ({ cheat, value, pending, disabled, pinned, first, onCh
     </div>
   );
 };
+
+export const CheatTile = memo(CheatTileBase);
 
 const PinReveal = ({ pinned, armed }: { pinned: boolean; armed: boolean }) => {
   return (

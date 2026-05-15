@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, useMemo, type ReactNode } from 'react';
 
 import { Icon, type IconName } from '@/components/ui/icon';
 
@@ -18,9 +18,9 @@ type LibraryDrawerProps = {
   onQueryChange: (query: string) => void;
 };
 
-export const LibraryDrawer = ({ games, query, canLaunch, onClose, onPin, onPlay, onStop, onQueryChange }: LibraryDrawerProps) => {
-  const filteredGames = filterLibraryGames(games, query);
-  const sections = getLibrarySections(filteredGames);
+const LibraryDrawerBase = ({ games, query, canLaunch, onClose, onPin, onPlay, onStop, onQueryChange }: LibraryDrawerProps) => {
+  const filteredGames = useMemo(() => filterLibraryGames(games, query), [games, query]);
+  const sections = useMemo(() => getLibrarySections(filteredGames), [filteredGames]);
 
   return (
     <div className="flex h-full flex-col">
@@ -59,6 +59,8 @@ export const LibraryDrawer = ({ games, query, canLaunch, onClose, onPin, onPlay,
     </div>
   );
 };
+
+export const LibraryDrawer = memo(LibraryDrawerBase);
 
 type GameSectionProps = {
   title: string;
