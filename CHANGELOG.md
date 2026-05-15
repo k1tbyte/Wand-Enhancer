@@ -3,6 +3,12 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.8.2] - 2026-05-15
+
+### Fixes
+
+- Rolled back an incorrect Disable Updates patch fix that introduced a `SyntaxError` preventing Wand from launching.
+
 ## [1.0.8.1] - 2026-05-15
 
 ### Fixes
