@@ -3,6 +3,15 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.8.3] - 2026-06-06
+
+### Fixes
+
+- Fixed the Remote Web Panel patches so they reliably apply on newer Wand builds by making the remote bridge patch anchors version-resilient.
+- Fixed Pro activation being lost after changing the app language; the account language endpoint now keeps the patched subscription.
+- Fixed "WeMod directory not found" when Wand/WeMod is installed outside the default location or only one brand folder exists. The patcher now also resolves the install directory from a running Wand/WeMod process. #82
+- Hid the Pro "Remote" onboarding card in the Explore Pro benefits dialog. #86
+
 ## [1.0.8.2] - 2026-05-15
 
 ### Fixes

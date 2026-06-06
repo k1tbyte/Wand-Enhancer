@@ -8,6 +8,10 @@
   const style = document.createElement("style")
   style.id = "wand-remote-popup-cleanup-style"
   style.textContent = `
+    .pro-onboarding-card--remote {
+      display: none !important;
+    }
+
     remote-tooltip .remote-tooltip .top-wrapper,
     remote-tooltip .remote-tooltip .remote-tooltip-section-divider,
     remote-tooltip .remote-tooltip .instructions .header,

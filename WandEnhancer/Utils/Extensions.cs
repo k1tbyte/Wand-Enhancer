@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -39,13 +40,73 @@ namespace WandEnhancer.Utils
         public static WeModConfig FindWeMod()
         {
             string localAppDataPath = Environment.GetEnvironmentVariable("LOCALAPPDATA");
-            
-            foreach (var folder in Constants.WeModBrandNames)
+
+            if (!string.IsNullOrEmpty(localAppDataPath))
             {
-                var weModDir = Path.Combine(localAppDataPath ?? "", folder);
-                if(Directory.Exists(weModDir))
+                foreach (var folder in Constants.WeModBrandNames)
                 {
-                    return FindLatestWeMod(weModDir);
+                    var weModDir = Path.Combine(localAppDataPath, folder);
+                    if (!Directory.Exists(weModDir))
+                    {
+                        continue;
+                    }
+
+                    // Keep scanning the other brand folders if this one has no valid
+                    // install instead of giving up on the first folder that exists.
+                    var config = FindLatestWeMod(weModDir);
+                    if (config != null)
+                    {
+                        return config;
+                    }
+                }
+            }
+
+            // Fallback: a running Wand/WeMod process reveals the install directory
+            // wherever it lives (non-default LOCALAPPDATA, moved install, other drive).
+            return FindWeModFromRunningProcess();
+        }
+
+        private static WeModConfig FindWeModFromRunningProcess()
+        {
+            foreach (var name in Constants.WeModBrandNames)
+            {
+                Process[] processes;
+                try
+                {
+                    processes = Process.GetProcessesByName(name);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        var exePath = process.MainModule?.FileName;
+                        if (string.IsNullOrEmpty(exePath))
+                        {
+                            continue;
+                        }
+
+                        // Process may be the versioned exe (dir is the install root) or
+                        // the launcher stub at the parent (dir holds `app-*` subfolders).
+                        var processDir = Path.GetDirectoryName(exePath);
+                        var config = CheckWeModPath(processDir) ?? FindLatestWeMod(processDir);
+                        if (config != null)
+                        {
+                            return config;
+                        }
+                    }
+                    catch
+                    {
+                        // MainModule throws on access-denied / bitness mismatch; skip.
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
                 }
             }
 

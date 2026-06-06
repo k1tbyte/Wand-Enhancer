@@ -81,7 +81,9 @@ namespace WandEnhancer.Core
                     $"{prefix} Patch failed. Multiple target functions found. Looks like the version is not supported");
             }
 
-            string patchSource = patch.Patch;
+            string patchSource = patch.PatchFactory != null
+                ? patch.PatchFactory(match)
+                : patch.Patch;
 
             if (patch.Resolver != null)
             {
@@ -95,10 +97,21 @@ namespace WandEnhancer.Core
             }
             
             _logger($"{prefix} Found target function in: " + Path.GetFileName(fileName), ELogType.Info);
-            
-            string newJs = patch.SingleMatch
-                ? patch.Target.Replace(js, patchSource, 1)
-                : patch.Target.Replace(js, patchSource);
+
+            string newJs;
+            if (patch.PatchFactory != null)
+            {
+                newJs = patch.SingleMatch
+                    ? patch.Target.Replace(js, _ => patchSource, 1)
+                    : patch.Target.Replace(js, _ => patchSource);
+            }
+            else
+            {
+                newJs = patch.SingleMatch
+                    ? patch.Target.Replace(js, patchSource, 1)
+                    : patch.Target.Replace(js, patchSource);
+            }
+
             _logger($"{prefix} Patch applied", ELogType.Success);
             patch.Applied = true;
             patchApplied = true;

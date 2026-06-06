@@ -46,6 +46,45 @@ WandEnhancer includes a built-in **Remote Web Panel** allowing you to control ap
 
 > Source archives are intended for developers who want to build the project locally. They are not prebuilt binaries.
 
+## 🧩 Custom scripts
+
+You can inject your own JavaScript into Wand at patch time to tweak or fix things in the client UI. This reuses the same renderer injection the Remote Web Panel uses, so it requires the **Remote Web Panel** patch to be enabled.
+
+**How to add a script**
+
+- In the patch dialog, add one or more `.js` files (only existing `.js` files are accepted), **or**
+- Drop `.js` files into a `renderer-scripts/` folder placed next to the patcher executable.
+
+Then patch as usual — your scripts are bundled into the client and run inside Wand's window.
+
+**How it runs**
+
+- Each script runs inside Wand's renderer (full DOM access, plus Node `require`).
+- It is wrapped so a thrown error is logged and never crashes Wand.
+- It may run **more than once** per launch (on load and again shortly after), so guard one‑time work behind a global flag.
+- A small `WandEnhancer` helper is available: `WandEnhancer.log(...)`, `WandEnhancer.remoteUrl`, `WandEnhancer.apiVersion`.
+
+**Minimal example** (`hello.js`)
+
+```js
+// Injected scripts can run multiple times — guard one-time setup.
+if (!globalThis.__helloScriptInstalled) {
+  globalThis.__helloScriptInstalled = true;
+
+  WandEnhancer.log("Hello from my custom script!", WandEnhancer.remoteUrl);
+
+  new MutationObserver(() => {
+    const dialog = document.querySelector("ux-dialog:not([data-seen])");
+    if (dialog) {
+      dialog.setAttribute("data-seen", "1");
+      WandEnhancer.log("A dialog opened.");
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+}
+```
+
+> Scripts run with the same privileges as the Wand client. Only add scripts you trust and understand.
+
 ## 🛠️ How to build from source
 
 Building from source on Windows requires a local development environment.
