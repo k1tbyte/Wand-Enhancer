@@ -3,6 +3,13 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.8.4] - 2026-06-10
+
+### Fixes
+
+- Fixed QR code issues on the latest Wand version.
+- Fixed application hang that occurred after Wand updates with pending patches.
+
 ## [1.0.8.3] - 2026-06-06
 
 ### Fixes

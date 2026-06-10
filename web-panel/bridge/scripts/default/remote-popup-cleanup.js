@@ -1,3 +1,8 @@
+import {
+  getWebpackRequire,
+  isRecord,
+} from "./installed-apps-sync/runtime.js"
+
 ;(function installRemotePopupCleanup(WandEnhancer) {
   if (globalThis.__wandRemotePopupCleanupInstalled) {
     return
@@ -8,14 +13,13 @@
   const style = document.createElement("style")
   style.id = "wand-remote-popup-cleanup-style"
   style.textContent = `
-    .pro-onboarding-card--remote {
+    article.pro-onboarding-card--remote {
       display: none !important;
     }
 
     remote-tooltip .remote-tooltip .top-wrapper,
     remote-tooltip .remote-tooltip .remote-tooltip-section-divider,
     remote-tooltip .remote-tooltip .instructions .header,
-    remote-tooltip .remote-tooltip .instructions .content .text,
     remote-tooltip .remote-tooltip .instructions .platforms {
       display: none !important;
     }
@@ -29,15 +33,15 @@
     remote-tooltip .remote-tooltip .instructions,
     remote-tooltip .remote-tooltip .instructions .content {
       display: flex !important;
+      flex-direction: column !important;
       align-items: center !important;
       justify-content: center !important;
       padding: 0 !important;
-      gap: 0 !important;
+      gap: 12px !important;
     }
 
     remote-tooltip .remote-tooltip .instructions remote-qr-code {
-      all: unset !important;
-      --wand-qr-size: clamp(220px, 100vw, 300px);
+      --wand-qr-size: clamp(180px, 70vw, 240px);
       width: var(--wand-qr-size) !important;
       height: var(--wand-qr-size) !important;
       min-width: var(--wand-qr-size) !important;
@@ -53,6 +57,12 @@
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35) !important;
     }
 
+    remote-tooltip .remote-tooltip .instructions .content .text {
+      display: block !important;
+      max-width: 250px !important;
+      overflow-wrap: anywhere !important;
+    }
+
     remote-tooltip .remote-tooltip .instructions remote-qr-code canvas {
       width: 100% !important;
       height: 100% !important;
@@ -64,6 +74,8 @@
       transform: none !important;
     }
   `
+  let qrRenderer = null
+  let refreshScheduled = false
 
   const installStyle = () => {
     if (!document.getElementById(style.id)) {
@@ -71,9 +83,31 @@
     }
   }
 
-  const updateLinks = () => {
-    const remoteUrl =
-      globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl
+  const getRemoteUrl = () =>
+    globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl
+
+  const resolveQrRenderer = () => {
+    if (qrRenderer) {
+      return qrRenderer
+    }
+
+    const webpackRequire = getWebpackRequire()
+    for (const record of Object.values(webpackRequire?.c || {})) {
+      const exports = record?.exports
+      if (
+        isRecord(exports) &&
+        typeof exports.create === "function" &&
+        typeof exports.mo === "function"
+      ) {
+        qrRenderer = exports.mo
+        return qrRenderer
+      }
+    }
+
+    return null
+  }
+
+  const updateLinks = (remoteUrl) => {
     if (!remoteUrl) {
       return
     }
@@ -84,13 +118,48 @@
     }
   }
 
-  installStyle()
-  updateLinks()
+  const updateQrCodes = async (remoteUrl) => {
+    const renderQr = remoteUrl && resolveQrRenderer()
+    if (!renderQr) {
+      return
+    }
 
-  const observer = new MutationObserver(() => {
+    for (const canvas of document.querySelectorAll("remote-qr-code canvas")) {
+      if (canvas.dataset.wandRemoteUrl === remoteUrl) {
+        continue
+      }
+
+      try {
+        await renderQr(canvas, remoteUrl)
+        canvas.dataset.wandRemoteUrl = remoteUrl
+      } catch (error) {
+        WandEnhancer?.log("Failed to render local remote QR code", error)
+      }
+    }
+  }
+
+  const refresh = () => {
+    const remoteUrl = getRemoteUrl()
     installStyle()
-    updateLinks()
-  })
+    updateLinks(remoteUrl)
+    void updateQrCodes(remoteUrl)
+  }
+
+  const scheduleRefresh = () => {
+    if (refreshScheduled) {
+      return
+    }
+
+    refreshScheduled = true
+    setTimeout(() => {
+      refreshScheduled = false
+      refresh()
+    }, 0)
+  }
+
+  refresh()
+
+  const observer = new MutationObserver(scheduleRefresh)
 
   observer.observe(document.documentElement, {
     childList: true,
