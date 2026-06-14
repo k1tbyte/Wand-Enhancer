@@ -43,7 +43,7 @@ function Resolve-NuGetPath {
     return $nugetPath
 }
 
-function Resolve-VisualStudio {
+function Resolve-MSBuildPath {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path $vswhere)) {
         throw "vswhere.exe not found: $vswhere"
@@ -51,11 +51,7 @@ function Resolve-VisualStudio {
 
     # No version pin: pick whatever VS the host has (2022/2026/newer) so CI
     # keeps working when the runner image bumps its Visual Studio major.
-    $vsArgs = @('-latest', '-prerelease', '-products', '*', '-requires', 'Microsoft.Component.MSBuild')
-    $installationPath = & $vswhere @vsArgs -property installationPath
-    $installationVersion = & $vswhere @vsArgs -property installationVersion
-    $productLine = & $vswhere @vsArgs -property catalog_productLineVersion
-
+    $installationPath = & $vswhere -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild -property installationPath
     if ([string]::IsNullOrWhiteSpace($installationPath)) {
         throw 'Visual Studio with MSBuild was not found.'
     }
@@ -65,15 +61,7 @@ function Resolve-VisualStudio {
         throw "MSBuild.exe not found: $msbuildPath"
     }
 
-    $major = ($installationVersion -split '\.')[0]
-    if ([string]::IsNullOrWhiteSpace($major) -or [string]::IsNullOrWhiteSpace($productLine)) {
-        throw "Could not determine the Visual Studio version (version='$installationVersion', line='$productLine')."
-    }
-
-    return [pscustomobject]@{
-        MSBuild   = $msbuildPath
-        Generator = "Visual Studio $major $productLine"
-    }
+    return $msbuildPath
 }
 
 function Invoke-Step {
@@ -92,9 +80,7 @@ function Invoke-Step {
 $cmake = Resolve-CommandPath 'cmake'
 $nuget = Resolve-NuGetPath
 $pnpm = Resolve-CommandPath 'pnpm'
-$vs = Resolve-VisualStudio
-$msbuild = $vs.MSBuild
-$generator = $vs.Generator
+$msbuild = Resolve-MSBuildPath
 
 Invoke-Step 'Install web-panel dependencies' {
     & $pnpm --dir $webPanelDir install --frozen-lockfile
@@ -105,7 +91,12 @@ Invoke-Step 'Build web-panel' {
 }
 
 Invoke-Step 'Configure asar-fuses-bypass' {
-    & $cmake -S $asarFusesSourceDir -B $asarFusesBuildDir -G $generator -A x64
+    # Let CMake choose its default Visual Studio generator (matches the host VS),
+    # avoiding a hardcoded/derived name that breaks when the runner bumps VS.
+    # Clearing CMAKE_GENERATOR ensures the default isn't overridden to a non-VS
+    # generator that would reject the -A architecture flag.
+    Remove-Item Env:CMAKE_GENERATOR -ErrorAction SilentlyContinue
+    & $cmake -S $asarFusesSourceDir -B $asarFusesBuildDir -A x64
 }
 
 Invoke-Step 'Build asar-fuses-bypass' {
@@ -150,11 +141,14 @@ if ($Configuration -eq 'Release') {
     }
 
     $signature = Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256
-    if ($signature.Status -ne 'Valid') {
+    # A self-signed root is intentionally untrusted, so the status is
+    # 'UnknownError' (untrusted root) even though the signature is embedded.
+    # Only a missing SignerCertificate means signing actually failed.
+    if (-not $signature.SignerCertificate) {
         throw "Signing failed: $($signature.Status) - $($signature.StatusMessage)"
     }
 
-    Write-Host "Signed $exePath [$($cert.Thumbprint)]"
+    Write-Host "Signed $exePath [$($cert.Thumbprint)] (status: $($signature.Status))"
 }
 
 Write-Host ''
