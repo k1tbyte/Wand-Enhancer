@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 const bridgeRoot = dirname(fileURLToPath(import.meta.url))
 const webPanelRoot = resolve(bridgeRoot, "..")
 const distRoot = resolve(webPanelRoot, "dist")
-const bridgeEntryPoint = resolve(bridgeRoot, "source.cjs")
+const bridgeEntryPoint = resolve(bridgeRoot, "src", "index.ts")
 const bridgeOutfile = resolve(distRoot, "bridge.cjs")
 const rendererScriptsRoot = resolve(bridgeRoot, "scripts", "default")
 const rendererScriptsOutdir = resolve(distRoot, "renderer-scripts")

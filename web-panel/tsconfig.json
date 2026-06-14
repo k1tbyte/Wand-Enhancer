@@ -32,6 +32,8 @@
     },
     "include": [
         "src",
+        "protocol",
+        "vitest.config.ts",
         "vite.config.ts"
     ]
 }

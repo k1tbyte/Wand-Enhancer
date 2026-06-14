@@ -1,0 +1,13 @@
+{
+  "protocolVersion": 1,
+  "clientVersion": "0.2.0",
+  "serverVersion": "0.2.0-wand",
+  "defaultRemoteHost": "0.0.0.0",
+  "defaultRemotePort": 3223,
+  "portScanRange": 30,
+  "basePath": "/remote/",
+  "assetsPath": "/remote/assets/",
+  "webSocketPath": "/remote/ws",
+  "healthPath": "/remote/api/health",
+  "installedAppsPath": "/remote/api/installed-apps"
+}

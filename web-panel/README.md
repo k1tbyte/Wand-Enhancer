@@ -1,17 +1,18 @@
 # Wand Web Panel
 
-Local mobile-friendly web panel scaffold for Wand.
+Local mobile-friendly web panel for Wand.
 
 ## Commands
 
 ```bash
 pnpm install
-pnpm run dev
+pnpm dev
+pnpm bridge:demo
 ```
 
 Hosted access on the local machine:
 
-- `http://localhost:4173/?mock=1`
+- `http://localhost:4173/`
 
 Hosted access on the LAN:
 
@@ -21,11 +22,5 @@ pnpm run dev:host
 
 Then open the machine IP on port `4173`.
 
-## Modes
-
-- `?mock=1`
-  - dev server only; loads the demo trainer and values through a debug-only import
-- `?ws=ws://host:port/remote/ws`
-  - connects to a real bridge once the desktop layer exists
-
-Production builds exclude the debug route and demo JSON from the shipped bundle.
+Use `?ws=ws://host:port/remote/ws` to override the bridge URL. The fixture bridge is dev-only;
+production is bundled to `dist/bridge.cjs`.
