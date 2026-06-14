@@ -43,15 +43,21 @@ function Resolve-NuGetPath {
     return $nugetPath
 }
 
-function Resolve-MSBuildPath {
+function Resolve-VisualStudio {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path $vswhere)) {
         throw "vswhere.exe not found: $vswhere"
     }
 
-    $installationPath = & $vswhere -latest -version '[17.0,18.0)' -requires Microsoft.Component.MSBuild -property installationPath
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
-        throw 'Visual Studio 2022 with MSBuild was not found.'
+    # No version pin: pick whatever VS the host has (2022/2026/newer) so CI
+    # keeps working when the runner image bumps its Visual Studio major.
+    $vsArgs = @('-latest', '-prerelease', '-products', '*', '-requires', 'Microsoft.Component.MSBuild')
+    $installationPath = & $vswhere @vsArgs -property installationPath
+    $installationVersion = & $vswhere @vsArgs -property installationVersion
+    $productLine = & $vswhere @vsArgs -property catalog_productLineVersion
+
+    if ([string]::IsNullOrWhiteSpace($installationPath)) {
+        throw 'Visual Studio with MSBuild was not found.'
     }
 
     $msbuildPath = Join-Path $installationPath 'MSBuild\Current\Bin\MSBuild.exe'
@@ -59,7 +65,15 @@ function Resolve-MSBuildPath {
         throw "MSBuild.exe not found: $msbuildPath"
     }
 
-    return $msbuildPath
+    $major = ($installationVersion -split '\.')[0]
+    if ([string]::IsNullOrWhiteSpace($major) -or [string]::IsNullOrWhiteSpace($productLine)) {
+        throw "Could not determine the Visual Studio version (version='$installationVersion', line='$productLine')."
+    }
+
+    return [pscustomobject]@{
+        MSBuild   = $msbuildPath
+        Generator = "Visual Studio $major $productLine"
+    }
 }
 
 function Invoke-Step {
@@ -78,8 +92,9 @@ function Invoke-Step {
 $cmake = Resolve-CommandPath 'cmake'
 $nuget = Resolve-NuGetPath
 $pnpm = Resolve-CommandPath 'pnpm'
-$msbuild = Resolve-MSBuildPath
-$generator = 'Visual Studio 17 2022'
+$vs = Resolve-VisualStudio
+$msbuild = $vs.MSBuild
+$generator = $vs.Generator
 
 Invoke-Step 'Install web-panel dependencies' {
     & $pnpm --dir $webPanelDir install --frozen-lockfile

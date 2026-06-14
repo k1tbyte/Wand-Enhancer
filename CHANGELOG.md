@@ -7,7 +7,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Features
 
-- The Remote Web Panel now shows mod names, descriptions, and instructions translated to your WeMod account language. #98
+- The Remote Web Panel now shows mod names, descriptions, and instructions translated to your WeMod account language by @YifePlayte in #98. Related issue: #85
 - Added a language selector to the Remote Web Panel (English, Russian, German, French, Spanish, Simplified Chinese) with automatic detection from the browser language.
 
 ### Improvements
