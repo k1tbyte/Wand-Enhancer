@@ -78,7 +78,20 @@ function installIpcHandlers(electron, runtime, boundRenderers, pendingCommandRes
 
     globalThis.__wandRemoteBridgeIpcInstalled = true;
     electron.ipcMain.handle(IPC_CHANNEL.TRAINER_SNAPSHOT, (_event, snapshot) => {
-        runtime.sync(snapshot);
+        try {
+            const allWindows = electron.BrowserWindow.getAllWindows();
+            const win = allWindows[0];
+            win.webContents
+                .executeJavaScript(
+                    `JSON.parse(localStorage.getItem("infinity:globalStore") || "{}")?.token?.accessToken`
+                )
+                .then((accessToken) => {
+                    snapshot.accessToken = accessToken;
+                    runtime.sync(snapshot);
+                });
+        } catch (e) {
+            runtime.sync(snapshot);
+        }
         return true;
     });
     electron.ipcMain.handle(REMOTE_INSTALLED_APPS_CHANNEL, (_event, snapshot) => {

@@ -109,6 +109,7 @@ export interface TrainerSummary {
 export interface TrainerMetaPayload {
     session: {
         instanceId: string;
+        accessToken: string;
     };
     trainer: TrainerSummary;
     schema: {
