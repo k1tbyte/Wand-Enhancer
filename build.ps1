@@ -105,5 +105,42 @@ Invoke-Step 'Build solution' {
     & $msbuild $solutionPath /m /p:Configuration=$Configuration '/p:Platform=Any CPU' /t:Build
 }
 
+# Code-sign the release executable. A self-signed signature notably lowers
+# false-positive AV/VirusTotal detections. The cert is reused across builds and
+# generated on first use, so no secrets or env configuration are required.
+if ($Configuration -eq 'Release') {
+    Write-Host '==> Sign WandEnhancer.exe' -ForegroundColor Cyan
+
+    $exePath = Join-Path $repoRoot "WandEnhancer/bin/$Configuration/WandEnhancer.exe"
+    if (-not (Test-Path $exePath)) {
+        throw "Executable not found for signing: $exePath"
+    }
+
+    $signingSubject = 'CN=Wand-Enhancer'
+    $cert = Get-ChildItem Cert:\CurrentUser\My |
+        Where-Object { $_.Subject -eq $signingSubject -and $_.HasPrivateKey } |
+        Select-Object -First 1
+    if (-not $cert) {
+        $cert = New-SelfSignedCertificate `
+            -Subject $signingSubject `
+            -Type CodeSigningCert `
+            -CertStoreLocation Cert:\CurrentUser\My `
+            -KeyExportPolicy Exportable `
+            -KeyUsage DigitalSignature `
+            -KeyAlgorithm RSA `
+            -KeyLength 2048 `
+            -HashAlgorithm SHA256 `
+            -NotAfter (Get-Date).AddYears(5)
+        Write-Host "Generated self-signed code-signing certificate: $($cert.Subject) [$($cert.Thumbprint)]"
+    }
+
+    $signature = Set-AuthenticodeSignature -FilePath $exePath -Certificate $cert -HashAlgorithm SHA256
+    if ($signature.Status -ne 'Valid') {
+        throw "Signing failed: $($signature.Status) - $($signature.StatusMessage)"
+    }
+
+    Write-Host "Signed $exePath [$($cert.Thumbprint)]"
+}
+
 Write-Host ''
 Write-Host "Build completed successfully ($Configuration)." -ForegroundColor Green

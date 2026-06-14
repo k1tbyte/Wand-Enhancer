@@ -3,6 +3,18 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.9.0] - 2026-06-15
+
+### Features
+
+- The Remote Web Panel now shows mod names, descriptions, and instructions translated to your WeMod account language. #98
+- Added a language selector to the Remote Web Panel (English, Russian, German, French, Spanish, Simplified Chinese) with automatic detection from the browser language.
+
+### Improvements
+
+- Release builds are now code-signed, which reduces false-positive antivirus and VirusTotal detections.
+- Reworked the Remote Web Panel internals around feature capabilities for easier maintenance, with no change to existing behavior.
+
 ## [1.0.8.4] - 2026-06-10
 
 ### Fixes
