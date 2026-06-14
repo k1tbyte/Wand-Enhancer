@@ -412,6 +412,7 @@ function normalizeSnapshot(rawSnapshot) {
     const trainerMeta = {
         session: {
             instanceId: safeString(rawSnapshot.instanceId, 'wand-session'),
+            accessToken: safeString(rawSnapshot.accessToken),
         },
         trainer: {
             trainerId,

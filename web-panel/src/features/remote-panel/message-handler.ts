@@ -4,13 +4,14 @@ import type { PanelAction } from './state';
 
 type Dispatch = (action: PanelAction) => void;
 
-export function handleProtocolMessage(dispatch: Dispatch, message: IncomingMessage, trainerMeta: TrainerMetaPayload | null): void {
+export async function handleProtocolMessage(dispatch: Dispatch, message: IncomingMessage, trainerMeta: TrainerMetaPayload | null): Promise<void> {
     switch (message.type) {
         case 'hello_ack':
             handleHelloAck(dispatch, message.payload.accepted, message.payload.remoteUrl);
             return;
         case 'trainer_meta':
-            dispatch({ type: 'trainerMeta', payload: message.payload });
+            const payloadWithI18n = await fetchI18nForTrainerMeta(message.payload);
+            dispatch({ type: 'trainerMeta', payload: payloadWithI18n });
             return;
         case 'game_status':
             dispatch({ type: 'gameStatus', payload: message.payload });
@@ -58,4 +59,52 @@ function handleValueChanged(dispatch: Dispatch, message: Extract<IncomingMessage
     const cheat = trainerMeta?.schema.cheats.find((item) => item.target === message.payload.target || item.uuid === message.payload.cheatId);
     const nextValue = cheat ? normalizeIncomingValue(cheat, message.payload.value) : message.payload.value;
     dispatch({ type: 'valueChanged', target: message.payload.target, value: nextValue });
+}
+
+async function fetchI18nForTrainerMeta(payload: TrainerMetaPayload): Promise<TrainerMetaPayload> {
+    try {
+        const accessToken = payload?.session?.accessToken;
+        const gameId = payload?.trainer?.gameId;
+        const gameVersion = payload?.trainer?.gameVersion;
+        const language = payload?.trainer?.language;
+
+        const params = new URLSearchParams();
+
+        if (gameVersion) params.append('gameVersions', gameVersion);
+        if (language) params.append('locale', language);
+
+        const url = `https://api.wemod.com/v3/games/${gameId}/trainer?${params.toString()}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        const trainer = await response.json();
+
+        payload.schema.cheats.forEach((item) => {
+            // name
+            const name = item.name;
+            if (name) {
+                const i18nString = trainer?.i18n?.strings?.[name];
+                if (i18nString) item.name = i18nString;
+            }
+            // description
+            const description = item.description;
+            if (description) {
+                const i18nString = trainer?.i18n?.strings?.[description];
+                if (i18nString) item.description = i18nString;
+            }
+            // instructions
+            const instructions = item.instructions;
+            if (instructions) {
+                const i18nString = trainer?.i18n?.strings?.[instructions];
+                if (i18nString) item.instructions = i18nString;
+            }
+        });
+
+        return payload;
+    } catch (e) {
+        return payload;
+    }
 }
