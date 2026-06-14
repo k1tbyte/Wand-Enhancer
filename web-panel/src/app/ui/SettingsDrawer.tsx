@@ -6,6 +6,7 @@ import { useLingui } from '@lingui/react';
 
 import { Icon } from '@/shared/ui/Icon';
 import { cn } from '@/shared/lib/ui';
+import { activateLocale, type LocaleCode, SUPPORTED_LOCALES } from '@/app/i18n';
 import { DEFAULT_ACCENT_COLOR, loadAccentColor, setAccentColor } from '@/appearance/appearance-storage';
 import type { LibraryGame } from '@/library/model/games';
 import { EConnectionStatus } from '@/remote-session/remote-session.reducer';
@@ -70,6 +71,9 @@ export const SettingsDrawer = ({
 
         <SectionHeader title={_(msg`Session`)} />
         <SessionPanel currentGame={currentGame} currentTrainer={currentTrainer} />
+
+        <SectionHeader title={_(msg`Language`)} />
+        <LanguagePicker />
 
         <SectionHeader title={_(msg`Accent Color`)} />
         <AccentPicker />
@@ -156,6 +160,32 @@ const SessionPanel = ({ currentGame, currentTrainer }: { currentGame: LibraryGam
       <p className="mt-0.5 truncate font-mono text-[11px] text-(--deck-fg-3)">
         {sessionSubtitle}
       </p>
+    </div>
+  );
+};
+
+const LanguagePicker = () => {
+  const { i18n } = useLingui();
+
+  const handleSelect = (locale: LocaleCode) => {
+    void activateLocale(locale);
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {SUPPORTED_LOCALES.map(({ code, label }) => {
+        const active = i18n.locale === code;
+        return (
+          <button
+            key={code}
+            type="button"
+            className={cn('remote-glass-control flex items-center justify-center rounded-[9px] border px-2 py-2 text-[12px] font-medium', active ? 'border-(--deck-accent) text-(--deck-fg)' : 'text-(--deck-fg-3)')}
+            onClick={() => handleSelect(code)}
+          >
+            {label}
+          </button>
+        );
+      })}
     </div>
   );
 };

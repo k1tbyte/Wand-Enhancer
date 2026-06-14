@@ -1,0 +1,4 @@
+# The web panel is the bundled frontend shipped inside the C# patcher.
+# Mark it as vendored so GitHub Linguist keeps it out of the repository's
+# language statistics — the project is a C# app, not a TypeScript one.
+web-panel/** linguist-vendored

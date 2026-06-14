@@ -6,7 +6,7 @@ import { I18nProvider } from '@lingui/react';
 import { applySavedAccentColor } from '@/appearance/appearance-storage';
 
 import { App } from './app';
-import { activateLocale, DEFAULT_LOCALE } from './i18n';
+import { activateLocale, detectInitialLocale } from './i18n';
 import '../index.css';
 
 const root = document.getElementById('root') ?? document.getElementById('app');
@@ -17,7 +17,7 @@ if (!root) {
 
 applySavedAccentColor();
 
-activateLocale(DEFAULT_LOCALE).then(() => {
+activateLocale(detectInitialLocale()).then(() => {
   createRoot(root).render(
     <StrictMode>
       <I18nProvider i18n={i18n}>

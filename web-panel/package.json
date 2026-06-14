@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host 0.0.0.0",
-    "build": "pnpm run i18n:compile && tsc --noEmit && vite build && pnpm run build:bridge",
+    "build": "tsc --noEmit && vite build && pnpm run build:bridge",
     "build:bridge": "node ./bridge/build.mjs",
     "lint": "eslint src protocol bridge/src --max-warnings=0",
     "typecheck:web": "tsc --noEmit",

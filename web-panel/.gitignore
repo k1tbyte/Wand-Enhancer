@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Compiled lingui catalogs — generated from .po by `lingui compile`; the app
+# loads .po directly via @lingui/vite-plugin, so these are build artifacts.
+src/locales/**/*.js

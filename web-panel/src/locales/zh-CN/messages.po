@@ -1,0 +1,345 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-06-15 00:17+0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: zh-CN\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#. placeholder {0}: games.length
+#: src/library/ui/LibraryDrawer.tsx
+msgid "{0, plural, one {# game detected} other {# games detected}}"
+msgstr "{0, plural, other {检测到 # 个游戏}}"
+
+#. placeholder {0}: trainer.totalVisibleCheats
+#: src/app/app.tsx
+msgid "{0} matches"
+msgstr "{0} 个匹配"
+
+#: src/trainer/ui/CategorySection.tsx
+msgid "{cheatCount} mods"
+msgstr "{cheatCount} 个模组"
+
+#: src/trainer/ui/CategorySection.tsx
+msgid "{cheatCount} mods · {enabledCount}/{toggleCount} on"
+msgstr "{cheatCount} 个模组 · {enabledCount}/{toggleCount} 已开"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Accent Color"
+msgstr "强调色"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Active Session"
+msgstr "当前会话"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Add"
+msgstr "添加"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Add Preset"
+msgstr "添加预设"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "All Games"
+msgstr "所有游戏"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Amber"
+msgstr "琥珀"
+
+#: src/trainer/controls/ActionButton.tsx
+msgid "Apply"
+msgstr "应用"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Bridge"
+msgstr "桥接"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Bridge offline"
+msgstr "桥接已离线"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Browse library"
+msgstr "浏览游戏库"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Cancel"
+msgstr "取消"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Challenge"
+msgstr "挑战"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Character"
+msgstr "角色"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Cheats"
+msgstr "作弊"
+
+#: src/shared/ui/SearchInput.tsx
+msgid "Clear search"
+msgstr "清除搜索"
+
+#: src/shared/ui/Drawer.tsx
+msgid "Close drawer"
+msgstr "关闭抽屉"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Close library"
+msgstr "关闭游戏库"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Close preset modal"
+msgstr "关闭预设窗口"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Close settings"
+msgstr "关闭设置"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Cobalt"
+msgstr "钴蓝"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Crafting"
+msgstr "制作"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Crimson"
+msgstr "深红"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Custom"
+msgstr "自定义"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Cyan"
+msgstr "青色"
+
+#. placeholder {0}: preset.name
+#: src/trainer/ui/QuickActions.tsx
+msgid "Delete preset {0}"
+msgstr "删除预设 {0}"
+
+#. placeholder {0}: trainer.totalCheats
+#: src/app/app.tsx
+msgid "END · {0} MODS"
+msgstr "结束 · {0} 个模组"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Enemies"
+msgstr "敌人"
+
+#: src/library/ui/LibraryDrawer.tsx
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Favorite game"
+msgstr "收藏游戏"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Favorites"
+msgstr "收藏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Game"
+msgstr "游戏"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "GO"
+msgstr "连接"
+
+#: src/app/ui/TopBar.tsx
+msgid "Idle · no game"
+msgstr "空闲 · 无游戏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Inventory"
+msgstr "物品栏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Items"
+msgstr "物品"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Language"
+msgstr "语言"
+
+#: src/app/ui/FloatingDock.tsx
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Library"
+msgstr "游戏库"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Lime"
+msgstr "青柠"
+
+#: src/app/ui/StatusPill.tsx
+msgid "LINKING"
+msgstr "连接中"
+
+#: src/app/ui/StatusPill.tsx
+msgid "LIVE"
+msgstr "在线"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Magenta"
+msgstr "品红"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Name"
+msgstr "名称"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "New preset"
+msgstr "新预设"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "No active game session."
+msgstr "没有活动的游戏会话。"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "No game is running yet. Open the library and launch one to start tweaking."
+msgstr "尚未运行游戏。打开游戏库并启动一个即可开始调整。"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "No games match \"{query}\""
+msgstr "没有匹配「{query}」的游戏"
+
+#. placeholder {0}: trainer.query
+#: src/app/app.tsx
+msgid "No mods match \"{0}\""
+msgstr "没有匹配「{0}」的模组"
+
+#: src/trainer/controls/SelectionControl.tsx
+msgid "No options"
+msgstr "无选项"
+
+#: src/app/ui/FloatingDock.tsx
+msgid "No session"
+msgstr "无会话"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Now Playing"
+msgstr "正在游玩"
+
+#: src/app/ui/StatusPill.tsx
+msgid "OFFLINE"
+msgstr "离线"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Open Settings"
+msgstr "打开设置"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Open Settings to point Wand at your trainer bridge over WebSocket."
+msgstr "打开设置，通过 WebSocket 将 Wand 指向你的训练器桥接。"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Panic Off"
+msgstr "全部关闭"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Physics"
+msgstr "物理"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Pinned"
+msgstr "已固定"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Play"
+msgstr "开始游戏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Player"
+msgstr "玩家"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Preset name"
+msgstr "预设名称"
+
+#: src/library/ui/LibraryDrawer.tsx
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Remove favorite"
+msgstr "取消收藏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Resources"
+msgstr "资源"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Save"
+msgstr "保存"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Search games"
+msgstr "搜索游戏"
+
+#: src/app/app.tsx
+msgid "Search mods"
+msgstr "搜索模组"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Select a game"
+msgstr "选择游戏"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Session"
+msgstr "会话"
+
+#: src/app/ui/FloatingDock.tsx
+#: src/app/ui/SettingsDrawer.tsx
+#: src/app/ui/TopBar.tsx
+msgid "Settings"
+msgstr "设置"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Stats"
+msgstr "属性"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "STOP"
+msgstr "停止"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Stop playing"
+msgstr "停止游戏"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Teleport"
+msgstr "传送"
+
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Trainer Active"
+msgstr "训练器已激活"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Vehicles"
+msgstr "载具"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Violet"
+msgstr "紫色"
+
+#. placeholder {0}: WEB_CONTRACT.defaultRemotePort
+#: src/app/ui/SettingsDrawer.tsx
+msgid "wand remote · port {0}"
+msgstr "wand remote · 端口 {0}"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Weapons"
+msgstr "武器"
+
+#: src/trainer/ui/category-labels.ts
+msgid "World"
+msgstr "世界"

@@ -1,11 +1,11 @@
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2026-06-14 23:42+0300\n"
+"POT-Creation-Date: 2026-06-15 00:17+0300\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: @lingui/cli\n"
-"Language: en\n"
+"Language: fr-FR\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "PO-Revision-Date: \n"
@@ -16,12 +16,12 @@ msgstr ""
 #. placeholder {0}: games.length
 #: src/library/ui/LibraryDrawer.tsx
 msgid "{0, plural, one {# game detected} other {# games detected}}"
-msgstr "{0, plural, one {# game detected} other {# games detected}}"
+msgstr "{0, plural, one {# jeu détecté} other {# jeux détectés}}"
 
 #. placeholder {0}: trainer.totalVisibleCheats
 #: src/app/app.tsx
 msgid "{0} matches"
-msgstr "{0} matches"
+msgstr "{0} résultats"
 
 #: src/trainer/ui/CategorySection.tsx
 msgid "{cheatCount} mods"
@@ -29,83 +29,83 @@ msgstr "{cheatCount} mods"
 
 #: src/trainer/ui/CategorySection.tsx
 msgid "{cheatCount} mods · {enabledCount}/{toggleCount} on"
-msgstr "{cheatCount} mods · {enabledCount}/{toggleCount} on"
+msgstr "{cheatCount} mods · {enabledCount}/{toggleCount} actifs"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Accent Color"
-msgstr "Accent Color"
+msgstr "Couleur d'accent"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Active Session"
-msgstr "Active Session"
+msgstr "Session active"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Add"
-msgstr "Add"
+msgstr "Ajouter"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Add Preset"
-msgstr "Add Preset"
+msgstr "Ajouter un préréglage"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "All Games"
-msgstr "All Games"
+msgstr "Tous les jeux"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Amber"
-msgstr "Amber"
+msgstr "Ambre"
 
 #: src/trainer/controls/ActionButton.tsx
 msgid "Apply"
-msgstr "Apply"
+msgstr "Appliquer"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Bridge"
-msgstr "Bridge"
+msgstr "Pont"
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "Bridge offline"
-msgstr "Bridge offline"
+msgstr "Pont hors ligne"
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "Browse library"
-msgstr "Browse library"
+msgstr "Parcourir la bibliothèque"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Cancel"
-msgstr "Cancel"
+msgstr "Annuler"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Challenge"
-msgstr "Challenge"
+msgstr "Défi"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Character"
-msgstr "Character"
+msgstr "Personnage"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Cheats"
-msgstr "Cheats"
+msgstr "Triches"
 
 #: src/shared/ui/SearchInput.tsx
 msgid "Clear search"
-msgstr "Clear search"
+msgstr "Effacer la recherche"
 
 #: src/shared/ui/Drawer.tsx
 msgid "Close drawer"
-msgstr "Close drawer"
+msgstr "Fermer le panneau"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Close library"
-msgstr "Close library"
+msgstr "Fermer la bibliothèque"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Close preset modal"
-msgstr "Close preset modal"
+msgstr "Fermer la fenêtre de préréglage"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Close settings"
-msgstr "Close settings"
+msgstr "Fermer les paramètres"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Cobalt"
@@ -113,15 +113,15 @@ msgstr "Cobalt"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Crafting"
-msgstr "Crafting"
+msgstr "Artisanat"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Crimson"
-msgstr "Crimson"
+msgstr "Cramoisi"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Custom"
-msgstr "Custom"
+msgstr "Personnalisé"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Cyan"
@@ -130,29 +130,29 @@ msgstr "Cyan"
 #. placeholder {0}: preset.name
 #: src/trainer/ui/QuickActions.tsx
 msgid "Delete preset {0}"
-msgstr "Delete preset {0}"
+msgstr "Supprimer le préréglage {0}"
 
 #. placeholder {0}: trainer.totalCheats
 #: src/app/app.tsx
 msgid "END · {0} MODS"
-msgstr "END · {0} MODS"
+msgstr "FIN · {0} MODS"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Enemies"
-msgstr "Enemies"
+msgstr "Ennemis"
 
 #: src/library/ui/LibraryDrawer.tsx
 #: src/trainer/ui/TrainerHeader.tsx
 msgid "Favorite game"
-msgstr "Favorite game"
+msgstr "Mettre en favori"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Favorites"
-msgstr "Favorites"
+msgstr "Favoris"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Game"
-msgstr "Game"
+msgstr "Jeu"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "GO"
@@ -160,32 +160,36 @@ msgstr "GO"
 
 #: src/app/ui/TopBar.tsx
 msgid "Idle · no game"
-msgstr "Idle · no game"
+msgstr "Inactif · aucun jeu"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Inventory"
-msgstr "Inventory"
+msgstr "Inventaire"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Items"
-msgstr "Items"
+msgstr "Objets"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Language"
+msgstr "Langue"
 
 #: src/app/ui/FloatingDock.tsx
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Library"
-msgstr "Library"
+msgstr "Bibliothèque"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Lime"
-msgstr "Lime"
+msgstr "Citron vert"
 
 #: src/app/ui/StatusPill.tsx
 msgid "LINKING"
-msgstr "LINKING"
+msgstr "CONNEXION"
 
 #: src/app/ui/StatusPill.tsx
 msgid "LIVE"
-msgstr "LIVE"
+msgstr "EN DIRECT"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Magenta"
@@ -193,101 +197,101 @@ msgstr "Magenta"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Name"
-msgstr "Name"
+msgstr "Nom"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "New preset"
-msgstr "New preset"
+msgstr "Nouveau préréglage"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "No active game session."
-msgstr "No active game session."
+msgstr "Aucune session de jeu active."
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "No game is running yet. Open the library and launch one to start tweaking."
-msgstr "No game is running yet. Open the library and launch one to start tweaking."
+msgstr "Aucun jeu n'est lancé. Ouvrez la bibliothèque et lancez-en un pour commencer."
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "No games match \"{query}\""
-msgstr "No games match \"{query}\""
+msgstr "Aucun jeu pour « {query} »"
 
 #. placeholder {0}: trainer.query
 #: src/app/app.tsx
 msgid "No mods match \"{0}\""
-msgstr "No mods match \"{0}\""
+msgstr "Aucun mod pour « {0} »"
 
 #: src/trainer/controls/SelectionControl.tsx
 msgid "No options"
-msgstr "No options"
+msgstr "Aucune option"
 
 #: src/app/ui/FloatingDock.tsx
 msgid "No session"
-msgstr "No session"
+msgstr "Aucune session"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Now Playing"
-msgstr "Now Playing"
+msgstr "En cours"
 
 #: src/app/ui/StatusPill.tsx
 msgid "OFFLINE"
-msgstr "OFFLINE"
+msgstr "HORS LIGNE"
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "Open Settings"
-msgstr "Open Settings"
+msgstr "Ouvrir les paramètres"
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "Open Settings to point Wand at your trainer bridge over WebSocket."
-msgstr "Open Settings to point Wand at your trainer bridge over WebSocket."
+msgstr "Ouvrez les paramètres pour connecter Wand à votre pont de trainer via WebSocket."
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Panic Off"
-msgstr "Panic Off"
+msgstr "Tout désactiver"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Physics"
-msgstr "Physics"
+msgstr "Physique"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Pinned"
-msgstr "Pinned"
+msgstr "Épinglés"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Play"
-msgstr "Play"
+msgstr "Jouer"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Player"
-msgstr "Player"
+msgstr "Joueur"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Preset name"
-msgstr "Preset name"
+msgstr "Nom du préréglage"
 
 #: src/library/ui/LibraryDrawer.tsx
 #: src/trainer/ui/TrainerHeader.tsx
 msgid "Remove favorite"
-msgstr "Remove favorite"
+msgstr "Retirer des favoris"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Resources"
-msgstr "Resources"
+msgstr "Ressources"
 
 #: src/trainer/ui/QuickActions.tsx
 msgid "Save"
-msgstr "Save"
+msgstr "Enregistrer"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Search games"
-msgstr "Search games"
+msgstr "Rechercher des jeux"
 
 #: src/app/app.tsx
 msgid "Search mods"
-msgstr "Search mods"
+msgstr "Rechercher des mods"
 
 #: src/app/ui/SessionPlaceholder.tsx
 msgid "Select a game"
-msgstr "Select a game"
+msgstr "Choisir un jeu"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Session"
@@ -297,7 +301,7 @@ msgstr "Session"
 #: src/app/ui/SettingsDrawer.tsx
 #: src/app/ui/TopBar.tsx
 msgid "Settings"
-msgstr "Settings"
+msgstr "Paramètres"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Stats"
@@ -309,19 +313,19 @@ msgstr "STOP"
 
 #: src/library/ui/LibraryDrawer.tsx
 msgid "Stop playing"
-msgstr "Stop playing"
+msgstr "Arrêter"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Teleport"
-msgstr "Teleport"
+msgstr "Téléportation"
 
 #: src/trainer/ui/TrainerHeader.tsx
 msgid "Trainer Active"
-msgstr "Trainer Active"
+msgstr "Trainer actif"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Vehicles"
-msgstr "Vehicles"
+msgstr "Véhicules"
 
 #: src/app/ui/SettingsDrawer.tsx
 msgid "Violet"
@@ -334,8 +338,8 @@ msgstr "wand remote · port {0}"
 
 #: src/trainer/ui/category-labels.ts
 msgid "Weapons"
-msgstr "Weapons"
+msgstr "Armes"
 
 #: src/trainer/ui/category-labels.ts
 msgid "World"
-msgstr "World"
+msgstr "Monde"
