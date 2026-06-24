@@ -3,6 +3,13 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.9.1] - 2026-06-24
+
+### Fixes
+
+- Fixed Pro features disappearing after a day or two when Wand refreshed account data in the background; account store updates now preserve the patched active subscription by @Kava-4 in #110. Related issue #106
+- Fixed the new Pro account reducer guard so normal account updates do not fail while keeping Pro active.
+
 ## [1.0.9.0] - 2026-06-15
 
 ### Features
