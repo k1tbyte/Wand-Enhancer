@@ -48,7 +48,5 @@ jobs:
           name: ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           body_path: release-notes.md
-          files: |
-            WandEnhancer/bin/Release/WandEnhancer.exe
-            CHANGELOG.md
+          files: CHANGELOG.md
           fail_on_unmatched_files: true

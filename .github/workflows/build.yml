@@ -1,0 +1,34 @@
+name: Build executable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-panel/pnpm-lock.yaml
+
+      - name: Build unsigned executable
+        shell: pwsh
+        run: ./build.ps1 -Configuration Release
+
+      - name: Upload unsigned executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: WandEnhancer-unsigned
+          path: WandEnhancer/bin/Release/WandEnhancer.exe
+          if-no-files-found: error

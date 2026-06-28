@@ -97,7 +97,7 @@ Suggestions for new features or improvements are welcome! Create an Issue descri
    git tag 1.0.8.0
    git push origin 1.0.8.0
    ```
-6. GitHub Actions will validate the version, build the project, extract the matching changelog section, and publish the release automatically.
+6. GitHub Actions will validate the version, build the project, extract the matching changelog section, and publish a notes-only release automatically. Official releases do not attach compiled binaries.
 
 ## Code Style
 
