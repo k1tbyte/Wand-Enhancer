@@ -45,12 +45,6 @@
                         v 1.0.0
                     </TextBlock>
                     
-                    <Button Background="SpringGreen" Foreground="{DynamicResource Muted}"
-                            FontWeight="Medium" Padding="20 0" Margin="10 5 20 5"
-                            ToolTip="Click to update"
-                            Command="{Binding UpdateCommand}"
-                            Visibility="{Binding IsUpdateAvailable, Converter={StaticResource ToVisibilityConverter}}"
-                            Content="{DynamicResource mw_update_available}"/>
                 </StackPanel>
                                 
                 <StackPanel  HorizontalAlignment="Right" Orientation="Horizontal">

@@ -8,7 +8,6 @@
 
     <!--#region MainWindow -->
     <s:String x:Key="mw_title">WandEnhancer</s:String>
-    <s:String x:Key="mw_update_available">Dostępna jest nowa wersja</s:String>
     <s:String x:Key="mw_folder_path">Ścieżka folderu</s:String>
     <s:String x:Key="mw_folder_not_found">Folder nie znaleziony</s:String>
     <s:String x:Key="mw_patch">Zastosuj</s:String>
@@ -37,20 +36,6 @@
     <s:String x:Key="pv_no_custom_scripts">Nie wybrano skryptów</s:String>
     <s:String x:Key="pv_start">Rozpocznij</s:String>
     <s:String x:Key="pv_popup_title">Co będziemy ulepszać?</s:String>
-    <!--#endregion -->
-
-    <!--#region UpdatePopup -->
-    <s:String x:Key="up_warning">Przed aktualizacją zdecydowanie zaleca się cofnięcie zmian, jeśli zostały zastosowane</s:String>
-    <s:String x:Key="up_current_version">Aktualna wersja</s:String>
-    <s:String x:Key="up_latest_version">Najnowsza wersja</s:String>
-    <s:String x:Key="up_release_notes">Informacje o wydaniu</s:String>
-    <s:String x:Key="up_release_notes_unavailable">Informacje o wydaniu są niedostępne dla tej wersji.</s:String>
-    <s:String x:Key="up_show_more">Pokaż cały changelog</s:String>
-    <s:String x:Key="up_show_less">Pokaż tylko bieżące zmiany</s:String>
-    <s:String x:Key="up_loading_changelog">Ładowanie changeloga...</s:String>
-    <s:String x:Key="up_changelog_failed">Nie udało się załadować pełnego changeloga. Zamiast tego wyświetlono bieżące zmiany.</s:String>
-    <s:String x:Key="up_update_now">Aktualizuj teraz</s:String>
-    <s:String x:Key="up_popup_title">Dostępna aktualizacja!</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

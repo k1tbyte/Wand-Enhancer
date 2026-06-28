@@ -55,7 +55,6 @@
         <Reference Include="System.Data" />
         <Reference Include="System.Windows.Forms" />
         <Reference Include="System.Xml" />
-        <Reference Include="System.Net.Http" />
         <Reference Include="System.Xaml">
             <RequiredTargetFramework>4.0</RequiredTargetFramework>
         </Reference>
@@ -84,7 +83,6 @@
         <Compile Include="ReactiveUICore\RelayCommand.cs" />
         <Compile Include="Utils\Common.cs" />
         <Compile Include="Utils\Extensions.cs" />
-        <Compile Include="Utils\Updater.cs" />
         <Compile Include="Utils\Win32\Shortcut.cs" />
         <Compile Include="View\Controls\InfoItem.xaml.cs">
           <DependentUpon>InfoItem.xaml</DependentUpon>
@@ -102,9 +100,6 @@
         <Compile Include="App.xaml.cs">
             <DependentUpon>App.xaml</DependentUpon>
             <SubType>Code</SubType>
-        </Compile>
-        <Compile Include="View\Popups\UpdatePopup.xaml.cs">
-          <DependentUpon>UpdatePopup.xaml</DependentUpon>
         </Compile>
         <Page Include="Locale\lang.en-US.xaml" />
         <Page Include="Locale\lang.zh-CN.xaml" />
@@ -126,7 +121,6 @@
         <Page Include="View\MainWindow\MainWindow.xaml" />
         <Page Include="View\Popups\PatchVectorsPopup.xaml" />
         <Page Include="View\Popups\SettingsPopup.xaml" />
-        <Page Include="View\Popups\UpdatePopup.xaml" />
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Properties\AssemblyInfo.cs">
@@ -203,4 +197,4 @@
         <Exec Command="&quot;$(ILRepackExe)&quot; /allowMultiple /copyattrs /out:&quot;$(OutputPath)$(AssemblyName).exe&quot; &quot;$(MainAssembly)&quot; $(DllList)" />
         <Delete Files="@(AssemblyList)" ContinueOnError="true" />
     </Target>
-</Project>  
+</Project>

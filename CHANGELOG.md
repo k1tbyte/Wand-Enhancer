@@ -3,6 +3,14 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.9.2] - 2026-06-28
+
+### Changed
+
+- Removed the built-in WandEnhancer updater. Official GitHub releases no longer ship executable assets.
+- Removed System.Net.Http
+- Switched official releases to publish release notes only.
+
 ## [1.0.9.1] - 2026-06-24
 
 ### Fixes

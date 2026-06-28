@@ -8,16 +8,16 @@ body:
   - type: markdown
     attributes:
       value: |
-        **🚨 STOP BEFORE YOU POST: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS. 🚨**
-        If you downloaded an executable from a YouTube video link, you downloaded a virus/password stealer from a scammer. **Run an antivirus immediately and change your passwords.** Do not open issues about stolen accounts here — this project is not related to those videos.
+        **STOP BEFORE YOU POST: THIS PROJECT DOES NOT PUBLISH OFFICIAL EXECUTABLE DOWNLOADS.**
+        Build WandEnhancer yourself from your own fork or local source. If you downloaded an executable from YouTube, Discord, a mirror, or any other third-party website, treat it as untrusted. Do not open issues about third-party binaries or stolen accounts here - this project is not related to those downloads.
 
   - type: checkboxes
-    id: scam_check
+    id: build_source_check
     attributes:
-      label: ⚠️ Download Source Confirmation (REQUIRED)
+      label: Build Source Confirmation (REQUIRED)
       description: You must check this box to proceed.
       options:
-        - label: I confirm that I downloaded this tool DIRECTLY from this official GitHub repository, and NOT from a YouTube video, Discord, or any other third-party website.
+        - label: I confirm that I built WandEnhancer myself from my own fork or local source, and did not download an executable from YouTube, Discord, mirrors, issue comments, or any other third-party website.
           required: true
 
   - type: input
