@@ -5,10 +5,15 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ## [1.0.9.2] - 2026-06-28
 
+### Important
+
+- Official releases no longer include downloadable `.exe` files. To update, sync your fork and rerun the `Build executable` workflow, or follow the instructions in [How to use](https://github.com/k1tbyte/Wand-Enhancer#-how-to-use).
+
 ### Changed
 
 - Removed the built-in WandEnhancer updater. Official GitHub releases no longer ship executable assets.
 - Removed System.Net.Http
+- Removed self-signed certificate generation to prevent AV false positives.
 - Switched official releases to publish release notes only.
 
 ## [1.0.9.1] - 2026-06-24
