@@ -289,7 +289,7 @@ namespace WandEnhancer.View.MainWindow
             SetFolderPathCommand = new RelayCommand(OnFolderPathSelection);
             ApplyPatchCommand = new RelayCommand(OnPatching);
             RestoreBackupCommand = new RelayCommand(OnBackupRestoring);
-            UpdateCommand = new RelayCommand(OnUpdate);
+            /*UpdateCommand = new RelayCommand(OnUpdate);*/
             OpenSettingsCommand = new RelayCommand(OnOpenSettings);
             CopyLogsCommand = new RelayCommand(OnCopyLogs);
             ExportLogsCommand = new RelayCommand(OnExportLogs);

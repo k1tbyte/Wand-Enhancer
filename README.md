@@ -5,14 +5,13 @@
 # WandEnhancer
 
 [![GitLab Mirror](https://img.shields.io/badge/GitLab-mirror-fc6d26?logo=gitlab)](https://gitlab.com/kitbyte/wand-enhancer)
-[![VirusTotal](https://img.shields.io/badge/VirusTotal-0/72-brightgreen?logo=virustotal)](https://www.virustotal.com/gui/file/f6897cf583e9f8ea11e0ee4c3fb99b86c50336b28de706e3e0b9181b4e3cf223)
 
 </div>
 
 <h4>An open-source interoperability tool designed to extend local client-side configurations and improve the UX of the Wand application.</h4>
 
-**🚨 IMPORTANT NOTICE: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS OR GUIDES. 🚨
-There are no official videos showing how to install or use this tool. Scammers are creating fake tutorials using this project's name and placing malware/password stealers in the video descriptions. If you downloaded an .exe or archive from a YouTube link, YOU HAVE DOWNLOADED MALWARE. The only official, safe, and original source for this project is this exact GitHub repository. We are not responsible for third-party downloads.**
+**🚨 IMPORTANT NOTICE: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS, GUIDES, OR PREBUILT EXECUTABLE DOWNLOADS. 🚨
+There are no official videos showing how to install or use this tool. Scammers are creating fake tutorials using this project's name and placing malware/password stealers in the video descriptions. Official GitHub releases contain release notes only, not `.exe` files. If you downloaded an `.exe` or archive from a YouTube link, a random website, or a third-party mirror, you did not get it from this project. We are not responsible for third-party downloads.**
 
 ## 👾 Is it safe to use?
 
@@ -40,11 +39,20 @@ WandEnhancer includes a built-in **Remote Web Panel** allowing you to control ap
 
 ## 👀 How to use?
 
-1. Go to the [Releases](https://github.com/k1tbyte/Wand-Enhancer/releases) page.
-2. Download the latest binary release.
-3. Run the enhancer to apply local client modifications.
+This repository does not publish official compiled binaries. Build your own executable from your own fork using GitHub Actions.
 
-> Source archives are intended for developers who want to build the project locally. They are not prebuilt binaries.
+1. Sign in to GitHub and fork this repository.
+2. Open your fork, go to the **Actions** tab, and enable workflows if GitHub asks you to.
+3. Select the **Build executable** workflow.
+4. Click **Run workflow**, keep the default branch, and start the run.
+5. Wait for the workflow to finish, open the completed run, and download the artifact.
+6. Extract the artifact zip and run `WandEnhancer.exe` to apply local client modifications.
+
+*Here how you do it:*
+
+  https://github.com/user-attachments/assets/b03eeed4-ceb8-45c0-b09c-2b64cf098c64
+
+
 
 ## 🧩 Custom scripts
 
@@ -109,10 +117,16 @@ The build script installs the web panel dependencies, builds the frontend, compi
 
 ## ❓ Q&A
 
-- **I applied the configuration but get stuck on 'Loading...'**
-  - Just close the application completely and restart it.
+- **Why is there no `.exe` in GitHub Releases?**
+  - Official releases are notes-only on purpose. The project no longer distributes prebuilt executables because unsigned or self-built patching tools are repeatedly reuploaded, mislabeled, and flagged by third-party scanners. Build the executable from your own fork using GitHub Actions instead.
+- **Where do I download the executable?**
+  - From your own fork's **Actions** artifact after running the **Build executable** workflow. Do not download `.exe` files from YouTube descriptions, random mirrors, Discord attachments, or issue comments.
+- **Why does Windows Defender or SmartScreen warn about my build?**
+  - The GitHub Actions artifact is unsigned and uncommon, so Windows may warn even when the code was built directly from your fork. Review the source, verify the workflow logs, and only run binaries you built yourself.
+- **Can I use a binary built by someone else?**
+  - You can, but you should treat it as untrusted. This repository cannot verify or support third-party builds.
 - **Does this send data anywhere?**
-  - No. All operations are strictly offline and local to your machine. 
+  - The desktop patching work is local to your machine. The Remote Web Panel is served from your PC on your local network.
 
 ---
 ## 🖼️ Screenshots
