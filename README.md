@@ -50,7 +50,7 @@ This repository does not publish official compiled binaries. Build your own exec
 
 *Here how you do it:*
 
-  https://github.com/user-attachments/assets/b03eeed4-ceb8-45c0-b09c-2b64cf098c64
+https://github.com/user-attachments/assets/7966cabe-0aa6-424d-8c2f-981ad91e0f91
 
 
 
