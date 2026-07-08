@@ -1,12 +1,17 @@
 name: Auto sync and build
 
+# Builds a Windows executable directly from each upstream Wand-Enhancer release and
+# publishes it as a downloadable release on this fork. master is never modified, so the
+# fork's strict branch protection (PR + signed commits + status checks) stays intact —
+# upstream commits aren't signed by us, so merging them into master is not an option.
+
 on:
   schedule:
     - cron: '0 12 * * *'  # daily at noon UTC; releases are infrequent, 6h was excessive
   workflow_dispatch:
     inputs:
       force:
-        description: 'Build & publish a release even if no new upstream version'
+        description: 'Build & publish a release even if this version was already built'
         type: boolean
         default: false
 
@@ -14,7 +19,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # required for merge-upstream API call
+      contents: read   # only reads upstream + this fork's existing releases
     outputs:
       new_release: ${{ steps.compare.outputs.new_release }}
       version: ${{ steps.compare.outputs.version }}
@@ -26,41 +31,30 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=$(gh api repos/k1tbyte/Wand-Enhancer/releases/latest --jq '.tag_name')
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Upstream: $TAG"
 
-      # Uses the LAST_BUILT_VERSION repo variable (set by the build job on success).
-      # Reading via vars context requires no permissions; no gh api call needed.
-      # On first run the variable is empty, so any upstream release will trigger a build.
-      - name: Compare against last built version
+      # Idempotency without a repo variable: if we've already published a release for
+      # this tag, there's nothing to do. This avoids the GITHUB_TOKEN limitation that
+      # prevents workflows from writing Actions variables (the old LAST_BUILT_VERSION).
+      - name: Decide whether to build
         id: compare
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.upstream.outputs.tag }}
-          LAST: ${{ vars.LAST_BUILT_VERSION }}
           FORCE: ${{ inputs.force }}
         run: |
-          echo "version=$TAG" >> $GITHUB_OUTPUT
-          echo "Last built: ${LAST:-<none>} | Upstream: $TAG | Force: ${FORCE:-false}"
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
           if [ "$FORCE" = "true" ]; then
-            echo "new_release=true" >> $GITHUB_OUTPUT
-            echo "Force build requested — building $TAG regardless of last built version."
-          elif [ "$TAG" = "$LAST" ]; then
-            echo "new_release=false" >> $GITHUB_OUTPUT
-            echo "Already built $TAG — nothing to do."
+            echo "new_release=true" >> "$GITHUB_OUTPUT"
+            echo "Force build requested — building $TAG regardless of existing releases."
+          elif gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "new_release=false" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already published — nothing to do."
           else
-            echo "new_release=true" >> $GITHUB_OUTPUT
-            echo "New release $TAG detected."
+            echo "new_release=true" >> "$GITHUB_OUTPUT"
+            echo "New upstream release $TAG detected."
           fi
-
-      - name: Sync fork master with upstream
-        if: steps.compare.outputs.new_release == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Syncing fork master with upstream..."
-          gh api "repos/${{ github.repository }}/merge-upstream" \
-            -X POST -f branch=master
-          echo "Sync complete."
 
   build:
     needs: check
@@ -68,16 +62,17 @@ jobs:
     # Keep windows-latest — build.ps1 explicitly auto-detects VS version ("pick whatever VS the host has")
     runs-on: windows-latest
     permissions:
-      contents: write  # required to publish the GitHub release (and tag)
-      actions: write   # required to update LAST_BUILT_VERSION variable on success
+      contents: write  # required to publish the GitHub release (and tag) on this fork
 
     steps:
-      # Pin to master so we build the freshly-synced upstream code, not the
-      # (stale) SHA that triggered the scheduled run.
-      - uses: actions/checkout@v5  # v5 uses Node.js 24; v4 triggers Node.js 20 deprecation warning
+      # Check out UPSTREAM's source at the released tag, so the executable is built from
+      # upstream's exact code. The tag is self-contained (build.ps1, scripts/, csproj,
+      # pnpm lockfile all present), so no fork files are needed to build.
+      - uses: actions/checkout@v5  # v5 uses Node.js 24
         with:
-          ref: master
-          fetch-depth: 0  # full history so the release tag resolves cleanly
+          repository: k1tbyte/Wand-Enhancer
+          ref: ${{ needs.check.outputs.version }}
+          fetch-depth: 0  # full history so the changelog/tag resolves cleanly
 
       - uses: pnpm/action-setup@v4
         with:
@@ -100,7 +95,7 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      # Pull release notes from the changelog if a matching section exists;
+      # Pull release notes from upstream's changelog if a matching section exists;
       # otherwise fall back to a generic note so the release always publishes.
       - name: Generate release notes
         if: success()
@@ -123,25 +118,7 @@ jobs:
         with:
           tag_name: ${{ needs.check.outputs.version }}
           name: ${{ needs.check.outputs.version }}
-          target_commitish: master  # tag the synced commit, not the stale trigger SHA
+          target_commitish: master  # anchor the fork tag to a commit that exists in this repo
           body_path: release-notes.md
           files: WandEnhancer/bin/Release/WandEnhancer.exe
           fail_on_unmatched_files: true
-
-      # Only runs if all prior steps succeeded. Creates/updates the LAST_BUILT_VERSION
-      # repo variable so the next scheduled check skips the build correctly.
-      # PATCH fails with 404 if variable doesn't exist yet; fall back to POST.
-      - name: Mark version as built
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $VERSION = "${{ needs.check.outputs.version }}"
-          $null = gh api "repos/${{ github.repository }}/actions/variables/LAST_BUILT_VERSION" `
-            -X PATCH -f "value=$VERSION" 2>&1
-          if ($LASTEXITCODE -ne 0) {
-            gh api "repos/${{ github.repository }}/actions/variables" `
-              -X POST -f "name=LAST_BUILT_VERSION" -f "value=$VERSION"
-          }
-          Write-Host "Marked $VERSION as built."
