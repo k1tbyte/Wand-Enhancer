@@ -41,9 +41,12 @@ namespace AsarSharp
                         var destFilename = Path.Combine(dest, filename);
                         var file = filesystem.GetFile(filename, followLinks);
 
-                        // Path-traversal guard.
-                        string relativePath = Extensions.GetRelativePath(dest, destFilename);
-                        if (relativePath.StartsWith(".."))
+                        // Path-traversal (zip-slip) guard. Uses the normalising
+                        // containment check: GetRelativePath's fast path strips the
+                        // prefix literally without resolving "..", so a crafted entry
+                        // such as "a/../../evil" would otherwise pass this check and be
+                        // written outside "dest".
+                        if (!Extensions.IsPathInside(dest, destFilename))
                         {
                             throw new InvalidOperationException(
                                 $"{fullPath}: file \"{destFilename}\" writes out of the package");
@@ -164,7 +167,7 @@ namespace AsarSharp
 
             var linkTo = Path.Combine(relativeLinkPath, Path.GetFileName(file.Link));
 
-            if (Extensions.GetRelativePath(dest, linkSrcPath).StartsWith(".."))
+            if (!Extensions.IsPathInside(dest, linkSrcPath))
             {
                 throw new InvalidOperationException(
                     $"{fullPath}: file \"{file.Link}\" links out of the package to \"{linkSrcPath}\"");
