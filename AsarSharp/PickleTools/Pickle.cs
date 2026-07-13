@@ -231,8 +231,14 @@ namespace AsarSharp.PickleTools
         private void Resize(int newCapacity)
         {
             newCapacity = AlignInt(newCapacity, PAYLOAD_UNIT);
-            byte[] newHeader = new byte[_header.Length + newCapacity];
-            Buffer.BlockCopy(_header, 0, newHeader, 0, _header.Length);
+            // The backing array must hold the header plus the full advertised
+            // payload capacity (matches Chromium's realloc(header_size_ + new_capacity)).
+            // Sizing it from _header.Length under-allocates by _headerSize on the
+            // first growth (when _header is still empty), leaving the payload region
+            // _headerSize bytes short of _capacityAfterHeader and overrunning the
+            // buffer when a write fills the payload.
+            byte[] newHeader = new byte[_headerSize + newCapacity];
+            Buffer.BlockCopy(_header, 0, newHeader, 0, Math.Min(_header.Length, newHeader.Length));
             _header = newHeader;
             _capacityAfterHeader = newCapacity;
         }
