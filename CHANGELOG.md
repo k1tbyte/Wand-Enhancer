@@ -3,6 +3,13 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.9.3] - 2026-07-04
+
+### Fixes
+
+- Fixed the Remote Web Panel no longer applying on newer Wand builds and reporting "unsupported version". The remote bridge patches now resolve Wand's minified internal names dynamically instead of relying on hardcoded ones that broke on Wand updates. #118 #123 #124 #126
+- Fixed Pro reverting to Free (with random sign-outs and the return of ads and the time limit) after linking a phone with Wand's mobile activation code. That native pairing triggers a server-side sign-out on a patched client, so the patcher now disables it; use the built-in Remote Web Panel to control Wand from another device instead. #120
+
 ## [1.0.9.2] - 2026-06-28
 
 ### Important
