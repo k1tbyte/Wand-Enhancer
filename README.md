@@ -13,9 +13,9 @@
 **🚨 IMPORTANT NOTICE: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS, GUIDES, OR PREBUILT EXECUTABLE DOWNLOADS. 🚨
 There are no official videos showing how to install or use this tool. Scammers are creating fake tutorials using this project's name and placing malware/password stealers in the video descriptions. Official GitHub releases contain release notes only, not `.exe` files. If you downloaded an `.exe` or archive from a YouTube link, a random website, or a third-party mirror, you did not get it from this project. We are not responsible for third-party downloads.**
 
-## 👾 Is it safe to use?
+## 👾 What does it access?
 
-Yes. This project is entirely open-source, allowing anyone to audit the code. It operates strictly locally, does not require internet access, and makes zero network requests. It simply adjusts local client settings to enhance your user experience.
+The .NET patcher modifies files in the selected local Wand installation and does not contact an update or telemetry service. The bundled `version.dll` proxy is loaded by Wand and changes Electron's ASAR-integrity fuse byte inside Wand's own process; it does not inject into another process. Wand itself remains an online application, build tools restore declared dependencies, and the optional Remote Web Panel deliberately starts a LAN HTTP/WebSocket server and uses Wand API/CDN data. Review the source and build the executable from your own fork; unsigned patching tools can trigger generic antivirus heuristics.
 
 ## 💫 What features are improved?
 
@@ -36,17 +36,20 @@ WandEnhancer includes a built-in **Remote Web Panel** allowing you to control ap
 ### Troubleshooting & Remote Access:
 - **Page isn't loading?** First, ensure both your PC and phone are connected to the **same local network**. Some routers and guest Wi-Fi networks enable client isolation/AP isolation, which blocks devices on the same SSID from reaching each other. If it still does not load, check Windows Firewall and allow inbound traffic on TCP port `3223` for your local network. If Windows marked your connection as **Public**, switching it to **Private** can also help.
 - **Using mobile data or a different network?** If you want to use the panel over mobile data (LTE/5G) or from an entirely different network, you can use [Tailscale](https://tailscale.com/) or similar VPN tools.
+- The panel uses plain HTTP on port `3223` and has no pairing code. Anyone who can reach that port can view the panel and control the active trainer, so use it only on a trusted LAN/VPN and never expose the port directly to the internet.
+- The panel protocol does not include your Wand bearer token or installation-path fields.
 
 ## 👀 How to use?
 
 This repository does not publish official compiled binaries. Build your own executable from your own fork using GitHub Actions.
 
 1. Sign in to GitHub and fork this repository.
-2. Open your fork, go to the **Actions** tab, and enable workflows if GitHub asks you to.
-3. Select the **Build executable** workflow.
-4. Click **Run workflow**, keep the default branch, and start the run.
-5. Wait for the workflow to finish, open the completed run, and download the artifact.
-6. Extract the artifact zip and run `WandEnhancer.exe` to apply local client modifications.
+2. Use **Sync fork** before each build so your fork contains the latest fixes.
+3. Open your fork, go to the **Actions** tab, and enable workflows if GitHub asks you to.
+4. Select the **Build executable** workflow.
+5. Click **Run workflow**, keep the default branch, and start the run.
+6. Wait for the workflow to finish, open the completed run, and download the artifact.
+7. Extract the artifact zip and run `WandEnhancer.exe` to apply local client modifications.
 
 *Here how you do it:*
 
@@ -126,7 +129,9 @@ The build script installs the web panel dependencies, builds the frontend, compi
 - **Can I use a binary built by someone else?**
   - You can, but you should treat it as untrusted. This repository cannot verify or support third-party builds.
 - **Does this send data anywhere?**
-  - The desktop patching work is local to your machine. The Remote Web Panel is served from your PC on your local network.
+  - The .NET patching step is local. The optional Remote Web Panel listens on your LAN and may request trainer translations/artwork through Wand's existing API/CDN paths; it does not include an updater or project telemetry.
+- **How do I learn about a new version without an in-app update check?**
+  - On GitHub choose **Watch → Custom → Releases**, then sync your fork and run **Build executable** when a release is published.
 
 ---
 ## 🖼️ Screenshots

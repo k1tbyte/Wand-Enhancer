@@ -11,8 +11,6 @@ const apps: InstalledAppSummary[] = [
     correlationId: 'steam:one',
     displayName: 'Alpha Game',
     gameId: 'game-one',
-    location: 'C:\\Games\\Alpha',
-    alternateLocations: [],
   },
   {
     platform: 'epic',
@@ -20,8 +18,6 @@ const apps: InstalledAppSummary[] = [
     correlationId: 'epic:two',
     displayName: 'Beta Game',
     gameId: 'game-two',
-    location: 'C:\\Games\\Beta',
-    alternateLocations: [],
   },
 ];
 

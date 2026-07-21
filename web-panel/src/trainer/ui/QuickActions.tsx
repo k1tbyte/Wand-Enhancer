@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { msg } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useLingui } from '@lingui/react';
@@ -47,14 +48,17 @@ export const QuickActions = ({ presets, onPanic, onAddPreset, onApplyPreset, onD
         ))}
         <Chip icon="plus" label={_(msg`Add`)} variant="add" onClick={handleOpenModal} />
       </div>
-      {modalOpen ? (
-        <PresetModal
-          draftName={draftName}
-          onClose={handleCloseModal}
-          onDraftNameChange={setDraftName}
-          onSubmit={handleSubmitPreset}
-        />
-      ) : null}
+      {modalOpen
+        ? createPortal(
+            <PresetModal
+              draftName={draftName}
+              onClose={handleCloseModal}
+              onDraftNameChange={setDraftName}
+              onSubmit={handleSubmitPreset}
+            />,
+            document.body,
+          )
+        : null}
     </>
   );
 };

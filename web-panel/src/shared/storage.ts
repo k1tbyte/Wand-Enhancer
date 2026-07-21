@@ -3,7 +3,11 @@ import type { TrainerSummary } from '../../protocol/messages';
 type Reviver<T> = (raw: unknown) => T | null;
 
 function getStore(): Storage | null {
-  return typeof window === 'undefined' ? null : window.localStorage;
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch {
+    return null;
+  }
 }
 
 export function getTrainerStorageId(trainer: TrainerSummary | null | undefined): string | null {
@@ -33,21 +37,22 @@ export function loadJson<T>(key: string | null, revive: Reviver<T>, fallback: T)
   }
 }
 
-export function saveJson(key: string | null, value: unknown, isEmpty: (value: unknown) => boolean): void {
+export function saveJson(key: string | null, value: unknown, isEmpty: (value: unknown) => boolean): boolean {
   const store = getStore();
   if (!key || !store) {
-    return;
+    return false;
   }
 
   try {
     if (isEmpty(value)) {
       store.removeItem(key);
-      return;
+      return true;
     }
 
     store.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // localStorage quota / serialization errors are non-critical for this UI.
+    return false;
   }
 }
 
@@ -72,7 +77,7 @@ export function loadStringSet(key: string | null): Record<string, true> {
   );
 }
 
-export function saveStringSet(key: string | null, value: Record<string, true>): void {
+export function saveStringSet(key: string | null, value: Record<string, true>): boolean {
   const ids = Object.keys(value);
-  saveJson(key, ids, () => ids.length === 0);
+  return saveJson(key, ids, () => ids.length === 0);
 }

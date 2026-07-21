@@ -1,7 +1,7 @@
 import {
   getWebpackRequire,
-  isRecord,
 } from "./installed-apps-sync/runtime.js"
+import { resolveQrRenderer as findWandQrRenderer } from "./remote-popup-cleanup/qr-renderer.js"
 
 ;(function installRemotePopupCleanup(WandEnhancer) {
   if (globalThis.__wandRemotePopupCleanupInstalled) {
@@ -91,20 +91,8 @@ import {
       return qrRenderer
     }
 
-    const webpackRequire = getWebpackRequire()
-    for (const record of Object.values(webpackRequire?.c || {})) {
-      const exports = record?.exports
-      if (
-        isRecord(exports) &&
-        typeof exports.create === "function" &&
-        typeof exports.mo === "function"
-      ) {
-        qrRenderer = exports.mo
-        return qrRenderer
-      }
-    }
-
-    return null
+    qrRenderer = findWandQrRenderer(getWebpackRequire())
+    return qrRenderer
   }
 
   const updateLinks = (remoteUrl) => {

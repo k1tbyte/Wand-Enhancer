@@ -31,8 +31,11 @@ export function usePresets({ presetStorageKey, trainerMeta, values, onError }: P
       }
 
       const next = [...presets, createPreset(name, captured)];
+      if (!savePresets(presetStorageKey, next)) {
+        onError('Could not save the preset in this browser. Check site storage permissions and available space.');
+        return false;
+      }
       setPresets(next);
-      savePresets(presetStorageKey, next);
       return true;
     },
     [onError, presets, presetStorageKey, trainerMeta, values],
@@ -41,10 +44,13 @@ export function usePresets({ presetStorageKey, trainerMeta, values, onError }: P
   const deletePreset = useCallback(
     (presetId: string) => {
       const next = presets.filter((preset) => preset.id !== presetId);
+      if (!savePresets(presetStorageKey, next)) {
+        onError('Could not update presets in this browser. Check site storage permissions and available space.');
+        return;
+      }
       setPresets(next);
-      savePresets(presetStorageKey, next);
     },
-    [presets, presetStorageKey],
+    [onError, presets, presetStorageKey],
   );
 
   return { presets, addPreset, deletePreset };

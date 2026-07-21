@@ -4,10 +4,10 @@
   "serverVersion": "0.2.0-wand",
   "defaultRemoteHost": "0.0.0.0",
   "defaultRemotePort": 3223,
+  "devServerPorts": [4173, 5173],
   "portScanRange": 30,
   "basePath": "/remote/",
   "assetsPath": "/remote/assets/",
   "webSocketPath": "/remote/ws",
-  "healthPath": "/remote/api/health",
-  "installedAppsPath": "/remote/api/installed-apps"
+  "healthPath": "/remote/api/health"
 }

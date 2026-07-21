@@ -28,7 +28,9 @@ namespace WandEnhancer.View.MainWindow
                 if (value == null) return;
 
                 Log($"WeMod directory found at '{_weModConfig}' ({_weModConfig.ExecutableName})", ELogType.Success);
-                if (File.Exists(Path.Combine(_weModConfig.RootDirectory, "resources", "app.asar.backup")))
+                var resourcesPath = Path.Combine(_weModConfig.RootDirectory, "resources");
+                if (File.Exists(Path.Combine(resourcesPath, "app.asar.backup")) ||
+                    Directory.Exists(Path.Combine(resourcesPath, "app.asar.unpacked.backup")))
                 {
                     Log("WeMod already patched. If you want to patch again, please restore the backup first.",
                         ELogType.Warn);
@@ -95,35 +97,42 @@ namespace WandEnhancer.View.MainWindow
 
         private void OnBackupRestoring(object param)
         {
-            var backupPath = Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar.backup");
-            if (!File.Exists(backupPath))
+            var resourcesPath = Path.Combine(WeModInfo.RootDirectory, "resources");
+            var backupPath = Path.Combine(resourcesPath, "app.asar.backup");
+            var unpackedBackupPath = Path.Combine(resourcesPath, "app.asar.unpacked.backup");
+            if (!File.Exists(backupPath) || !Directory.Exists(unpackedBackupPath))
             {
-                Log("Backup not found. Please dont delete it manually", ELogType.Error);
+                Log("Backup is incomplete. Restore the original Wand installation files or reinstall Wand.", ELogType.Error);
                 return;
             }
 
             try
             {
-                // Try to lock the file to see if it's in use
-                using (File.Open(backupPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                var asarPath = Path.Combine(resourcesPath, "app.asar");
+                var unpackedPath = Path.Combine(resourcesPath, "app.asar.unpacked");
+                File.Copy(backupPath, asarPath, true);
+
+                if (Directory.Exists(unpackedPath))
                 {
+                    Directory.Delete(unpackedPath, true);
                 }
-                
+                Enhancer.CopyDirectory(unpackedBackupPath, unpackedPath);
+
                 var proxyDllPath = Path.Combine(WeModInfo.RootDirectory, "version.dll");
-                
-                if(File.Exists(proxyDllPath))
+                if (File.Exists(proxyDllPath))
                 {
                     File.Delete(proxyDllPath);
                 }
+
+                File.Delete(backupPath);
+                Directory.Delete(unpackedBackupPath, true);
             }
-            catch
+            catch (Exception e)
             {
-                Log("Backup file is locked. Please close the WeMod and try again.", ELogType.Error);
+                Log($"Failed to restore backup: {e.Message}", ELogType.Error);
                 return;
             }
 
-            File.Copy(backupPath, Path.Combine(WeModInfo.RootDirectory, "resources", "app.asar"), true);
-            File.Delete(backupPath);
             Log("Backup restored successfully.", ELogType.Success);
             AlreadyPatched = false;
             IsPatchEnabled = true;

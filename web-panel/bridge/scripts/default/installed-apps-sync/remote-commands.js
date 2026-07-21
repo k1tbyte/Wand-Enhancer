@@ -128,12 +128,14 @@ async function executeRemoteLaunchCommand(state, request) {
     void syncGameStatus(state, true)
     return buildCommandResponse(request, true)
   } catch (error) {
+    state.log(
+      "warn",
+      "Remote trainer launch failed.",
+      error?.stack || String(error)
+    )
     return buildCommandResponse(request, false, {
       code: "launch_failed",
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to launch the trainer.",
+      message: "Failed to launch the trainer.",
     })
   }
 }
@@ -171,12 +173,14 @@ async function executeRemoteStopCommand(state, request) {
     clearTrainerSnapshot(state, REMOTE_STOP_EVENT, true)
     return buildCommandResponse(request, true)
   } catch (error) {
+    state.log(
+      "warn",
+      "Remote trainer stop failed.",
+      error?.stack || String(error)
+    )
     return buildCommandResponse(request, false, {
       code: "stop_failed",
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to stop the running trainer.",
+      message: "Failed to stop the running trainer.",
     })
   }
 }

@@ -244,7 +244,7 @@ namespace WandEnhancer.Core
             throw new FileNotFoundException($"Required workspace artifact not found: {Path.Combine(segments)}");
         }
 
-        private static void CopyDirectory(string sourceDir, string destinationDir)
+        internal static void CopyDirectory(string sourceDir, string destinationDir)
         {
             Directory.CreateDirectory(destinationDir);
 

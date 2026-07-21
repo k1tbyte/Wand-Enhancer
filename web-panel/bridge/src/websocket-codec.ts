@@ -1,8 +1,15 @@
 const crypto = require('node:crypto');
 
-const { BRIDGE_PROTOCOL_VERSION, WS_OPCODE } = require('./constants');
+const { BRIDGE_PROTOCOL_VERSION, MAX_WS_FRAME_BYTES, WS_OPCODE } = require('./constants');
 
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+const FRAME_TOO_LARGE_ERROR = 'WS_FRAME_TOO_LARGE';
+
+function frameTooLarge() {
+    const error: any = new RangeError(`WebSocket frames are limited to ${MAX_WS_FRAME_BYTES} bytes.`);
+    error.code = FRAME_TOO_LARGE_ERROR;
+    return error;
+}
 
 function jsonMessage(type, payload, requestId = null) {
     return JSON.stringify({
@@ -88,11 +95,15 @@ function parseFrame(buffer) {
         const high = buffer.readUInt32BE(offset);
         const low = buffer.readUInt32BE(offset + 4);
         if (high !== 0) {
-            throw new Error('Large websocket frames are not supported.');
+            throw frameTooLarge();
         }
 
         length = low;
         offset += 8;
+    }
+
+    if (length > MAX_WS_FRAME_BYTES) {
+        throw frameTooLarge();
     }
 
     let mask = null;
@@ -131,6 +142,7 @@ function createAcceptKey(key) {
 module.exports = {
     closeClient,
     createAcceptKey,
+    FRAME_TOO_LARGE_ERROR,
     jsonMessage,
     makeFrame,
     parseFrame,

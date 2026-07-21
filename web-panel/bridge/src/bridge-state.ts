@@ -1,5 +1,4 @@
 const {
-    buildInstalledAppsDebugPayload,
     gameStatusSignature,
     installedAppsSignature,
     normalizeGameStatusSnapshot,
@@ -20,7 +19,9 @@ function createBridgeState({ clients, log, getServerInfo }) {
 
     function broadcast(type, payload, requestId = null) {
         for (const client of clients) {
-            sendJson(client, type, payload, requestId);
+            if (client.handshaken) {
+                sendJson(client, type, payload, requestId);
+            }
         }
     }
 
@@ -48,6 +49,17 @@ function createBridgeState({ clients, log, getServerInfo }) {
             broadcast('trainer_meta', currentSnapshot.trainerMeta);
             broadcast('trainer_values', currentSnapshot.trainerValues);
         }
+    }
+
+    function syncTrainerMeta(rawSnapshot) {
+        const localizedSnapshot = normalizeSnapshot(rawSnapshot);
+        const activeTrainerId = currentSnapshot?.trainerMeta?.trainer?.trainerId;
+        if (!localizedSnapshot || localizedSnapshot.trainerMeta.trainer.trainerId !== activeTrainerId) {
+            return;
+        }
+
+        currentSnapshot.trainerMeta = localizedSnapshot.trainerMeta;
+        broadcast('trainer_meta', currentSnapshot.trainerMeta);
     }
 
     function valueChanged(change) {
@@ -97,7 +109,6 @@ function createBridgeState({ clients, log, getServerInfo }) {
     }
 
     function buildHealthPayload() {
-        const installedAppsDebug = buildInstalledAppsDebugPayload(currentInstalledApps);
         const serverInfo = getServerInfo();
         return {
             ok: serverInfo.listening,
@@ -105,12 +116,7 @@ function createBridgeState({ clients, log, getServerInfo }) {
             gameSessionState: currentGameStatus?.session?.state || 'idle',
             gameSessionEvent: currentGameStatus?.session?.event || 'snapshot',
             runningTrainerId: currentGameStatus?.trainer?.trainerId || null,
-            installedAppsCount: installedAppsDebug.counts.myGamesEntries,
-            installedRawAppsCount: installedAppsDebug.counts.rawInstallEntries,
-            installedTitlesCount: installedAppsDebug.counts.groupedTitles,
-            installedUniqueTitleIdsCount: installedAppsDebug.counts.uniqueTitleIds,
-            installedUniqueGameIdsCount: installedAppsDebug.counts.uniqueGameIds,
-            installedAppsApiPath: serverInfo.installedAppsApiPath,
+            installedAppsCount: currentInstalledApps?.apps?.length ?? 0,
             remoteUrl: serverInfo.remoteUrl,
             advertisedUrls: serverInfo.advertisedUrls,
         };
@@ -127,10 +133,10 @@ function createBridgeState({ clients, log, getServerInfo }) {
     return {
         get snapshot() { return currentSnapshot; },
         buildHealthPayload,
-        buildInstalledAppsDebugPayload: () => buildInstalledAppsDebugPayload(currentInstalledApps),
         clear,
         sendSnapshot,
         sync,
+        syncTrainerMeta,
         syncGameStatus,
         syncInstalledApps,
         valueChanged,

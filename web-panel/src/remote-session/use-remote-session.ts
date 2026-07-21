@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { type CheatSchema, type InstalledAppSummary } from '../../protocol/messages';
 import { normalizeCheatValue } from '../trainer/model/values';
 import { RemoteSessionClient } from './remote-session.client';
-import { localizeTrainerMeta } from './remote-session.i18n';
 import {
   createInitialRemoteSessionState,
   EConnectionStatus,
@@ -63,10 +62,6 @@ export function useRemoteSession() {
       onMessage: (message) => {
         const action = protocolAction(message);
         if (!action) return;
-        if (action.type === 'trainerMeta') {
-          void localizeTrainerMeta(action.payload).then((payload) => dispatch({ ...action, payload }));
-          return;
-        }
         dispatch(action);
       },
       onClose: () => {

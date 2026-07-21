@@ -88,7 +88,16 @@ function normalizeCheat(cheat, index) {
 
 function normalizeImageUrl(...values) {
     const value = firstString(...values);
-    return value || null;
+    if (!value) {
+        return null;
+    }
+
+    try {
+        const url = new URL(value);
+        return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null;
+    } catch {
+        return null;
+    }
 }
 
 function getRawInstalledApps(rawSnapshot) {
@@ -119,10 +128,6 @@ function normalizeInstalledApp(app) {
     }
 
     const location = typeof app.location === 'string' ? app.location : '';
-    const alternateLocations = Array.isArray(app.alternateLocations)
-        ? app.alternateLocations.filter((entry) => typeof entry === 'string' && entry.trim()).map((entry) => entry.trim())
-        : [];
-
     return {
         platform,
         sku,
@@ -137,8 +142,6 @@ function normalizeInstalledApp(app) {
         ),
         gameId: toStringId(app.gameId),
         titleId: toStringId(app.titleId),
-        location,
-        alternateLocations,
         imageUrl: normalizeImageUrl(app.imageUrl, app.iconUrl, app.coverUrl, app.thumbnailUrl, app.logoUrl, app.headerImageUrl),
         platformLastPlayedTimestamp: typeof app.platformLastPlayedTimestamp === 'number' ? app.platformLastPlayedTimestamp : null,
         platformTotalPlaytimeMinutes: typeof app.platformTotalPlaytimeMinutes === 'number' ? app.platformTotalPlaytimeMinutes : null,
@@ -152,18 +155,12 @@ function normalizeInstalledAppsSnapshot(rawSnapshot) {
     }
 
     const apps = rawApps.map(normalizeInstalledApp).filter(Boolean).sort(compareInstalledApps);
-    const diagnostics = isRecord(rawSnapshot) && isRecord(rawSnapshot.diagnostics)
-        ? cloneValue(rawSnapshot.diagnostics)
-        : null;
-
     return {
         instanceId: isRecord(rawSnapshot) ? safeString(rawSnapshot.instanceId, 'wand-installed-apps') : 'wand-installed-apps',
         updatedAt: isRecord(rawSnapshot) && typeof rawSnapshot.updatedAt === 'string' ? rawSnapshot.updatedAt : new Date().toISOString(),
         apps,
-        diagnostics,
     };
 }
-
 
 function summarizeInstalledAppsSource(rawSnapshot) {
     if (!isRecord(rawSnapshot) || !isRecord(rawSnapshot.diagnostics)) {
@@ -189,101 +186,11 @@ function installedAppsSignature(snapshot) {
             app.displayName,
             app.gameId || '',
             app.titleId || '',
-            app.location,
             app.imageUrl || '',
             app.platformLastPlayedTimestamp || '',
             app.platformTotalPlaytimeMinutes || '',
         ].join('|'))
         .join('\n');
-}
-
-function buildInstalledAppsDebugPayload(snapshot) {
-    if (!snapshot) {
-        return {
-            ok: false,
-            instanceId: null,
-            updatedAt: null,
-            counts: {
-                myGamesEntries: 0,
-                rawInstallEntries: 0,
-                groupedTitles: 0,
-                uniqueTitleIds: 0,
-                uniqueGameIds: 0,
-            },
-            diagnostics: null,
-            byPlatform: {},
-            titles: [],
-            apps: [],
-        };
-    }
-
-    const diagnostics = isRecord(snapshot.diagnostics) ? snapshot.diagnostics : null;
-    const byPlatform = {};
-    const uniqueTitleIds = new Set();
-    const uniqueGameIds = new Set();
-    const titleGroups = new Map();
-
-    for (const app of snapshot.apps) {
-        byPlatform[app.platform] = (byPlatform[app.platform] || 0) + 1;
-
-        if (app.titleId) {
-            uniqueTitleIds.add(app.titleId);
-        }
-
-        if (app.gameId) {
-            uniqueGameIds.add(app.gameId);
-        }
-
-        const groupKey = resolveInstalledAppGroupKey(app);
-        let group = titleGroups.get(groupKey);
-        if (!group) {
-            group = {
-                key: groupKey,
-                titleId: app.titleId,
-                displayName: app.displayName,
-                gameIds: new Set(),
-                platforms: new Set(),
-                apps: [],
-            };
-            titleGroups.set(groupKey, group);
-        }
-
-        if (app.gameId) {
-            group.gameIds.add(app.gameId);
-        }
-
-        group.platforms.add(app.platform);
-        group.apps.push(app);
-    }
-
-    const titles = Array.from(titleGroups.values())
-        .map((group) => ({
-            key: group.key,
-            titleId: group.titleId,
-            displayName: group.displayName,
-            gameIds: Array.from(group.gameIds).sort(),
-            platforms: Array.from(group.platforms).sort(),
-            appEntries: group.apps.length,
-            apps: group.apps,
-        }))
-        .sort((left, right) => left.displayName.localeCompare(right.displayName));
-
-    return {
-        ok: true,
-        instanceId: snapshot.instanceId,
-        updatedAt: snapshot.updatedAt,
-        counts: {
-            myGamesEntries: snapshot.apps.length,
-            rawInstallEntries: typeof diagnostics?.rawInstalledApps === 'number' ? diagnostics.rawInstalledApps : snapshot.apps.length,
-            groupedTitles: titles.length,
-            uniqueTitleIds: uniqueTitleIds.size,
-            uniqueGameIds: uniqueGameIds.size,
-        },
-        diagnostics,
-        byPlatform,
-        titles,
-        apps: snapshot.apps,
-    };
 }
 
 function normalizeSnapshot(rawSnapshot) {
@@ -320,7 +227,6 @@ function normalizeSnapshot(rawSnapshot) {
     const trainerMeta = {
         session: {
             instanceId: safeString(rawSnapshot.instanceId, 'wand-session'),
-            accessToken: safeString(rawSnapshot.accessToken),
         },
         trainer: {
             trainerId,
@@ -372,20 +278,7 @@ function compareInstalledApps(left, right) {
     return left.sku.localeCompare(right.sku);
 }
 
-function resolveInstalledAppGroupKey(app) {
-    if (app.titleId) {
-        return `title:${app.titleId}`;
-    }
-
-    if (app.gameId) {
-        return `game:${app.gameId}`;
-    }
-
-    return `app:${app.correlationId}`;
-}
-
 module.exports = {
-    buildInstalledAppsDebugPayload,
     gameStatusSignature,
     installedAppsSignature,
     normalizeGameStatusSnapshot,

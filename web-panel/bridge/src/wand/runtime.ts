@@ -12,11 +12,10 @@ const {
 const { writeInstallLog } = require('../logger');
 const { ensureBridge } = require('../runtime');
 const { installRendererScripts } = require('./renderer-scripts');
+const { localizeTrainerSnapshot } = require('./trainer-localization');
 const { safeString } = require('../utils');
 import type { BridgeOptions, ElectronPort, WebContentsPort } from '../types';
 
-// Reads the signed-in WeMod access token from the renderer's localStorage so the
-// panel can request localized cheat metadata from the WeMod API.
 const WEMOD_ACCESS_TOKEN_SCRIPT =
     'JSON.parse(localStorage.getItem("infinity:globalStore") || "{}")?.token?.accessToken ?? null';
 
@@ -83,8 +82,17 @@ function installIpcHandlers(electron, runtime, boundRenderers, pendingCommandRes
     }
 
     globalThis.__wandRemoteBridgeIpcInstalled = true;
+    let trainerSnapshotRevision = 0;
     electron.ipcMain.handle(IPC_CHANNEL.TRAINER_SNAPSHOT, (event, snapshot) => {
-        void syncSnapshotWithAccessToken(runtime, event?.sender, snapshot);
+        const revision = ++trainerSnapshotRevision;
+        runtime.sync(snapshot);
+        void localizeSnapshot(event?.sender, snapshot).then((localizedSnapshot) => {
+            if (localizedSnapshot !== snapshot && revision === trainerSnapshotRevision) {
+                runtime.syncTrainerMeta(localizedSnapshot);
+            }
+        }).catch((error) => {
+            writeInstallLog('warn', 'Failed to localize trainer metadata.', error);
+        });
         return true;
     });
     electron.ipcMain.handle(REMOTE_INSTALLED_APPS_CHANNEL, (_event, snapshot) => {
@@ -119,13 +127,9 @@ function installIpcHandlers(electron, runtime, boundRenderers, pendingCommandRes
     electron.ipcMain.handle(IPC_CHANNEL.REMOTE_URL, () => runtime.remoteUrl);
 }
 
-async function syncSnapshotWithAccessToken(runtime, sender, snapshot) {
+async function localizeSnapshot(sender, snapshot) {
     const accessToken = await readWemodAccessToken(sender);
-    if (accessToken && snapshot && typeof snapshot === 'object') {
-        snapshot.accessToken = accessToken;
-    }
-
-    runtime.sync(snapshot);
+    return localizeTrainerSnapshot(snapshot, accessToken);
 }
 
 async function readWemodAccessToken(sender) {

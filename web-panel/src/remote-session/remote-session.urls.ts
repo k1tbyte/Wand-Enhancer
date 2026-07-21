@@ -2,7 +2,7 @@ import { WEB_CONTRACT } from '../../protocol/contract';
 
 export const WS_QUERY_PARAM = 'ws';
 
-const DEV_SERVER_PORTS = new Set(['4173', '5173']);
+const DEV_SERVER_PORTS = new Set(WEB_CONTRACT.devServerPorts.map(String));
 
 function protocolForWebSocket(): 'ws' | 'wss' {
   return window.location.protocol === 'https:' ? 'wss' : 'ws';

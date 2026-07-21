@@ -9,6 +9,8 @@ on:
 jobs:
   validate-release-metadata:
     runs-on: windows-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v5

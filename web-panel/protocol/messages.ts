@@ -49,8 +49,6 @@ export interface InstalledAppSummary {
     displayName: string;
     gameId?: string | null;
     titleId?: string | null;
-    location: string;
-    alternateLocations: string[];
     imageUrl?: string | null;
     platformLastPlayedTimestamp?: number | null;
     platformTotalPlaytimeMinutes?: number | null;
@@ -108,7 +106,6 @@ export interface TrainerSummary {
 export interface TrainerMetaPayload {
     session: {
         instanceId: string;
-        accessToken?: string;
     };
     trainer: TrainerSummary;
     schema: {
@@ -193,7 +190,6 @@ export type HelloMessage = MessageEnvelope<
     {
         client: 'mobile-web';
         clientVersion: string;
-        pairingToken?: string;
         capabilities: {
             supportsDeltaValues: boolean;
             supportsTrainerSwitch: boolean;
@@ -236,4 +232,3 @@ export type IncomingMessage =
     | ErrorMessage;
 
 export type OutgoingMessage = HelloMessage | SetValueMessage | RemoteCommandMessage;
-

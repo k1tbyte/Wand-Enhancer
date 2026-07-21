@@ -8,7 +8,7 @@ import { cn } from '@/shared/lib/ui';
 
 import { SearchInput } from '@/shared/ui/SearchInput';
 
-import { filterLibraryGames, formatHours, getLibrarySections, shortPath, type LibraryGame } from '../model/games';
+import { filterLibraryGames, formatHours, getLibrarySections, type LibraryGame } from '../model/games';
 import { GameCover } from './GameCover';
 
 type LibraryDrawerProps = {
@@ -118,7 +118,6 @@ const GameRow = ({ game, canLaunch, query, onPin, onPlay, onStop }: GameRowProps
         <div className="mt-0.5 flex min-w-0 items-center gap-1.5 font-mono text-[10.5px] tracking-[0.02em] text-(--deck-fg-3)">
           <span className="shrink-0">{game.platform.toUpperCase()}</span>
           {hours ? <span className="shrink-0">· {hours}</span> : null}
-          {game.path ? <span className="min-w-0 truncate opacity-60">· {shortPath(game.path)}</span> : null}
         </div>
       </div>
       <div className="flex shrink-0 gap-1">

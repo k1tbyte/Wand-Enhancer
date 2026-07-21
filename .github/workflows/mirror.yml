@@ -10,7 +10,10 @@ on:
 
 jobs:
   mirror:
+    if: github.repository == 'k1tbyte/Wand-Enhancer'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
         with:

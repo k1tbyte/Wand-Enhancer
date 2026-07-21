@@ -28,7 +28,7 @@ export class RemoteSessionClient {
     private readonly handlers: SocketHandlers,
   ) {}
 
-  connect(pairingToken?: string): void {
+  connect(): void {
     this.disconnect();
     this.intentionalDisconnect = false;
     this.handlers.onConnecting();
@@ -38,7 +38,7 @@ export class RemoteSessionClient {
 
     socket.addEventListener('open', () => {
       this.handlers.onTransportOpen();
-      this.send(this.createHelloMessage(pairingToken));
+      this.send(this.createHelloMessage());
     });
     socket.addEventListener('message', (event) => this.handleMessage(event));
     socket.addEventListener('close', () => {
@@ -100,7 +100,7 @@ export class RemoteSessionClient {
     return this.send(message);
   }
 
-  private createHelloMessage(pairingToken?: string): HelloMessage {
+  private createHelloMessage(): HelloMessage {
     return {
       type: 'hello',
       version: PROTOCOL_VERSION,
@@ -108,7 +108,6 @@ export class RemoteSessionClient {
       payload: {
         client: 'mobile-web',
         clientVersion: WEB_CONTRACT.clientVersion,
-        pairingToken,
         capabilities: { supportsDeltaValues: true, supportsTrainerSwitch: true },
       },
     };

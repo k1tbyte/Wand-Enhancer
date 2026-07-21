@@ -6,11 +6,11 @@ const {
     BRIDGE_SERVER_VERSION,
     DEFAULT_REMOTE_HOST,
     DEFAULT_REMOTE_PORT,
+    DEV_SERVER_PORTS,
     PORT_SCAN_RANGE,
     REMOTE_ASSETS_PREFIX,
     REMOTE_BASE_PATH,
     REMOTE_HEALTH_PATH,
-    REMOTE_INSTALLED_APPS_API_PATH,
     REMOTE_WS_PATH,
     WS_OPCODE,
 } = require('./constants');
@@ -23,7 +23,14 @@ const { createBridgeState } = require('./bridge-state');
 const { validateClientMessage, validateSetValueTarget } = require('./protocol-router');
 const { getAdvertisedUrls, serveFile } = require('./server-files');
 const { cloneValue, isValidPort, safeString } = require('./utils');
-const { closeClient, createAcceptKey, makeFrame, parseFrame, sendJson } = require('./websocket-codec');
+const {
+    closeClient,
+    createAcceptKey,
+    FRAME_TOO_LARGE_ERROR,
+    makeFrame,
+    parseFrame,
+    sendJson,
+} = require('./websocket-codec');
 import type { BridgeOptions } from './types';
 
 function createBridgeServer(options: BridgeOptions = {}) {
@@ -43,7 +50,6 @@ function createBridgeServer(options: BridgeOptions = {}) {
         log,
         getServerInfo: () => ({
             advertisedUrls,
-            installedAppsApiPath: REMOTE_INSTALLED_APPS_API_PATH,
             listening,
             remoteUrl: globalThis.__wandRemoteBridgeUrl,
         }),
@@ -64,10 +70,15 @@ function createBridgeServer(options: BridgeOptions = {}) {
     }
 
     function handleRequest(request, response) {
-        const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+        const url = parseRequestUrl(request.url);
+        if (!url) {
+            response.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' });
+            response.end('Bad Request');
+            return;
+        }
 
         if (url.pathname === '/' || url.pathname === '') {
-            response.writeHead(302, { Location: '/remote/' });
+            response.writeHead(302, { Location: REMOTE_BASE_PATH });
             response.end();
             return;
         }
@@ -86,12 +97,6 @@ function createBridgeServer(options: BridgeOptions = {}) {
         if (url.pathname === REMOTE_HEALTH_PATH) {
             response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
             response.end(JSON.stringify(bridgeState.buildHealthPayload()));
-            return;
-        }
-
-        if (url.pathname === REMOTE_INSTALLED_APPS_API_PATH) {
-            response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-            response.end(JSON.stringify(bridgeState.buildInstalledAppsDebugPayload(), null, 2));
             return;
         }
 
@@ -148,11 +153,12 @@ function createBridgeServer(options: BridgeOptions = {}) {
             const result = await Promise.resolve(commandHandler({ action, gameId, titleId }));
             sendJson(client, 'remote_command_result', normalizeRemoteCommandResult(result, fallback), message.requestId ?? null);
         } catch (error) {
+            log('warn', 'Remote command handler failed.', error);
             sendJson(client, 'remote_command_result', normalizeRemoteCommandResult({
                 ok: false,
                 error: {
                     code: 'command_failed',
-                    message: error instanceof Error ? error.message : 'Failed to execute the remote command.',
+                    message: 'Failed to execute the remote command.',
                 },
             }, fallback), message.requestId ?? null);
         }
@@ -194,13 +200,14 @@ function createBridgeServer(options: BridgeOptions = {}) {
                 cheatId: typeof message.payload?.cheatId === 'string' ? message.payload.cheatId : undefined,
             }));
         } catch (error) {
+            log('warn', 'Set-value handler failed.', error);
             sendJson(client, 'set_value_result', {
                 ok: false,
                 trainerId: currentSnapshot.trainerMeta.trainer.trainerId,
                 target,
                 error: {
                     code: 'set_failed',
-                    message: error instanceof Error ? error.message : 'Failed to set trainer value.',
+                    message: 'Failed to set trainer value.',
                 },
             }, message.requestId ?? null);
             return;
@@ -301,6 +308,10 @@ function createBridgeServer(options: BridgeOptions = {}) {
                     await handleClientMessage(client, JSON.parse(frame.payload.toString('utf8')));
                 }
             } catch (error) {
+                if (error instanceof Error && 'code' in error && error.code === FRAME_TOO_LARGE_ERROR) {
+                    closeClient(client, 1009, error.message);
+                    return;
+                }
                 sendJson(client, 'error', {
                     code: 'invalid_message',
                     message: error instanceof Error ? error.message : 'Failed to process client message.',
@@ -326,15 +337,24 @@ function createBridgeServer(options: BridgeOptions = {}) {
     }
 
     function handleUpgrade(request, socket) {
-        const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
+        const url = parseRequestUrl(request.url);
+        if (!url) {
+            rejectUpgrade(socket, 400, 'Bad Request');
+            return;
+        }
         if (url.pathname !== REMOTE_WS_PATH) {
-            socket.destroy();
+            rejectUpgrade(socket, 404, 'Not Found');
+            return;
+        }
+
+        if (!isAllowedWebSocketOrigin(request.headers.origin, request.headers.host)) {
+            rejectUpgrade(socket, 403, 'Forbidden');
             return;
         }
 
         const key = request.headers['sec-websocket-key'];
         if (typeof key !== 'string' || !key) {
-            socket.destroy();
+            rejectUpgrade(socket, 400, 'Bad Request');
             return;
         }
 
@@ -373,7 +393,7 @@ function createBridgeServer(options: BridgeOptions = {}) {
     });
     server.on('listening', () => {
         listening = true;
-        log('info', `Listening on ${globalThis.__wandRemoteBridgeUrl}`);
+        log('info', `Listening on ${host}:${port}.`);
     });
 
     listen(port);
@@ -400,10 +420,57 @@ function createBridgeServer(options: BridgeOptions = {}) {
         setCommandHandler,
         setHandler,
         sync: bridgeState.sync,
+        syncTrainerMeta: bridgeState.syncTrainerMeta,
         syncGameStatus: bridgeState.syncGameStatus,
         syncInstalledApps: bridgeState.syncInstalledApps,
         valueChanged: bridgeState.valueChanged,
     };
+}
+
+function parseRequestUrl(requestUrl) {
+    try {
+        return new URL(requestUrl || '/', 'http://localhost');
+    } catch {
+        return null;
+    }
+}
+
+function isAllowedWebSocketOrigin(origin, host) {
+    if (origin === undefined) {
+        return true;
+    }
+    if (typeof origin !== 'string' || typeof host !== 'string') {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(origin);
+        const requested = new URL(`http://${host}`);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return false;
+        }
+
+        const sameHostname = parsed.hostname.toLowerCase() === requested.hostname.toLowerCase();
+        const compatibleLoopback = isLoopback(parsed.hostname) && isLoopback(requested.hostname);
+        return parsed.host.toLowerCase() === host.toLowerCase()
+            || DEV_SERVER_PORTS.includes(parsed.port) && (sameHostname || compatibleLoopback);
+    } catch {
+        return false;
+    }
+}
+
+function isLoopback(hostname) {
+    return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(hostname.toLowerCase());
+}
+
+function rejectUpgrade(socket, statusCode, statusText) {
+    socket.end([
+        `HTTP/1.1 ${statusCode} ${statusText}`,
+        'Connection: close',
+        'Content-Length: 0',
+        '',
+        '',
+    ].join('\r\n'));
 }
 
 module.exports = {

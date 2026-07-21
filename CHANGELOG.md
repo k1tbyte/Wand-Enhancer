@@ -3,6 +3,26 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [1.0.9.4] - 2026-07-21
+
+### Fixes
+
+- Fixed the Remote Web Panel QR code still opening the official Wand mobile client after Wand changed its bundled QR renderer export. The renderer bridge now resolves the current export without adding a fragile C# ASAR patch. [Discussion #140](https://github.com/k1tbyte/Wand-Enhancer/discussions/140)
+- Fixed Quick Presets reporting that a preset was saved when browser local storage rejected the write. Failed writes now leave the existing preset list unchanged and show an error, and the save dialog now stays above the bottom navigation dock.
+- Fixed the patcher giving up on process termination because it reused a stale process snapshot by @divya0795 in [#145](https://github.com/k1tbyte/Wand-Enhancer/pull/145). Related issue: [#136](https://github.com/k1tbyte/Wand-Enhancer/issues/136)
+- Fixed ASAR extraction path traversal and corrupt Pickle payload allocation by @divya0795 in [#143](https://github.com/k1tbyte/Wand-Enhancer/pull/143).
+- Fixed backup restore so `app.asar.unpacked` is restored together with `app.asar`, and the injected `version.dll` is removed after a successful restore.
+- Fixed `version.dll` requiring Visual C++ runtime DLLs on some systems by statically linking the runtime. Release builds now reject accidental dynamic VCRUNTIME, MSVCP, or UCRT dependencies. [#128](https://github.com/k1tbyte/Wand-Enhancer/issues/128)
+
+### Security and Privacy
+
+- Removed bearer credentials and local installation paths from the Remote Web Panel WebSocket protocol. Trainer localization now stays inside the Electron bridge.
+- Hardened the local bridge against malformed HTTP URLs, invalid Host headers, and oversized WebSocket frames, and removed the production installed-apps debug endpoint.
+
+### Maintenance
+
+- GitLab mirror jobs are now skipped in forks instead of failing when the upstream mirror credentials are unavailable.
+
 ## [1.0.9.3] - 2026-07-04
 
 ### Fixes

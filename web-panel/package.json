@@ -2,6 +2,7 @@
   "name": "wand-web-panel",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@10.17.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

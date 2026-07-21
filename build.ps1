@@ -23,45 +23,46 @@ function Resolve-CommandPath {
     return $command.Source
 }
 
-function Resolve-NuGetPath {
-    $nugetCommand = Get-Command 'nuget.exe' -ErrorAction SilentlyContinue
-    if (-not $nugetCommand) {
-        $nugetCommand = Get-Command 'nuget' -ErrorAction SilentlyContinue
-    }
-
-    if ($nugetCommand) {
-        return $nugetCommand.Source
-    }
-
-    $toolsDir = Join-Path $repoRoot '.tmp/tools'
-    $nugetPath = Join-Path $toolsDir 'nuget.exe'
-    if (-not (Test-Path $nugetPath)) {
-        New-Item -ItemType Directory -Path $toolsDir -Force | Out-Null
-        Invoke-WebRequest -Uri 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe' -OutFile $nugetPath
-    }
-
-    return $nugetPath
-}
-
-function Resolve-MSBuildPath {
+function Resolve-VisualStudioPath {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path $vswhere)) {
         throw "vswhere.exe not found: $vswhere"
     }
 
-    # No version pin: pick whatever VS the host has (2022/2026/newer) so CI
-    # keeps working when the runner image bumps its Visual Studio major.
     $installationPath = & $vswhere -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild -property installationPath
     if ([string]::IsNullOrWhiteSpace($installationPath)) {
         throw 'Visual Studio with MSBuild was not found.'
     }
 
-    $msbuildPath = Join-Path $installationPath 'MSBuild\Current\Bin\MSBuild.exe'
+    return $installationPath
+}
+
+function Resolve-MSBuildPath {
+    param([string]$VisualStudioPath)
+
+    $msbuildPath = Join-Path $VisualStudioPath 'MSBuild\Current\Bin\MSBuild.exe'
     if (-not (Test-Path $msbuildPath)) {
         throw "MSBuild.exe not found: $msbuildPath"
     }
 
     return $msbuildPath
+}
+
+function Resolve-DumpBinPath {
+    param([string]$VisualStudioPath)
+
+    $versionFile = Join-Path $VisualStudioPath 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
+    if (-not (Test-Path $versionFile)) {
+        throw "MSVC tools version file not found: $versionFile"
+    }
+
+    $toolsVersion = (Get-Content $versionFile -Raw).Trim()
+    $dumpBinPath = Join-Path $VisualStudioPath "VC\Tools\MSVC\$toolsVersion\bin\Hostx64\x64\dumpbin.exe"
+    if (-not (Test-Path $dumpBinPath)) {
+        throw "dumpbin.exe not found: $dumpBinPath"
+    }
+
+    return $dumpBinPath
 }
 
 function Invoke-Step {
@@ -78,9 +79,10 @@ function Invoke-Step {
 }
 
 $cmake = Resolve-CommandPath 'cmake'
-$nuget = Resolve-NuGetPath
 $pnpm = Resolve-CommandPath 'pnpm'
-$msbuild = Resolve-MSBuildPath
+$visualStudio = Resolve-VisualStudioPath
+$msbuild = Resolve-MSBuildPath $visualStudio
+$dumpBin = Resolve-DumpBinPath $visualStudio
 
 Invoke-Step 'Install web-panel dependencies' {
     & $pnpm --dir $webPanelDir install --frozen-lockfile
@@ -91,10 +93,6 @@ Invoke-Step 'Build web-panel' {
 }
 
 Invoke-Step 'Configure asar-fuses-bypass' {
-    # Let CMake choose its default Visual Studio generator (matches the host VS),
-    # avoiding a hardcoded/derived name that breaks when the runner bumps VS.
-    # Clearing CMAKE_GENERATOR ensures the default isn't overridden to a non-VS
-    # generator that would reject the -A architecture flag.
     Remove-Item Env:CMAKE_GENERATOR -ErrorAction SilentlyContinue
     & $cmake -S $asarFusesSourceDir -B $asarFusesBuildDir -A x64
 }
@@ -103,8 +101,16 @@ Invoke-Step 'Build asar-fuses-bypass' {
     & $cmake --build $asarFusesBuildDir --config $Configuration
 }
 
+Invoke-Step 'Verify native runtime dependencies' {
+    $nativeDll = Join-Path $asarFusesBuildDir "$Configuration\version.dll"
+    $dependencies = & $dumpBin /dependents $nativeDll
+    if ($dependencies -match '(?im)^\s*(VCRUNTIME|MSVCP|api-ms-win-crt-)[^\s]*\.dll\s*$') {
+        throw 'version.dll depends on the dynamic Visual C++ runtime.'
+    }
+}
+
 Invoke-Step 'Restore NuGet packages' {
-    & $nuget restore $solutionPath -NonInteractive
+    & $msbuild $solutionPath /m /t:Restore /p:RestorePackagesConfig=true
 }
 
 Invoke-Step 'Build solution' {

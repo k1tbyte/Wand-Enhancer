@@ -30,8 +30,8 @@ export function loadPresets(storageKey: string): RemotePreset[] {
   );
 }
 
-export function savePresets(storageKey: string, presets: RemotePreset[]): void {
-  saveJson(storageKey, presets, (value) => Array.isArray(value) && value.length === 0);
+export function savePresets(storageKey: string, presets: RemotePreset[]): boolean {
+  return saveJson(storageKey, presets, (value) => Array.isArray(value) && value.length === 0);
 }
 
 export function createPreset(name: string, values: Record<string, unknown>): RemotePreset {
