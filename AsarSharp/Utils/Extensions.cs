@@ -97,6 +97,27 @@ namespace AsarSharp.Utils
 
         private static bool IsSeparator(char c) => c == '/' || c == '\\';
 
+        /// <summary>
+        /// Security check for archive extraction: returns true only when
+        /// <paramref name="candidate"/> resolves to a location inside
+        /// <paramref name="root"/>. Both paths are fully normalised first, so
+        /// embedded ".." segments cannot escape the root (zip-slip). The
+        /// <see cref="GetRelativePath"/> fast path must not be used here because
+        /// it strips the prefix literally without resolving "..".
+        /// </summary>
+        public static bool IsPathInside(string root, string candidate)
+        {
+            string fullRoot = TrimTrailingSeparators(Path.GetFullPath(root));
+            string fullCandidate = TrimTrailingSeparators(Path.GetFullPath(candidate));
+
+            if (string.Equals(fullRoot, fullCandidate, StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            return fullCandidate.Length > fullRoot.Length
+                   && fullCandidate.StartsWith(fullRoot, StringComparison.OrdinalIgnoreCase)
+                   && IsSeparator(fullCandidate[fullRoot.Length]);
+        }
+
         public static string GetDirectoryName(string path)
         {
             if (string.IsNullOrEmpty(path))
