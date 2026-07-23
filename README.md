@@ -8,6 +8,8 @@
 
 </div>
 
+[English](README.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+
 <h4>An open-source interoperability tool designed to extend local client-side configurations and improve the UX of the Wand application.</h4>
 
 **🚨 IMPORTANT NOTICE: THIS PROJECT HAS NO OFFICIAL YOUTUBE TUTORIALS, GUIDES, OR PREBUILT EXECUTABLE DOWNLOADS. 🚨
