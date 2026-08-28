@@ -208,7 +208,7 @@ namespace WandEnhancer.Core
                         new PatchEntry
                         {
                             Name = "telemetryDisabled",
-                            SearchHints = new[] { },
+                            SearchHints = new string[] { },
                             Target = new Regex(@"(?!.*)", RegexOptions.Singleline), // Never matches - patch not yet implemented
                             Patch = ""
                         }
