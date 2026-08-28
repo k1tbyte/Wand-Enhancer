@@ -201,6 +201,20 @@ namespace WandEnhancer.Core
                     }
                 },
                 {
+                    EPatchType.DisableTelemetry,
+                    new[]
+                    {
+                        // Placeholder entry for DisableTelemetry - currently no telemetry patches implemented
+                        new PatchEntry
+                        {
+                            Name = "telemetryDisabled",
+                            SearchHints = new[] { },
+                            Target = new Regex(@"(?!.*)", RegexOptions.Singleline), // Never matches - patch not yet implemented
+                            Patch = ""
+                        }
+                    }
+                },
+                {
                     EPatchType.DevToolsOnF12,
                     new[]
                     {

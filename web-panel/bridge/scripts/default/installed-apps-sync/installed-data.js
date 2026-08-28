@@ -22,7 +22,7 @@ import {
 export function resolveInstalledData(state) {
   const storeState = getStoreState(state.storeRef)
 
-  if (isRecord(state.installedAppsService?.installedApps)) {
+  if (isRecord(state.installedAppsService?.installedApps) && Object.keys(state.installedAppsService.installedApps).length > 0) {
     return {
       rawInstalledApps: state.installedAppsService.installedApps,
       catalog: isRecord(state.installedAppsService.catalog)
@@ -561,17 +561,16 @@ function pickImageUrlForTitle(title, game, preferredApp, sidebarClientIconUrl, v
     : [title, game, preferredApp]
 
   return pickImageUrl(
+    getSteamClientIconUrl(
+      findSteamAppId(...steamRoots),
+      getInstalledAppSteamAppId(preferredApp.platform, preferredApp.sku)
+    ),
     title?.imageUrl,
     title?.iconUrl,
     title?.coverUrl,
     title?.thumbnailUrl,
     title?.logoUrl,
     title?.headerImageUrl,
-    getSteamClientIconUrl(
-      findSteamAppId(...steamRoots),
-      getInstalledAppSteamAppId(preferredApp.platform, preferredApp.sku)
-    ),
-    sidebarClientIconUrl,
     title?.images,
     title?.assets,
     game.imageUrl,
@@ -582,6 +581,7 @@ function pickImageUrlForTitle(title, game, preferredApp, sidebarClientIconUrl, v
     game.headerImageUrl,
     game.images,
     game.assets,
-    preferredApp.imageUrl
+    preferredApp.imageUrl,
+    sidebarClientIconUrl
   )
 }

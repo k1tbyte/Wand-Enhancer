@@ -58,12 +58,26 @@ namespace AsarSharp.Integrity
                     ? (int)((fileStream.Length + BLOCK_SIZE - 1) / BLOCK_SIZE)
                     : 0;
                 var blockHashes = new List<string>(estimatedBlockCount);
-                int bytesRead;
 
-                while ((bytesRead = fileStream.Read(reusableBuffer, 0, reusableBuffer.Length)) > 0)
+                // Stream.Read may return fewer bytes than requested at any point, so
+                // reads accumulate into the block buffer and a hash is emitted only
+                // once a full block is present (same rule as StreamingHasher).
+                int fill = 0;
+                int bytesRead;
+                while ((bytesRead = fileStream.Read(reusableBuffer, fill, reusableBuffer.Length - fill)) > 0)
                 {
-                    blockHashes.Add(ToLowerHex(blockHash.ComputeHash(reusableBuffer, 0, bytesRead)));
-                    fileHash.AppendData(reusableBuffer, 0, bytesRead);
+                    fileHash.AppendData(reusableBuffer, fill, bytesRead);
+                    fill += bytesRead;
+                    if (fill == reusableBuffer.Length)
+                    {
+                        blockHashes.Add(ToLowerHex(blockHash.ComputeHash(reusableBuffer, 0, fill)));
+                        fill = 0;
+                    }
+                }
+
+                if (fill > 0)
+                {
+                    blockHashes.Add(ToLowerHex(blockHash.ComputeHash(reusableBuffer, 0, fill)));
                 }
 
                 return new FileIntegrity
