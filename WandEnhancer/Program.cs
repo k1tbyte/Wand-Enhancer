@@ -1,45 +1,159 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WandEnhancer.Core;
+using WandEnhancer.Models;
+using WandEnhancer.Utils;
 using WandEnhancer.View.MainWindow;
 
 namespace WandEnhancer
 {
     public static class Program
     {
+        /// <summary>Log lines from a failed startup auto-patch, replayed by the UI when it opens.</summary>
+        public static readonly List<KeyValuePair<string, ELogType>> StartupLog =
+            new List<KeyValuePair<string, ELogType>>();
+
         [STAThread]
         public static void Main(string[] args)
         {
+            if (TryLaunchMode(args))
+                return;
+
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-            
-            List<LogEntry> logEntries = new List<LogEntry>();
-            if (args.Length > 0)
-            {
-                // TODO: Command line arguments handling
-            }
 
             var application = new App();
             application.InitializeComponent();
             application.MainWindow = new MainWindow();
-            foreach (var logEntry in logEntries)
-            {
-                MainWindow.Instance.ViewModel.LogList.Add(logEntry);
-            }
             application.Run();
+        }
+
+        private static bool TryLaunchMode(string[] args)
+        {
+            string myExe = Assembly.GetExecutingAssembly().Location;
+            string myName = Path.GetFileNameWithoutExtension(myExe);
+
+            if (!Constants.WeModBrandNames.Any(
+                    n => n.Equals(myName, StringComparison.OrdinalIgnoreCase)))
+                return false;
+
+            string myDir = Path.GetDirectoryName(myExe);
+
+            if (args.Length > 0 &&
+                args[0].StartsWith("--squirrel", StringComparison.OrdinalIgnoreCase))
+            {
+                string updateExe = Path.Combine(myDir, "Update.exe");
+                if (File.Exists(updateExe))
+                    Process.Start(updateExe, QuoteArguments(args));
+                return true;
+            }
+
+            var config = WeModInstalls.FindLatestWeMod(myDir);
+            if (config == null)
+                return false;
+
+            // A fresh Wand version drops our patches; re-apply the saved selection automatically.
+            // On failure fall through to the UI so the user sees which patch broke.
+            if (!Enhancer.IsPatched(config.RootDirectory) && !TryAutoPatch(config, myDir))
+                return false;
+
+            string forwardedArgs = args.Length > 0 ? QuoteArguments(args) : null;
+            FuseLauncher.Launch(config.ExecutablePath, forwardedArgs,
+                message => RecordStartupLog(message, ELogType.Warn));
+            return true;
+        }
+
+        /// <summary>
+        /// Re-quotes argv for a command line. Squirrel hands us paths with spaces
+        /// (`--squirrel-install "C:\Users\Some Name\..."`); re-joining on spaces splits them.
+        /// </summary>
+        private static string QuoteArguments(IEnumerable<string> args)
+        {
+            return string.Join(" ", args.Select(QuoteArgument));
+        }
+
+        private static string QuoteArgument(string value)
+        {
+            if (!string.IsNullOrEmpty(value) && value.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
+            {
+                return value;
+            }
+
+            // Backslashes are literal unless they run into the closing quote, where they double.
+            var quoted = new System.Text.StringBuilder("\"");
+            int backslashes = 0;
+            foreach (char current in value ?? string.Empty)
+            {
+                if (current == '\\')
+                {
+                    backslashes++;
+                    continue;
+                }
+
+                if (current == '"')
+                {
+                    quoted.Append('\\', backslashes * 2 + 1).Append('"');
+                }
+                else
+                {
+                    quoted.Append('\\', backslashes).Append(current);
+                }
+
+                backslashes = 0;
+            }
+
+            return quoted.Append('\\', backslashes * 2).Append('"').ToString();
+        }
+
+        private static bool TryAutoPatch(WeModConfig config, string launcherDir)
+        {
+            var patchConfig = Enhancer.LoadAutoPatchConfig(launcherDir);
+            if (patchConfig == null)
+                return true; // nothing saved to replay; launch as-is
+
+            try
+            {
+                new Enhancer(config, RecordStartupLog, patchConfig).Patch();
+                return true;
+            }
+            catch (Exception e)
+            {
+                // Localization resources are not loaded yet in launcher mode (no Application),
+                // so these two replay into the UI log in English by design.
+                RecordStartupLog($"Auto-patch failed: {e.Message}", ELogType.Error);
+                RecordStartupLog("The new Wand version may need updated patches. Restore the backup and patch again.", ELogType.Warn);
+                return false;
+            }
+        }
+
+        private static void RecordStartupLog(string message, ELogType type)
+        {
+            StartupLog.Add(new KeyValuePair<string, ELogType>(message, type));
         }
         
         
+        // Fires on the finalizer thread for a task nobody awaited. Non-fatal since .NET 4.5:
+        // record it and mark it observed rather than killing a patch mid-run.
         private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
-            MessageBox.Show(e.Exception.ToString());
-            Environment.Exit(1);
+            e.SetObserved();
+            RecordStartupLog($"Background task failed: {e.Exception.GetBaseException().Message}", ELogType.Error);
         }
 
         private static void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            MessageBox.Show(e.ExceptionObject.ToString());
+            var error = e.ExceptionObject as Exception;
+            MessageBox.Show(
+                error?.Message ?? e.ExceptionObject?.ToString() ?? "Unknown error",
+                Constants.RepoName,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
             Environment.Exit(1);
         }
     }

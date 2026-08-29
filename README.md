@@ -15,7 +15,7 @@ There are no official videos showing how to install or use this tool. Scammers a
 
 ## 👾 What does it access?
 
-The .NET patcher modifies files in the selected local Wand installation and does not contact an update or telemetry service. The bundled `version.dll` proxy is loaded by Wand and changes Electron's ASAR-integrity fuse byte inside Wand's own process; it does not inject into another process. Wand itself remains an online application, build tools restore declared dependencies, and the optional Remote Web Panel deliberately starts a LAN HTTP/WebSocket server and uses Wand API/CDN data. Review the source and build the executable from your own fork; unsigned patching tools can trigger generic antivirus heuristics.
+The .NET patcher modifies files in the selected local Wand installation and does not contact an update or telemetry service. Wand itself remains an online application, build tools restore declared dependencies, and the optional Remote Web Panel deliberately starts a LAN HTTP/WebSocket server and uses Wand API/CDN data. Review the source and build the executable from your own fork; unsigned patching tools can trigger generic antivirus heuristics.
 
 ## 💫 What features are improved?
 
@@ -102,19 +102,17 @@ Building from source on Windows requires a local development environment.
 
 ### Requirements
 
-- `CMake`
 - `Node.js` and `pnpm`
 - `Visual Studio 2022` or `Build Tools for Visual Studio 2022` with `MSBuild`
-- Visual Studio `Desktop development with C++` workload
 - .NET Framework 4.8 desktop build tools / targeting pack
 
 ### Build steps
 
 1. Clone this repository.
-2. Install the requirements above and make sure `cmake`, `pnpm`, and `MSBuild` are available.
+2. Install the requirements above and make sure `pnpm` and `MSBuild` are available.
 3. Run `build.cmd` from Command Prompt or PowerShell.
 
-The build script installs the web panel dependencies, builds the frontend, compiles the native helper with CMake, restores NuGet packages, and builds the WPF solution.
+The build script installs the web panel dependencies, type-checks and lints the panel, builds the frontend and bridge, restores NuGet packages, and builds the WPF solution.
 
 ---
 
@@ -141,12 +139,11 @@ The build script installs the web panel dependencies, builds the frontend, compi
 ![2](./assets/screenshots/app2.png)
 </div>
 
----
 
 ## 📜 License
 This project is licensed under the Apache-2.0 - see the [LICENSE](LICENSE.md) file for details.
 
----
+
 ## ❤️ Support
 
 If you find this project useful, you can support its development using any of the options below 🙌
@@ -163,5 +160,3 @@ If you find this project useful, you can support its development using any of th
 > This project is a third-party enhancement tool intended solely for educational, research, and local interoperability purposes. It does not distribute any proprietary code or bypass server-side validations. All modifications are performed locally to customize the user's interface.
 
 ---
-
-[![Star History Chart](https://api.star-history.com/svg?repos=k1tbyte/Wand-Enhancer&type=Date)](https://www.star-history.com/#k1tbyte/Wand-Enhancer&Date)
