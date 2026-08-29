@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Chemin du dossier</s:String>
     <s:String x:Key="mw_folder_not_found">Dossier non trouvé</s:String>
     <s:String x:Key="mw_patch">Appliquer</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Les fichiers .js sélectionnés sont intégrés dans Wand et chargés dans le renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Aucun script sélectionné</s:String>
     <s:String x:Key="pv_start">Démarrer</s:String>
+    <s:String x:Key="pv_auto_apply">Appliquer automatiquement après les mises à jour</s:String>
     <s:String x:Key="pv_popup_title">Qu'allons-nous modifier ?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">Répertoire WeMod trouvé à {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod est déjà patché. Si vous souhaitez le patcher à nouveau, veuillez d'abord restaurer la sauvegarde.</s:String>
+    <s:String x:Key="log_ready">Prêt pour le patch.</s:String>
+    <s:String x:Key="log_install_not_found">Répertoire WeMod introuvable.</s:String>
+    <s:String x:Key="log_no_directory">Impossible. Veuillez d'abord spécifier le répertoire.</s:String>
+    <s:String x:Key="log_invalid_directory">Le dossier sélectionné {0} n'est pas un répertoire WeMod valide.</s:String>
+    <s:String x:Key="log_restore_failed">Échec de la restauration de la sauvegarde : {0}</s:String>
+    <s:String x:Key="log_patch_failed">Échec du patch : {0}</s:String>
+    <s:String x:Key="log_copied">Journaux copiés dans le presse-papiers.</s:String>
+    <s:String x:Key="log_copy_failed">Échec de la copie des journaux : {0}</s:String>
+    <s:String x:Key="log_exported">Journaux exportés vers {0}.</s:String>
+    <s:String x:Key="log_export_failed">Échec de l'exportation des journaux : {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Impossible d'ouvrir {0} dans un navigateur.</s:String>
+    <s:String x:Key="dialog_pick_install">Sélectionnez le répertoire WeMod</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

@@ -18,6 +18,7 @@
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
                 <RowDefinition Height="27" />
+                <RowDefinition Height="27" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -39,7 +40,11 @@
             <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_remote_web_panel_preview}" />
             <CheckBox Grid.Row="3" Grid.Column="1" x:Name="RemoteWebPanelPreviewBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
-            <Border Grid.Row="4" Grid.ColumnSpan="2" Margin="0 14 0 0" Padding="10"
+            <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_auto_apply}" />
+            <CheckBox Grid.Row="4" Grid.Column="1" x:Name="AutoApplyBox" HorizontalAlignment="Right" VerticalAlignment="Center"
+                      IsChecked="True" />
+
+            <Border Grid.Row="5" Grid.ColumnSpan="2" Margin="0 14 0 0" Padding="10"
                     BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="4"
                     Background="{DynamicResource Muted}">
                 <StackPanel>
@@ -91,7 +96,7 @@
                 </StackPanel>
             </Border>
 
-            <Button Grid.Row="5" Grid.ColumnSpan="2" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
+            <Button Grid.Row="6" Grid.ColumnSpan="2" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
                     Click="OnPatchButtonClick" />
         </Grid>
     </Grid>

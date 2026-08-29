@@ -27,8 +27,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // Settings loading is non-critical - silently fall back to defaults
-                // This can fail due to file permissions, corrupted JSON, etc.
+                // Unreadable or corrupt settings must not block startup; defaults apply.
             }
             return null;
         }
@@ -42,8 +41,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // Settings saving is non-critical - silently ignore errors
-                // This can fail due to file permissions or read-only directories
+                // A read-only install directory must not break the app; the choice is lost, not fatal.
             }
         }
     }

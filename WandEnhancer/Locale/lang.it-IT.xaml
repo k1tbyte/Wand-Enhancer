@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Percorso cartella</s:String>
     <s:String x:Key="mw_folder_not_found">Cartella non trovata</s:String>
     <s:String x:Key="mw_patch">Applica</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">I file .js selezionati vengono inseriti in Wand e caricati nel renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Nessuno script selezionato</s:String>
     <s:String x:Key="pv_start">Avvia</s:String>
+    <s:String x:Key="pv_auto_apply">Applica automaticamente dopo gli aggiornamenti</s:String>
     <s:String x:Key="pv_popup_title">Cosa modificheremo?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">Directory di WeMod trovata in {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod è già stato patchato. Se vuoi patchare di nuovo, ripristina prima il backup.</s:String>
+    <s:String x:Key="log_ready">Pronto per il patching.</s:String>
+    <s:String x:Key="log_install_not_found">Directory di WeMod non trovata.</s:String>
+    <s:String x:Key="log_no_directory">Impossibile procedere. Specifica prima la directory.</s:String>
+    <s:String x:Key="log_invalid_directory">La cartella selezionata {0} non è una directory valida di WeMod.</s:String>
+    <s:String x:Key="log_restore_failed">Impossibile ripristinare il backup: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Impossibile eseguire il patch: {0}</s:String>
+    <s:String x:Key="log_copied">Log copiati negli appunti.</s:String>
+    <s:String x:Key="log_copy_failed">Impossibile copiare i log: {0}</s:String>
+    <s:String x:Key="log_exported">Log esportati in {0}.</s:String>
+    <s:String x:Key="log_export_failed">Impossibile esportare i log: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Impossibile aprire {0} in un browser.</s:String>
+    <s:String x:Key="dialog_pick_install">Seleziona la directory di WeMod</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

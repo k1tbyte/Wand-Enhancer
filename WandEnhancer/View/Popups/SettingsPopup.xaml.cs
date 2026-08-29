@@ -56,7 +56,7 @@ namespace WandEnhancer.View.Popups
                 LocalizationManager.CurrentLanguage = _selectedLanguage;
             }
             
-            MainWindow.MainWindow.Instance.ClosePopup();
+            MainWindow.MainWindow.Instance?.ClosePopup();
         }
 
         private class LanguageItem

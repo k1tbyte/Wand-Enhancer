@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Folder path</s:String>
     <s:String x:Key="mw_folder_not_found">Folder not found</s:String>
     <s:String x:Key="mw_patch">Enhance</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Selected .js files are packed into Wand and loaded in the renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">No scripts selected</s:String>
     <s:String x:Key="pv_start">Start</s:String>
+    <s:String x:Key="pv_auto_apply">Auto-apply after updates</s:String>
     <s:String x:Key="pv_popup_title">What are we gonna enhance?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">WeMod directory found at {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod already patched. If you want to patch again, please restore the backup first.</s:String>
+    <s:String x:Key="log_ready">Ready for patching.</s:String>
+    <s:String x:Key="log_install_not_found">WeMod directory not found.</s:String>
+    <s:String x:Key="log_no_directory">Cant be done. Please specify the directory first.</s:String>
+    <s:String x:Key="log_invalid_directory">The selected folder {0} is not a valid WeMod directory.</s:String>
+    <s:String x:Key="log_restore_failed">Failed to restore backup: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Failed to patch: {0}</s:String>
+    <s:String x:Key="log_copied">Logs copied to clipboard.</s:String>
+    <s:String x:Key="log_copy_failed">Failed to copy logs: {0}</s:String>
+    <s:String x:Key="log_exported">Logs exported to {0}.</s:String>
+    <s:String x:Key="log_export_failed">Failed to export logs: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Could not open {0} in a browser.</s:String>
+    <s:String x:Key="dialog_pick_install">Select the WeMod directory</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

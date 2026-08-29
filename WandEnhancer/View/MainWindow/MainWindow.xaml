@@ -183,9 +183,10 @@
                                     Content="{DynamicResource mw_patch}"/>
                         </Grid>
                         <Button HorizontalAlignment="Right"
-                                Command="{Binding RestoreBackupCommand }"
-                                FontWeight="Bold" FontSize="16" Width="200" 
+                                Command="{Binding RestoreBackupCommand}"
+                                FontWeight="Bold" FontSize="16" Width="200"
                                 Style="{StaticResource ColoredButton}"
+                                IsEnabled="{Binding IsIdle}"
                                 Visibility="{Binding AlreadyPatched, Converter={StaticResource ToVisibilityConverter}}"
                                 Content="{DynamicResource mw_restore}"/>
                     </Grid>
