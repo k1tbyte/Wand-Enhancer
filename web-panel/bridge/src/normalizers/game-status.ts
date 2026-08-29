@@ -1,5 +1,6 @@
 import type { GameStatusPayload } from '../../../protocol/messages';
 import type { UnknownRecord } from '../types';
+
 const { isRecord, safeString, toStringId } = require('../utils');
 
 function normalizeGameStatusSnapshot(rawSnapshot: unknown): GameStatusPayload | null {
@@ -17,7 +18,10 @@ function normalizeGameStatusSnapshot(rawSnapshot: unknown): GameStatusPayload | 
             gameId: toStringId(rawSession.gameId),
             titleId: toStringId(rawSession.titleId),
             titleName: typeof rawSession.titleName === 'string' ? rawSession.titleName : null,
-            sessionDurationSeconds: typeof rawSession.sessionDurationSeconds === 'number' ? rawSession.sessionDurationSeconds : null,
+            sessionDurationSeconds:
+                typeof rawSession.sessionDurationSeconds === 'number'
+                    ? rawSession.sessionDurationSeconds
+                    : null,
             startedAt: typeof rawSession.startedAt === 'string' ? rawSession.startedAt : null,
             endedAt: typeof rawSession.endedAt === 'string' ? rawSession.endedAt : null,
         },

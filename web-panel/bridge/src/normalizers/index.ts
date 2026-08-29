@@ -1,5 +1,14 @@
-import type { CheatArgs, CheatOption, CheatSchema, InstalledAppsPayload, InstalledAppSummary, TrainerMetaPayload, TrainerValuesPayload } from '../../../protocol/messages';
+import type {
+    CheatArgs,
+    CheatOption,
+    CheatSchema,
+    InstalledAppSummary,
+    InstalledAppsPayload,
+    TrainerMetaPayload,
+    TrainerValuesPayload,
+} from '../../../protocol/messages';
 import type { UnknownRecord } from '../types';
+
 const { KNOWN_CHEAT_TYPES } = require('../constants');
 const { cloneValue, firstString, isRecord, safeString, toStringId } = require('../utils');
 const { normalizeRemoteCommandAction, normalizeRemoteCommandResult } = require('./command-results');
@@ -41,7 +50,11 @@ function normalizeArgs(args: unknown): CheatArgs {
     if (typeof a.max === 'number') next.max = a.max;
     if (typeof a.step === 'number') next.step = a.step;
     if (typeof a.postfix === 'string') next.postfix = a.postfix;
-    if (typeof a.default === 'string' || typeof a.default === 'number' || typeof a.default === 'boolean') {
+    if (
+        typeof a.default === 'string' ||
+        typeof a.default === 'number' ||
+        typeof a.default === 'boolean'
+    ) {
         next.default = a.default;
     }
 
@@ -85,7 +98,9 @@ function normalizeCheat(cheat: unknown, index: number): CheatSchema | null {
     }
 
     if (Array.isArray(c.hotkeys)) {
-        normalized.hotkeys = c.hotkeys.filter(Array.isArray).map((group: unknown[]) => group.map((item: unknown) => String(item)));
+        normalized.hotkeys = c.hotkeys
+            .filter(Array.isArray)
+            .map((group: unknown[]) => group.map((item: unknown) => String(item)));
     }
 
     return normalized;
@@ -142,13 +157,26 @@ function normalizeInstalledApp(app: unknown): InstalledAppSummary | null {
             a.gameName,
             a.name,
             location.replaceAll('\\', '/').split('/').filter(Boolean).pop() || '',
-            `${platform}:${sku}`
+            `${platform}:${sku}`,
         ),
         gameId: toStringId(a.gameId),
         titleId: toStringId(a.titleId),
-        imageUrl: normalizeImageUrl(a.imageUrl, a.iconUrl, a.coverUrl, a.thumbnailUrl, a.logoUrl, a.headerImageUrl),
-        platformLastPlayedTimestamp: typeof a.platformLastPlayedTimestamp === 'number' ? a.platformLastPlayedTimestamp : null,
-        platformTotalPlaytimeMinutes: typeof a.platformTotalPlaytimeMinutes === 'number' ? a.platformTotalPlaytimeMinutes : null,
+        imageUrl: normalizeImageUrl(
+            a.imageUrl,
+            a.iconUrl,
+            a.coverUrl,
+            a.thumbnailUrl,
+            a.logoUrl,
+            a.headerImageUrl,
+        ),
+        platformLastPlayedTimestamp:
+            typeof a.platformLastPlayedTimestamp === 'number'
+                ? a.platformLastPlayedTimestamp
+                : null,
+        platformTotalPlaytimeMinutes:
+            typeof a.platformTotalPlaytimeMinutes === 'number'
+                ? a.platformTotalPlaytimeMinutes
+                : null,
     };
 }
 
@@ -162,8 +190,11 @@ function normalizeInstalledAppsSnapshot(rawSnapshot: unknown): InstalledAppsPayl
     apps.sort(compareInstalledApps);
     const snap = isRecord(rawSnapshot) ? (rawSnapshot as UnknownRecord) : null;
     return {
-        instanceId: snap ? safeString(snap.instanceId, 'wand-installed-apps') : 'wand-installed-apps',
-        updatedAt: snap && typeof snap.updatedAt === 'string' ? snap.updatedAt : new Date().toISOString(),
+        instanceId: snap
+            ? safeString(snap.instanceId, 'wand-installed-apps')
+            : 'wand-installed-apps',
+        updatedAt:
+            snap && typeof snap.updatedAt === 'string' ? snap.updatedAt : new Date().toISOString(),
         apps,
     };
 }
@@ -193,7 +224,9 @@ function installedAppsSignature(snapshot: InstalledAppsPayload): string {
     return JSON.stringify(snapshot.apps);
 }
 
-function normalizeSnapshot(rawSnapshot: unknown): { trainerMeta: TrainerMetaPayload, trainerValues: TrainerValuesPayload } | null {
+function normalizeSnapshot(
+    rawSnapshot: unknown,
+): { trainerMeta: TrainerMetaPayload; trainerValues: TrainerValuesPayload } | null {
     if (!isRecord(rawSnapshot)) return null;
     const snap = rawSnapshot as UnknownRecord;
     if (!isRecord(snap.metadata)) return null;
@@ -205,10 +238,10 @@ function normalizeSnapshot(rawSnapshot: unknown): { trainerMeta: TrainerMetaPayl
     const rawCheats = Array.isArray(blueprint.cheats) ? blueprint.cheats : [];
     const cheats = rawCheats.map(normalizeCheat).filter(Boolean) as CheatSchema[];
     const categories = Array.from(new Set(cheats.map((entry) => entry.category)));
-    
+
     const trainerInfo = isRecord(snap.trainerInfo) ? (snap.trainerInfo as UnknownRecord) : null;
     const infoGame = isRecord(info.game) ? (info.game as UnknownRecord) : null;
-    
+
     const trainerId = safeString(snap.trainerId || trainerInfo?.trainerId);
     const displayName = firstString(
         trainerInfo?.displayName,
@@ -223,7 +256,7 @@ function normalizeSnapshot(rawSnapshot: unknown): { trainerMeta: TrainerMetaPayl
         info.name,
         infoGame?.displayName,
         infoGame?.name,
-        infoGame?.title
+        infoGame?.title,
     );
 
     if (!trainerId) {
@@ -260,7 +293,11 @@ function normalizeSnapshot(rawSnapshot: unknown): { trainerMeta: TrainerMetaPayl
     };
     for (const cheat of cheats) {
         if (cheat.target in trainerValues.values) {
-            trainerValues.values[cheat.target] = normalizeTrainerValue({ trainerMeta }, cheat.target, trainerValues.values[cheat.target]);
+            trainerValues.values[cheat.target] = normalizeTrainerValue(
+                { trainerMeta },
+                cheat.target,
+                trainerValues.values[cheat.target],
+            );
         }
     }
 

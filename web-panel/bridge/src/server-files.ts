@@ -6,7 +6,8 @@ const { REMOTE_BASE_PATH } = require('./constants');
 
 const IPV4_OCTET_PATTERN = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const PHYSICAL_INTERFACE_NAME_PATTERN = /(?:ethernet|wi-?fi|wireless|wlan|lan|local area)/i;
-const VIRTUAL_INTERFACE_NAME_PATTERN = /(?:bluetooth|container|docker|hamachi|hyper-v|loopback|npcap|pseudo|tap|tailscale|teredo|tunnel|tun|virtual|vmware|vbox|virtualbox|vpn|wireguard|wsl|zerotier)/i;
+const VIRTUAL_INTERFACE_NAME_PATTERN =
+    /(?:bluetooth|container|docker|hamachi|hyper-v|loopback|npcap|pseudo|tap|tailscale|teredo|tunnel|tun|virtual|vmware|vbox|virtualbox|vpn|wireguard|wsl|zerotier)/i;
 const VIRTUAL_MAC_PREFIXES = new Set([
     '00:05:69',
     '00:0c:29',
@@ -18,8 +19,8 @@ const VIRTUAL_MAC_PREFIXES = new Set([
     '52:54:00',
 ]);
 
-import type { NetworkInterfaceInfo } from 'node:os';
 import type { ServerResponse } from 'node:http';
+import type { NetworkInterfaceInfo } from 'node:os';
 
 function contentTypeFor(filePath: string) {
     const extension = path.extname(filePath).toLowerCase();
@@ -41,11 +42,14 @@ function contentTypeFor(filePath: string) {
 }
 
 function getAdvertisedUrls(port: number) {
-    const candidates: { index: number, score: number, url: string }[] = [];
+    const candidates: { index: number; score: number; url: string }[] = [];
     const interfaces = os.networkInterfaces();
     let index = 0;
 
-    for (const [name, entries] of Object.entries(interfaces) as [string, NetworkInterfaceInfo[] | undefined][]) {
+    for (const [name, entries] of Object.entries(interfaces) as [
+        string,
+        NetworkInterfaceInfo[] | undefined,
+    ][]) {
         if (!entries) {
             continue;
         }
@@ -73,7 +77,9 @@ function getAdvertisedUrls(port: number) {
 }
 
 function isUsableIpv4Entry(entry: NetworkInterfaceInfo) {
-    return Boolean(entry && !entry.internal && isIpv4Family(entry.family) && parseIpv4(entry.address));
+    return Boolean(
+        entry && !entry.internal && isIpv4Family(entry.family) && parseIpv4(entry.address),
+    );
 }
 
 function isIpv4Family(family: string | number) {
@@ -130,11 +136,17 @@ function parseIpv4(address: unknown): number[] | null {
     }
 
     const octets = match.slice(1).map((part) => Number(part));
-    return octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255) ? octets : null;
+    return octets.every((octet) => Number.isInteger(octet) && octet >= 0 && octet <= 255)
+        ? octets
+        : null;
 }
 
 function isPrivateIpv4(octets: number[]) {
-    return octets[0] === 10 || (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) || (octets[0] === 192 && octets[1] === 168);
+    return (
+        octets[0] === 10 ||
+        (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+        (octets[0] === 192 && octets[1] === 168)
+    );
 }
 
 function isLinkLocalIpv4(octets: number[]) {

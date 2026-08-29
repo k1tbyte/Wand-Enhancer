@@ -10,7 +10,9 @@ const WS_CLOSE_NORMAL = 1000;
 import type { BridgeClient } from './types';
 
 function frameTooLarge() {
-    const error = new RangeError(`WebSocket frames are limited to ${MAX_WS_FRAME_BYTES} bytes.`) as RangeError & { code: string };
+    const error = new RangeError(
+        `WebSocket frames are limited to ${MAX_WS_FRAME_BYTES} bytes.`,
+    ) as RangeError & { code: string };
     error.code = FRAME_TOO_LARGE_ERROR;
     return error;
 }
@@ -41,7 +43,12 @@ function makeFrame(opcode: number, payload: Buffer | string) {
     }
 
     if (source.length < 65536) {
-        const prefix = Buffer.from([header[0], 126, (source.length >> 8) & 0xff, source.length & 0xff]);
+        const prefix = Buffer.from([
+            header[0],
+            126,
+            (source.length >> 8) & 0xff,
+            source.length & 0xff,
+        ]);
         return Buffer.concat([prefix, source]);
     }
 
@@ -59,7 +66,12 @@ function sendText(client: BridgeClient, text: string) {
     }
 }
 
-function sendJson(client: BridgeClient, type: string, payload: unknown, requestId: string | number | null = null) {
+function sendJson(
+    client: BridgeClient,
+    type: string,
+    payload: unknown,
+    requestId: string | number | null = null,
+) {
     sendText(client, jsonMessage(type, payload, requestId));
 }
 
@@ -157,7 +169,10 @@ function parseFrame(buffer: Buffer) {
 }
 
 function createAcceptKey(key: string) {
-    return crypto.createHash('sha1').update(key + WS_GUID).digest('base64');
+    return crypto
+        .createHash('sha1')
+        .update(key + WS_GUID)
+        .digest('base64');
 }
 
 module.exports = {

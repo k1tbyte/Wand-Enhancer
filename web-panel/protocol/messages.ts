@@ -216,7 +216,10 @@ export type TrainerChangedMessage = MessageEnvelope<'trainer_changed', TrainerCh
 export type SetValueMessage = MessageEnvelope<'set_value', SetValuePayload>;
 export type SetValueResultMessage = MessageEnvelope<'set_value_result', SetValueResultPayload>;
 export type RemoteCommandMessage = MessageEnvelope<'remote_command', RemoteCommandPayload>;
-export type RemoteCommandResultMessage = MessageEnvelope<'remote_command_result', RemoteCommandResultPayload>;
+export type RemoteCommandResultMessage = MessageEnvelope<
+    'remote_command_result',
+    RemoteCommandResultPayload
+>;
 export type ErrorMessage = MessageEnvelope<'error', ErrorPayload>;
 
 export type IncomingMessage =

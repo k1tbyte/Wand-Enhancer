@@ -7,6 +7,7 @@ const { ensureBridge } = require('../runtime');
 const { installRendererScripts } = require('./renderer-scripts');
 const { localizeTrainerSnapshot } = require('./trainer-localization');
 const { safeString } = require('../utils');
+
 import type { BridgeOptions, ElectronPort, IpcMainEventPort, WebContentsPort } from '../types';
 
 type RuntimePort = {
@@ -22,7 +23,9 @@ type RuntimePort = {
 
 declare global {
     var __wandRemoteBridgeBoundRenderers: Set<WebContentsPort> | undefined;
-    var __wandRemoteBridgePendingCommandResponses: Map<string, (response: unknown) => void> | undefined;
+    var __wandRemoteBridgePendingCommandResponses:
+        | Map<string, (response: unknown) => void>
+        | undefined;
     var __wandRemoteBridgeActiveRuntime: RuntimePort | undefined;
     var __wandRemoteBridgeIpcInstalled: boolean | undefined;
 }
@@ -32,12 +35,14 @@ const WEMOD_ACCESS_TOKEN_SCRIPT =
 
 function installWandRuntime(electron: ElectronPort, options: BridgeOptions = {}) {
     const runtime = ensureBridge(options);
-    if (!electron || !electron.ipcMain || !electron.app) {
+    if (!electron?.ipcMain || !electron.app) {
         throw new Error('Electron main-process API is required to install Wand runtime hooks.');
     }
 
-    const boundRenderers: Set<WebContentsPort> = globalThis.__wandRemoteBridgeBoundRenderers || new Set();
-    const pendingCommandResponses = globalThis.__wandRemoteBridgePendingCommandResponses || new Map();
+    const boundRenderers: Set<WebContentsPort> =
+        globalThis.__wandRemoteBridgeBoundRenderers || new Set();
+    const pendingCommandResponses =
+        globalThis.__wandRemoteBridgePendingCommandResponses || new Map();
     globalThis.__wandRemoteBridgeBoundRenderers = boundRenderers;
     globalThis.__wandRemoteBridgePendingCommandResponses = pendingCommandResponses;
 
@@ -79,7 +84,12 @@ function installWandRuntime(electron: ElectronPort, options: BridgeOptions = {})
     return runtime;
 }
 
-function installIpcHandlers(electron: ElectronPort, activeRuntime: RuntimePort, boundRenderers: Set<WebContentsPort>, pendingCommandResponses: Map<string, (response: unknown) => void>) {
+function installIpcHandlers(
+    electron: ElectronPort,
+    activeRuntime: RuntimePort,
+    boundRenderers: Set<WebContentsPort>,
+    pendingCommandResponses: Map<string, (response: unknown) => void>,
+) {
     // Handlers can only be registered once per channel, so they read the runtime through a
     // mutable global: a reinstall must retarget them instead of leaving them on the old one.
     globalThis.__wandRemoteBridgeActiveRuntime = activeRuntime;
@@ -90,40 +100,57 @@ function installIpcHandlers(electron: ElectronPort, activeRuntime: RuntimePort, 
     globalThis.__wandRemoteBridgeIpcInstalled = true;
     const runtime = () => globalThis.__wandRemoteBridgeActiveRuntime as RuntimePort;
     let trainerSnapshotRevision = 0;
-    electron.ipcMain.handle(IPC_CHANNEL.TRAINER_SNAPSHOT, (event: IpcMainEventPort, snapshot: unknown) => {
-        const revision = ++trainerSnapshotRevision;
-        runtime().sync(snapshot);
-        void localizeSnapshot(event?.sender, snapshot).then((localizedSnapshot) => {
-            if (localizedSnapshot !== snapshot && revision === trainerSnapshotRevision) {
-                runtime().syncTrainerMeta(localizedSnapshot);
+    electron.ipcMain.handle(
+        IPC_CHANNEL.TRAINER_SNAPSHOT,
+        (event: IpcMainEventPort, snapshot: unknown) => {
+            const revision = ++trainerSnapshotRevision;
+            runtime().sync(snapshot);
+            void localizeSnapshot(event?.sender, snapshot)
+                .then((localizedSnapshot) => {
+                    if (localizedSnapshot !== snapshot && revision === trainerSnapshotRevision) {
+                        runtime().syncTrainerMeta(localizedSnapshot);
+                    }
+                })
+                .catch((error: unknown) => {
+                    writeInstallLog('warn', 'Failed to localize trainer metadata.', error);
+                });
+            return true;
+        },
+    );
+    electron.ipcMain.handle(
+        IPC_CHANNEL.INSTALLED_APPS,
+        (_event: IpcMainEventPort, snapshot: unknown) => {
+            runtime().syncInstalledApps(snapshot);
+            return true;
+        },
+    );
+    electron.ipcMain.handle(
+        IPC_CHANNEL.GAME_STATUS,
+        (_event: IpcMainEventPort, snapshot: unknown) => {
+            runtime().syncGameStatus(snapshot);
+            return true;
+        },
+    );
+    electron.ipcMain.handle(
+        IPC_CHANNEL.COMMAND_RESPONSE,
+        (_event: IpcMainEventPort, response: unknown) => {
+            const requestId = safeString((response as Record<string, unknown>)?.requestId);
+            const resolvePending = requestId ? pendingCommandResponses.get(requestId) : null;
+            if (!resolvePending) {
+                return false;
             }
-        }).catch((error: unknown) => {
-            writeInstallLog('warn', 'Failed to localize trainer metadata.', error);
-        });
-        return true;
-    });
-    electron.ipcMain.handle(IPC_CHANNEL.INSTALLED_APPS, (_event: IpcMainEventPort, snapshot: unknown) => {
-        runtime().syncInstalledApps(snapshot);
-        return true;
-    });
-    electron.ipcMain.handle(IPC_CHANNEL.GAME_STATUS, (_event: IpcMainEventPort, snapshot: unknown) => {
-        runtime().syncGameStatus(snapshot);
-        return true;
-    });
-    electron.ipcMain.handle(IPC_CHANNEL.COMMAND_RESPONSE, (_event: IpcMainEventPort, response: unknown) => {
-        const requestId = safeString((response as Record<string, unknown>)?.requestId);
-        const resolvePending = requestId ? pendingCommandResponses.get(requestId) : null;
-        if (!resolvePending) {
-            return false;
-        }
 
-        resolvePending(response);
-        return true;
-    });
-    electron.ipcMain.handle(IPC_CHANNEL.VALUE_CHANGED, (_event: IpcMainEventPort, change: unknown) => {
-        runtime().valueChanged(change);
-        return true;
-    });
+            resolvePending(response);
+            return true;
+        },
+    );
+    electron.ipcMain.handle(
+        IPC_CHANNEL.VALUE_CHANGED,
+        (_event: IpcMainEventPort, change: unknown) => {
+            runtime().valueChanged(change);
+            return true;
+        },
+    );
     electron.ipcMain.handle(IPC_CHANNEL.BIND_HANDLER, (event: IpcMainEventPort) => {
         const sender = event?.sender;
         if (sender) {
@@ -172,7 +199,11 @@ async function readWemodAccessToken(sender: WebContentsPort | undefined) {
     }
 }
 
-function dispatchRemoteCommandToRenderer(sender: WebContentsPort, request: unknown, pendingCommandResponses: Map<string, (response: unknown) => void>) {
+function dispatchRemoteCommandToRenderer(
+    sender: WebContentsPort,
+    request: unknown,
+    pendingCommandResponses: Map<string, (response: unknown) => void>,
+) {
     return new Promise((resolve, reject) => {
         const requestId = `remote_command_${typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString(36)}`;
         const timer = setTimeout(() => {

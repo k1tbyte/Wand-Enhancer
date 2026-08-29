@@ -1,5 +1,11 @@
+import type {
+    GameStatusPayload,
+    IncomingMessage,
+    InstalledAppsPayload,
+    TrainerMetaPayload,
+    TrainerValuesPayload,
+} from '../../protocol/messages';
 import type { BridgeClient, LogFn, ServerInfo } from './types';
-import type { GameStatusPayload, InstalledAppsPayload, TrainerMetaPayload, TrainerValuesPayload, IncomingMessage } from '../../protocol/messages';
 
 const {
     gameStatusSignature,
@@ -15,7 +21,11 @@ const {
     normalizeGameStatusSnapshot: (snapshot: unknown) => GameStatusPayload | null;
     normalizeInstalledAppsSnapshot: (snapshot: unknown) => InstalledAppsPayload | null;
     normalizeSnapshot: (snapshot: unknown) => BridgeStateSnapshot | null;
-    normalizeTrainerValue: (snapshot: BridgeStateSnapshot, target: string, value: unknown) => unknown;
+    normalizeTrainerValue: (
+        snapshot: BridgeStateSnapshot,
+        target: string,
+        value: unknown,
+    ) => unknown;
     summarizeInstalledAppsSource: (snapshot: unknown) => string;
 };
 const { cloneValue, isRecord, safeString } = require('./utils') as {
@@ -24,10 +34,15 @@ const { cloneValue, isRecord, safeString } = require('./utils') as {
     safeString: (value: unknown, fallback?: string) => string;
 };
 const { sendJson } = require('./websocket-codec') as {
-    sendJson: (client: BridgeClient, type: string, payload: unknown, requestId?: string | number | null) => void;
+    sendJson: (
+        client: BridgeClient,
+        type: string,
+        payload: unknown,
+        requestId?: string | number | null,
+    ) => void;
 };
 
-type BridgeStateSnapshot = { trainerMeta: TrainerMetaPayload, trainerValues: TrainerValuesPayload };
+type BridgeStateSnapshot = { trainerMeta: TrainerMetaPayload; trainerValues: TrainerValuesPayload };
 
 type BridgeStateOptions = {
     clients: Iterable<BridgeClient>;
@@ -42,7 +57,11 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
     let currentGameStatus: GameStatusPayload | null = null;
     let currentGameStatusSignature: string | null = null;
 
-    function broadcast(type: IncomingMessage['type'], payload: unknown, requestId: string | null = null) {
+    function broadcast(
+        type: IncomingMessage['type'],
+        payload: unknown,
+        requestId: string | null = null,
+    ) {
         for (const client of clients) {
             if (client.handshaken) {
                 sendJson(client, type, payload, requestId);
@@ -78,7 +97,12 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
 
     function syncTrainerMeta(rawSnapshot: unknown) {
         const localizedSnapshot = normalizeSnapshot(rawSnapshot);
-        if (!currentSnapshot || !localizedSnapshot || localizedSnapshot.trainerMeta.trainer.trainerId !== currentSnapshot.trainerMeta.trainer.trainerId) {
+        if (
+            !currentSnapshot ||
+            !localizedSnapshot ||
+            localizedSnapshot.trainerMeta.trainer.trainerId !==
+                currentSnapshot.trainerMeta.trainer.trainerId
+        ) {
             return;
         }
 
@@ -91,7 +115,7 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
         if (!snapshot || !isRecord(change)) return;
         const target = safeString(change.target);
         if (!target) return;
-        
+
         if (safeString(change.trainerId) !== snapshot.trainerMeta.trainer.trainerId) return;
 
         const value = normalizeTrainerValue(snapshot, target, change.value);
@@ -110,14 +134,20 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
         const sourceSummary = summarizeInstalledAppsSource(rawInstalledApps);
         const nextInstalledApps = normalizeInstalledAppsSnapshot(rawInstalledApps);
         if (!nextInstalledApps) {
-            log('warn', `Ignored invalid installed apps snapshot.${sourceSummary ? ` ${sourceSummary}` : ''}`);
+            log(
+                'warn',
+                `Ignored invalid installed apps snapshot.${sourceSummary ? ` ${sourceSummary}` : ''}`,
+            );
             return;
         }
         const nextSignature = installedAppsSignature(nextInstalledApps);
         if (nextSignature === currentInstalledAppsSignature) return;
         currentInstalledApps = nextInstalledApps;
         currentInstalledAppsSignature = nextSignature;
-        log('info', `Installed apps snapshot accepted (${nextInstalledApps.apps.length} app(s)).${sourceSummary ? ` ${sourceSummary}` : ''}`);
+        log(
+            'info',
+            `Installed apps snapshot accepted (${nextInstalledApps.apps.length} app(s)).${sourceSummary ? ` ${sourceSummary}` : ''}`,
+        );
         broadcast('installed_apps', currentInstalledApps);
     }
 
@@ -131,7 +161,10 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
         if (nextSignature === currentGameStatusSignature) return;
         currentGameStatus = nextGameStatus;
         currentGameStatusSignature = nextSignature;
-        log('info', `Game status snapshot accepted (${nextGameStatus.session.state}/${nextGameStatus.session.event}).`);
+        log(
+            'info',
+            `Game status snapshot accepted (${nextGameStatus.session.state}/${nextGameStatus.session.event}).`,
+        );
         broadcast('game_status', currentGameStatus);
     }
 
@@ -158,7 +191,9 @@ function createBridgeState({ clients, log, getServerInfo }: BridgeStateOptions) 
     }
 
     return {
-        get snapshot() { return currentSnapshot; },
+        get snapshot() {
+            return currentSnapshot;
+        },
         buildHealthPayload,
         clear,
         sendSnapshot,

@@ -6,7 +6,13 @@ import type { Socket } from 'node:net';
  * are typed `unknown` and narrowed there - not `any`.
  */
 
-export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type JsonValue =
+    | string
+    | number
+    | boolean
+    | null
+    | JsonValue[]
+    | { [key: string]: JsonValue };
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -66,11 +72,17 @@ export type IpcMainEventPort = {
 };
 
 export type IpcMainPort = {
-    handle(channel: string, listener: (event: IpcMainEventPort, payload?: unknown) => unknown): void;
+    handle(
+        channel: string,
+        listener: (event: IpcMainEventPort, payload?: unknown) => unknown,
+    ): void;
 };
 
 export type AppPort = {
-    on(event: 'web-contents-created', listener: (event: unknown, contents: WebContentsPort) => void): void;
+    on(
+        event: 'web-contents-created',
+        listener: (event: unknown, contents: WebContentsPort) => void,
+    ): void;
 };
 
 export type ElectronPort = {

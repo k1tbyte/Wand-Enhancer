@@ -1,4 +1,5 @@
 const { createBridgeServer } = require('./server');
+
 import type { BridgeOptions } from './types';
 
 declare global {

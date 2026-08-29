@@ -1,7 +1,7 @@
 const { createBridgeRuntime: createRuntime, ensureBridge: ensureRuntime } = require('./runtime');
 const { installWandRuntime: installRuntime } = require('./wand/runtime');
-import type { BridgeOptions } from './types';
-import type { ElectronPort } from './types';
+
+import type { BridgeOptions, ElectronPort } from './types';
 
 function withDefaultPanelRoot(options: BridgeOptions = {}): BridgeOptions {
     if (options.panelRoot) {

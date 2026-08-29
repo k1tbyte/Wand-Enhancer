@@ -1,7 +1,12 @@
+import type {
+    CheatSchema,
+    SetValueMessage,
+    TrainerMetaPayload,
+    TrainerValuesPayload,
+} from '../../protocol/messages';
+import { isOutgoingMessage } from '../../protocol/validation';
 import webContract from '../../protocol/web-contract.json';
 import { isRecord, safeString } from './utils';
-import { isOutgoingMessage } from '../../protocol/validation';
-import type { CheatSchema, SetValueMessage, TrainerMetaPayload, TrainerValuesPayload } from '../../protocol/messages';
 
 const BRIDGE_PROTOCOL_VERSION = webContract.protocolVersion;
 
@@ -11,7 +16,10 @@ export function validateClientMessage(message: unknown, handshaken: boolean) {
     }
 
     if (message.version !== BRIDGE_PROTOCOL_VERSION) {
-        return invalid('protocol_mismatch', `Unsupported protocol version ${String(message.version)}.`);
+        return invalid(
+            'protocol_mismatch',
+            `Unsupported protocol version ${String(message.version)}.`,
+        );
     }
 
     if (message.requestId !== null && typeof message.requestId !== 'string') {
@@ -48,7 +56,10 @@ type ValidationSnapshot = {
     trainerValues: Pick<TrainerValuesPayload, 'values'>;
 };
 
-export function validateSetValueTarget(message: Pick<SetValueMessage, 'payload'>, snapshot: ValidationSnapshot | null) {
+export function validateSetValueTarget(
+    message: Pick<SetValueMessage, 'payload'>,
+    snapshot: ValidationSnapshot | null,
+) {
     const target = safeString(message.payload?.target);
     const requestedTrainerId = safeString(message.payload?.trainerId);
     const activeTrainerId = snapshot?.trainerMeta?.trainer?.trainerId || '';
