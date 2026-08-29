@@ -22,6 +22,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 - Fixed the "Buy Pro" banner still showing after a successful patch, and Pro not activating on newer clients.
 - Fixed the Enhancer closing itself when any button was pressed. #184
 - A failed patch now puts your original Wand files back instead of leaving a half-patched install behind. Packing also builds the archive beside the old one and swaps it in at the end, so a failure can no longer destroy `app.asar`. #221
+- Fixed patching and *Restore* both failing with "Access to the path is denied" after the first successful patch. Copying carried the read-only flag from the patcher onto the launcher it installs, and then refused to overwrite what it had written - so running WandEnhancer straight out of the downloaded `.zip`, which Windows marks read-only, broke every later run. #214
 - Fixed a half-written backup reporting the installation as patched, which blocked patching and restore at the same time.
 - Fixed invalid ASAR integrity metadata produced from short reads, which could yield an archive the client rejects. #170
 - Fixed the packer silently dropping files it could not read, for example while Wand was still running.

@@ -152,6 +152,8 @@ namespace AsarSharp.AsarFileSystem
                 return;
             }
 
+            // A read-only or hidden archive would fail the swap the same way an overwrite does.
+            Extensions.ClearAttributes(dest);
             // File.Replace swaps in one step, so dest is never observed missing or half-written.
             File.Replace(tempPath, dest, null, true);
         }

@@ -58,8 +58,7 @@ namespace WandEnhancer.Core
         // Electron dies a second or two after a renderer fails, which is past the detach.
         // Watching that window is the only way the exit code reaches the log.
         private const int PostDetachWatchMs = 5000;
-
-        /// <summary>Electron's exit code when the ASAR integrity fuse rejects the archive.</summary>
+        
         private const int AsarIntegrityExitCode = -36861;
 
         private static readonly byte[] Sentinel =
@@ -226,7 +225,7 @@ namespace WandEnhancer.Core
             log?.Invoke($"Wand exited right after detach with code {DescribeCode(exitCode)}.", ELogType.Error);
         }
 
-        /// <summary>Names the exit and exception codes that actually turn up when Wand will not start.</summary>
+
         private static string DescribeCode(int code)
         {
             switch (code)

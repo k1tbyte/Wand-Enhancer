@@ -277,7 +277,7 @@ namespace WandEnhancer.Core
             int copied = 0;
             foreach (var file in files.Where(WeModInstalls.IsJavaScriptFile).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                File.Copy(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
+                AsarSharp.Utils.Extensions.CopyOver(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
                 copied++;
             }
 
@@ -354,10 +354,10 @@ namespace WandEnhancer.Core
 
             if (File.Exists(stubPath) && !File.Exists(stubBackup))
             {
-                File.Copy(stubPath, stubBackup);
+                AsarSharp.Utils.Extensions.CopyOver(stubPath, stubBackup);
             }
 
-            File.Copy(self, stubPath, true);
+            AsarSharp.Utils.Extensions.CopyOver(self, stubPath);
             _logger("[ENHANCER] Launcher deployed to root directory", ELogType.Info);
         }
 
@@ -401,12 +401,12 @@ namespace WandEnhancer.Core
             if (!File.Exists(_backupPath))
             {
                 _logger("[ENHANCER] Creating backup...", ELogType.Info);
-                File.Copy(_asarPath, _backupPath);
+                AsarSharp.Utils.Extensions.CopyOver(_asarPath, _backupPath);
             }
             else
             {
                 _logger("[ENHANCER] Backup found, restoring pristine app.asar before patching...", ELogType.Info);
-                File.Copy(_backupPath, _asarPath, true);
+                AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
             }
 
             if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
@@ -503,7 +503,7 @@ namespace WandEnhancer.Core
             {
                 if (File.Exists(_backupPath))
                 {
-                    File.Copy(_backupPath, _asarPath, true);
+                    AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
                 }
 
                 if (Directory.Exists(_unpackedBackupPath))
@@ -533,7 +533,7 @@ namespace WandEnhancer.Core
             }
 
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
-            File.Copy(_backupPath, _asarPath, true);
+            AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
 
             if (Directory.Exists(_unpackedPath))
             {
@@ -555,14 +555,17 @@ namespace WandEnhancer.Core
             string stubBackup = stubPath + StubBackupSuffix;
             if (File.Exists(stubBackup))
             {
-                File.Copy(stubBackup, stubPath, true);
+                AsarSharp.Utils.Extensions.CopyOver(stubBackup, stubPath);
                 File.Delete(stubBackup);
             }
 
-            string autoPatchConfig = Path.Combine(squirrelRoot, Constants.AutoPatchConfigFileName);
-            if (File.Exists(autoPatchConfig))
+            foreach (var leftover in new[] { Constants.AutoPatchConfigFileName, LauncherLog.FileName })
             {
-                File.Delete(autoPatchConfig);
+                string path = Path.Combine(squirrelRoot, leftover);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
             }
 
             File.Delete(_backupPath);

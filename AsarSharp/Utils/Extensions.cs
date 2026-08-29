@@ -153,6 +153,28 @@ namespace AsarSharp.Utils
             return result;
         }
 
+        /// <summary>
+        /// Overwrites <paramref name="destination"/>, clearing attributes on both ends. CopyFile
+        /// carries the source's ReadOnly flag onto the copy and then refuses to overwrite what it
+        /// produced, failing with "Access to the path is denied" - so one read-only source (an exe
+        /// run straight out of a .zip, say) poisons the destination for every later run.
+        /// </summary>
+        public static void CopyOver(string source, string destination)
+        {
+            ClearAttributes(destination);
+            File.Copy(source, destination, true);
+            ClearAttributes(destination);
+        }
+
+        /// <summary>Resets a file to Normal: ReadOnly, Hidden and System all block an overwrite.</summary>
+        public static void ClearAttributes(string path)
+        {
+            if (File.Exists(path))
+            {
+                File.SetAttributes(path, FileAttributes.Normal);
+            }
+        }
+
         public static void CopyDirectory(string sourceDir, string destinationDir)
         {
             Directory.CreateDirectory(destinationDir);
@@ -160,7 +182,7 @@ namespace AsarSharp.Utils
             foreach (var file in Directory.GetFiles(sourceDir))
             {
                 var destFile = Path.Combine(destinationDir, Path.GetFileName(file));
-                File.Copy(file, destFile, true);
+                CopyOver(file, destFile);
             }
 
             foreach (var dir in Directory.GetDirectories(sourceDir))
