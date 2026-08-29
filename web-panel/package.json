@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build && pnpm run build:bridge",
+    "build": "pnpm run typecheck && vite build && pnpm run build:bridge && pnpm run verify:dist",
     "build:bridge": "node ./bridge/build.mjs",
+    "verify:dist": "node ./scripts/verify-dist.mjs",
     "lint": "eslint src protocol bridge/src --max-warnings=0",
     "typecheck:web": "tsc --noEmit",
     "typecheck:bridge": "tsc -p bridge/tsconfig.json --noEmit",
@@ -37,6 +38,7 @@
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.2.0",
     "esbuild": "0.27.7",
     "eslint": "^9.39.4",

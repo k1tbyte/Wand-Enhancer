@@ -7,9 +7,6 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $webPanelDir = Join-Path $repoRoot 'web-panel'
-$nativeBuildRoot = Join-Path $repoRoot '.tmp/cmake'
-$asarFusesSourceDir = Join-Path $repoRoot 'tools/asar-fuses-bypass'
-$asarFusesBuildDir = Join-Path $nativeBuildRoot 'asar-fuses-bypass'
 $solutionPath = Join-Path $repoRoot 'Wand-Enhancer.sln'
 
 function Resolve-CommandPath {
@@ -48,23 +45,6 @@ function Resolve-MSBuildPath {
     return $msbuildPath
 }
 
-function Resolve-DumpBinPath {
-    param([string]$VisualStudioPath)
-
-    $versionFile = Join-Path $VisualStudioPath 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt'
-    if (-not (Test-Path $versionFile)) {
-        throw "MSVC tools version file not found: $versionFile"
-    }
-
-    $toolsVersion = (Get-Content $versionFile -Raw).Trim()
-    $dumpBinPath = Join-Path $VisualStudioPath "VC\Tools\MSVC\$toolsVersion\bin\Hostx64\x64\dumpbin.exe"
-    if (-not (Test-Path $dumpBinPath)) {
-        throw "dumpbin.exe not found: $dumpBinPath"
-    }
-
-    return $dumpBinPath
-}
-
 function Invoke-Step {
     param(
         [string]$Label,
@@ -78,35 +58,39 @@ function Invoke-Step {
     }
 }
 
-$cmake = Resolve-CommandPath 'cmake'
+function Resolve-TargetFrameworkRoot {
+    # Some environments do not register the v4.8 targeting pack for MSBuild to find on its own.
+    # Point at it explicitly when present; skip on CI where default resolution already works.
+    $root = Join-Path ${env:ProgramFiles(x86)} 'Reference Assemblies\Microsoft\Framework'
+    $frameworkList = Join-Path $root '.NETFramework\v4.8\RedistList\FrameworkList.xml'
+    if (Test-Path $frameworkList) {
+        return $root
+    }
+
+    return $null
+}
+
 $pnpm = Resolve-CommandPath 'pnpm'
 $visualStudio = Resolve-VisualStudioPath
 $msbuild = Resolve-MSBuildPath $visualStudio
-$dumpBin = Resolve-DumpBinPath $visualStudio
+$targetFrameworkRoot = Resolve-TargetFrameworkRoot
+
+$buildArgs = @('/m', "/p:Configuration=$Configuration", '/p:Platform=Any CPU')
+if ($targetFrameworkRoot) {
+    $buildArgs += "/p:TargetFrameworkRootPath=$targetFrameworkRoot"
+}
 
 Invoke-Step 'Install web-panel dependencies' {
     & $pnpm --dir $webPanelDir install --frozen-lockfile
 }
 
+Invoke-Step 'Lint web-panel' {
+    & $pnpm --dir $webPanelDir run lint
+}
+
+# Runs type-check (web + bridge), Vite, the bridge bundle, then the dist invariant check.
 Invoke-Step 'Build web-panel' {
     & $pnpm --dir $webPanelDir run build
-}
-
-Invoke-Step 'Configure asar-fuses-bypass' {
-    Remove-Item Env:CMAKE_GENERATOR -ErrorAction SilentlyContinue
-    & $cmake -S $asarFusesSourceDir -B $asarFusesBuildDir -A x64
-}
-
-Invoke-Step 'Build asar-fuses-bypass' {
-    & $cmake --build $asarFusesBuildDir --config $Configuration
-}
-
-Invoke-Step 'Verify native runtime dependencies' {
-    $nativeDll = Join-Path $asarFusesBuildDir "$Configuration\version.dll"
-    $dependencies = & $dumpBin /dependents $nativeDll
-    if ($dependencies -match '(?im)^\s*(VCRUNTIME|MSVCP|api-ms-win-crt-)[^\s]*\.dll\s*$') {
-        throw 'version.dll depends on the dynamic Visual C++ runtime.'
-    }
 }
 
 Invoke-Step 'Restore NuGet packages' {
@@ -114,7 +98,7 @@ Invoke-Step 'Restore NuGet packages' {
 }
 
 Invoke-Step 'Build solution' {
-    & $msbuild $solutionPath /m /p:Configuration=$Configuration '/p:Platform=Any CPU' /t:Build
+    & $msbuild $solutionPath @buildArgs /t:Build
 }
 
 Write-Host ''
