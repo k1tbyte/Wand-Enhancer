@@ -7,7 +7,7 @@ import {
   TRAINER_ENDED_EVENT,
   TRAINER_SNAPSHOT_CHANNEL,
 } from "./constants.js"
-import { isRecord, safeString, toStringId } from "./runtime.js"
+import { invokeIpc, isRecord, safeString, toStringId } from "./runtime.js"
 
 export function createIdleGameSession() {
   return {
@@ -97,19 +97,7 @@ export function clearTrainerSnapshot(state, reason, clearSession = false) {
   }
 
   void syncGameStatus(state, true)
-  if (!state.ipcRenderer) {
-    return
-  }
-
-  try {
-    void state.ipcRenderer.invoke(TRAINER_SNAPSHOT_CHANNEL, null)
-  } catch (error) {
-    state.log(
-      "warn",
-      "Trainer snapshot clear IPC failed.",
-      error?.stack || String(error)
-    )
-  }
+  void invokeIpc(state, TRAINER_SNAPSHOT_CHANNEL, null, "Trainer snapshot clear")
 }
 
 export async function syncGameStatus(state, force = false) {
@@ -125,22 +113,21 @@ export async function syncGameStatus(state, force = false) {
 
   state.lastGameStatusSignature = signature
 
-  try {
-    await state.ipcRenderer.invoke(GAME_STATUS_CHANNEL, snapshot)
+  const sent = await invokeIpc(
+    state,
+    GAME_STATUS_CHANNEL,
+    snapshot,
+    "Game status snapshot",
+    "error"
+  )
+  if (sent) {
     state.log(
       "info",
       "Game status snapshot sent.",
       `session=${snapshot.session.state}/${snapshot.session.event}, trainer=${snapshot.trainer.state}/${snapshot.trainer.event}`
     )
-    return true
-  } catch (error) {
-    state.log(
-      "error",
-      "Game status snapshot IPC failed.",
-      error?.stack || String(error)
-    )
-    return false
   }
+  return sent
 }
 
 function installLifecycleSubscriptions(state) {

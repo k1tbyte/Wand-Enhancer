@@ -7,13 +7,14 @@ import {
 } from "./constants.js"
 import { clearTrainerSnapshot, syncGameStatus } from "./game-status.js"
 import {
-  compareInstalledAppRecords,
   getInstalledVersionsForGame,
+  rankInstalledAppCandidates,
   resolveInstalledData,
-  toInstalledAppRecord,
 } from "./installed-data.js"
 import {
+  formatError,
   getPreferredLocale,
+  invokeIpc,
   isRecord,
   safeString,
   toStringId,
@@ -131,7 +132,7 @@ async function executeRemoteLaunchCommand(state, request) {
     state.log(
       "warn",
       "Remote trainer launch failed.",
-      error?.stack || String(error)
+      formatError(error)
     )
     return buildCommandResponse(request, false, {
       code: "launch_failed",
@@ -176,7 +177,7 @@ async function executeRemoteStopCommand(state, request) {
     state.log(
       "warn",
       "Remote trainer stop failed.",
-      error?.stack || String(error)
+      formatError(error)
     )
     return buildCommandResponse(request, false, {
       code: "stop_failed",
@@ -192,47 +193,14 @@ function getLaunchInfoForGame(gameId, data) {
   const game = isRecord(data?.catalog?.games?.[gameId])
     ? data.catalog.games[gameId]
     : null
-  const candidates = []
 
-  if (Array.isArray(game?.correlationIds)) {
-    for (const correlationId of game.correlationIds) {
-      if (typeof correlationId === "string" && correlationId.trim()) {
-        candidates.push({ correlationId: correlationId.trim(), version: null })
-      }
-    }
-  }
+  const top = rankInstalledAppCandidates(
+    data?.rawInstalledApps ?? {},
+    game,
+    versions
+  )[0]
 
-  for (const versionEntry of versions) {
-    if (
-      typeof versionEntry?.correlationId === "string" &&
-      versionEntry.correlationId.trim()
-    ) {
-      candidates.push({
-        correlationId: versionEntry.correlationId.trim(),
-        version: versionEntry.version ?? null,
-      })
-    }
-  }
-
-  const rankedCandidates = Array.from(
-    new Map(
-      candidates.map((candidate) => [candidate.correlationId, candidate])
-    ).values()
-  )
-    .map((candidate) => normalizeLaunchCandidate(candidate, data))
-    .filter(Boolean)
-    .sort((left, right) =>
-      compareInstalledAppRecords(left.normalizedApp, right.normalizedApp)
-    )
-
-  if (!rankedCandidates[0]) {
-    return { app: null, version: null }
-  }
-
-  return {
-    app: rankedCandidates[0].app,
-    version: rankedCandidates[0].version,
-  }
+  return top ? { app: top.app, version: top.version } : { app: null, version: null }
 }
 
 async function resolveTrainerInfoForGame(state, gameId, data) {
@@ -251,7 +219,7 @@ async function resolveTrainerInfoForGame(state, gameId, data) {
     state.log(
       "warn",
       "Local trainer lookup failed.",
-      error?.stack || String(error)
+      formatError(error)
     )
   }
 
@@ -268,23 +236,9 @@ async function resolveTrainerInfoForGame(state, gameId, data) {
     state.log(
       "warn",
       "Compatible trainer lookup failed.",
-      error?.stack || String(error)
+      formatError(error)
     )
     return null
-  }
-}
-
-function normalizeLaunchCandidate(candidate, data) {
-  const app = data?.rawInstalledApps?.[candidate.correlationId]
-  const normalizedApp = toInstalledAppRecord(candidate.correlationId, app)
-  if (!normalizedApp || !isRecord(app)) {
-    return null
-  }
-
-  return {
-    app,
-    version: candidate.version,
-    normalizedApp,
   }
 }
 
@@ -297,17 +251,10 @@ function unwrapTrainerInfo(value) {
 }
 
 async function sendRemoteCommandResponse(state, response) {
-  if (!state.ipcRenderer) {
-    return
-  }
-
-  try {
-    await state.ipcRenderer.invoke(COMMAND_RESPONSE_CHANNEL, response)
-  } catch (error) {
-    state.log(
-      "warn",
-      "Remote command response IPC failed.",
-      error?.stack || String(error)
-    )
-  }
+  await invokeIpc(
+    state,
+    COMMAND_RESPONSE_CHANNEL,
+    response,
+    "Remote command response"
+  )
 }

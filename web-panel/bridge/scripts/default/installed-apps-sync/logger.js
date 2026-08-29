@@ -1,6 +1,7 @@
 import { LOG_FILE_NAME, LOG_PREFIX } from "./constants.js"
 import { getRequire } from "./runtime.js"
 
+// Logging runs inside Wand's own process; a failure here must never take the app down.
 export function createLogger(WandEnhancer) {
   let filePath = null
 
@@ -12,7 +13,7 @@ export function createLogger(WandEnhancer) {
       filePath = path.join(os.tmpdir(), LOG_FILE_NAME)
       globalThis.__wandInstalledAppsSyncLogFile = filePath
     }
-  } catch (error) {}
+  } catch {}
 
   return function log(level, message, detail) {
     const method =
@@ -21,13 +22,13 @@ export function createLogger(WandEnhancer) {
 
     try {
       console[method](LOG_PREFIX, message, detail || "")
-    } catch (error) {}
+    } catch {}
 
     try {
       if (WandEnhancer?.log) {
         WandEnhancer.log(`${LOG_PREFIX} ${message}`, detail || "")
       }
-    } catch (error) {}
+    } catch {}
 
     writeFile(filePath, line)
   }
@@ -42,5 +43,5 @@ function writeFile(filePath, line) {
     const require = getRequire()
     const fs = require?.("node:fs")
     fs?.appendFileSync(filePath, `${line}\n`)
-  } catch (error) {}
+  } catch {}
 }

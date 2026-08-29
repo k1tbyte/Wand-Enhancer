@@ -12,9 +12,12 @@ export const RETRY_DELAY_MS = 1000
 export const MAX_BOOTSTRAP_ATTEMPTS = 60
 export const SYNC_INTERVAL_MS = 15000
 export const OPTIONAL_SERVICES_RETRY_INTERVAL_MS = 1000
+export const MAX_OPTIONAL_SERVICES_ATTEMPTS = 60
 export const FOLLOW_UP_SYNC_DELAY_MS = 2500
 export const UNAVAILABLE_TITLES_BATCH_SIZE = 250
 export const BOOTSTRAP_LOG_THROTTLE_ATTEMPTS = 5
+export const CONTAINER_LOG_THROTTLE_ATTEMPTS = 10
+export const CONTAINER_GRAPH_MAX_DEPTH = 4
 // Wand's webpack module exports the trainer-launch-request class under key `vO`.
 // Required so `trainerService.launch(req)` records `getMetadata(vO)` state in Wand. See AGENTS.md "Remote Play".
 export const TRAINER_LAUNCH_REQUEST_EXPORT_KEY = "vO"

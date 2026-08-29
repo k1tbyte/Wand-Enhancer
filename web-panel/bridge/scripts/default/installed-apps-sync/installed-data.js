@@ -13,6 +13,7 @@ import {
 } from "./artwork.js"
 import {
   getBasename,
+  formatError,
   isRecord,
   normalizeStringList,
   safeString,
@@ -140,7 +141,8 @@ export function buildSnapshot(state) {
 
     const preferredApp = pickPreferredInstalledApp(
       rawInstalledApps,
-      getCatalogGameCorrelationIds(game, versions)
+      game,
+      versions
     )
     if (!preferredApp) {
       continue
@@ -192,7 +194,7 @@ export function buildSnapshot(state) {
 
       const preferredApp = pickPreferredInstalledApp(
         rawInstalledApps,
-        game.correlationIds
+        game
       )
       if (!preferredApp) {
         continue
@@ -221,7 +223,7 @@ export function buildSnapshot(state) {
     }
   }
 
-  const apps = Array.from(entriesByKey.values()).sort(compareSnapshotEntries)
+  const apps = Array.from(entriesByKey.values()).sort(compareInstalledAppRecords)
 
   return {
     instanceId: "wand-installed-apps",
@@ -241,22 +243,13 @@ export function buildSnapshot(state) {
   }
 }
 
+/**
+ * Structural, not field-by-field. This used to enumerate fields and had already
+ * drifted from the bridge's copy (it listed `location`, the bridge's did not), so a
+ * game moving install directory never reached the panel.
+ */
 export function makeInstalledAppsSignature(snapshot) {
-  return snapshot.apps
-    .map((app) =>
-      [
-        app.platform,
-        app.sku,
-        app.displayName,
-        app.gameId ?? "",
-        app.titleId ?? "",
-        app.location,
-        app.imageUrl ?? "",
-        app.platformLastPlayedTimestamp ?? "",
-        app.platformTotalPlaytimeMinutes ?? "",
-      ].join("|")
-    )
-    .join("\n")
+  return JSON.stringify(snapshot.apps)
 }
 
 export function toInstalledAppRecord(correlationId, app) {
@@ -407,7 +400,7 @@ async function fetchUnavailableTitles(state, correlationIds) {
     state.log(
       "warn",
       "Unavailable titles refresh failed.",
-      error?.stack || String(error)
+      formatError(error)
     )
   } finally {
     state.unavailableTitlesFetchPromise = null
@@ -469,44 +462,60 @@ function normalizeUnavailableTitleGame(game) {
   }
 }
 
-function getCatalogGameCorrelationIds(game, versions) {
-  const correlationIds = []
+function collectCorrelationIds(game, versions) {
+  const entries = []
 
-  if (Array.isArray(game.correlationIds)) {
+  if (Array.isArray(game?.correlationIds)) {
     for (const correlationId of game.correlationIds) {
       if (typeof correlationId === "string" && correlationId.trim()) {
-        correlationIds.push(correlationId.trim())
+        entries.push({ correlationId: correlationId.trim(), version: null })
       }
     }
   }
 
-  for (const version of versions) {
-    if (
-      typeof version?.correlationId === "string" &&
-      version.correlationId.trim()
-    ) {
-      correlationIds.push(version.correlationId.trim())
+  if (Array.isArray(versions)) {
+    for (const version of versions) {
+      if (
+        typeof version?.correlationId === "string" &&
+        version.correlationId.trim()
+      ) {
+        entries.push({
+          correlationId: version.correlationId.trim(),
+          version: version.version ?? null,
+        })
+      }
     }
   }
 
-  return correlationIds
+  return entries
 }
 
-function pickPreferredInstalledApp(rawInstalledApps, correlationIds) {
-  const candidates = Array.from(new Set(correlationIds))
-    .map((correlationId) =>
-      toInstalledAppRecord(correlationId, rawInstalledApps[correlationId])
-    )
+export function rankInstalledAppCandidates(rawInstalledApps, game, versions) {
+  return Array.from(
+    new Map(
+      collectCorrelationIds(game, versions).map((entry) => [
+        entry.correlationId,
+        entry,
+      ])
+    ).values()
+  )
+    .map((entry) => {
+      const app = rawInstalledApps?.[entry.correlationId]
+      const record = toInstalledAppRecord(entry.correlationId, app)
+      return record ? { app, version: entry.version ?? null, record } : null
+    })
     .filter(Boolean)
-    .sort(compareInstalledAppRecords)
+    .sort((left, right) => compareInstalledAppRecords(left.record, right.record))
+}
 
-  return candidates[0] || null
+function pickPreferredInstalledApp(rawInstalledApps, game, versions) {
+  return rankInstalledAppCandidates(rawInstalledApps, game, versions)[0]?.record || null
 }
 
 function upsertSnapshotEntry(entriesByKey, entry) {
   const key = getSnapshotEntryKey(entry)
   const current = entriesByKey.get(key)
-  if (!current || compareSnapshotEntries(entry, current) < 0) {
+  if (!current || compareInstalledAppRecords(entry, current) < 0) {
     entriesByKey.set(key, entry)
   }
 }
@@ -521,24 +530,6 @@ function getSnapshotEntryKey(entry) {
   }
 
   return `${SNAPSHOT_ENTRY_KEY_PREFIX.APP}${entry.correlationId}`
-}
-
-function compareSnapshotEntries(left, right) {
-  const lastPlayedDiff =
-    (right.platformLastPlayedTimestamp ?? 0) -
-    (left.platformLastPlayedTimestamp ?? 0)
-  if (lastPlayedDiff !== 0) {
-    return lastPlayedDiff
-  }
-
-  const playtimeDiff =
-    (right.platformTotalPlaytimeMinutes ?? 0) -
-    (left.platformTotalPlaytimeMinutes ?? 0)
-  if (playtimeDiff !== 0) {
-    return playtimeDiff
-  }
-
-  return compareByIdentity(left, right)
 }
 
 function compareByIdentity(left, right) {

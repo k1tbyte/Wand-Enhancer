@@ -2,9 +2,11 @@ import {
   BIND_CHANNEL,
   BOOTSTRAP_LOG_THROTTLE_ATTEMPTS,
   COMMAND_REQUEST_CHANNEL,
+  CONTAINER_LOG_THROTTLE_ATTEMPTS,
   FOLLOW_UP_SYNC_DELAY_MS,
   GLOBAL_FLAG,
   MAX_BOOTSTRAP_ATTEMPTS,
+  MAX_OPTIONAL_SERVICES_ATTEMPTS,
   OPTIONAL_SERVICES_RETRY_INTERVAL_MS,
   RETRY_DELAY_MS,
   SYNC_CHANNEL,
@@ -24,11 +26,13 @@ import {
 import { createLogger } from "./logger.js"
 import { handleRemoteCommandRequest } from "./remote-commands.js"
 import {
+  formatError,
   getAppRoot,
   getAureliaContainer,
   getRequire,
   getWebpackRequire,
   hasAppRoot,
+  invokeIpc,
   isRecord,
   summarizeAureliaSubtree,
 } from "./runtime.js"
@@ -36,6 +40,7 @@ import {
   getInstalledAppsService,
   getStoreRef,
   hasMissingOptionalServices,
+  hasUnresolvedServices,
   resolveOptionalServices,
 } from "./services.js"
 
@@ -70,7 +75,9 @@ function createState(WandEnhancer) {
     pollTimer: null,
     optionalServicesTimer: null,
     bootstrapAttempts: 0,
+    optionalServicesAttempts: 0,
     bridgeBound: false,
+    bridgeBinding: false,
     refreshPatched: false,
     installedAppsService: null,
     gameLifecycleService: null,
@@ -114,12 +121,10 @@ function setBootstrapReason(state, reason) {
   )
 }
 
-function bindBridge(state) {
-  if (state.bridgeBound || !state.ipcRenderer) {
+async function bindBridge(state) {
+  if (state.bridgeBound || state.bridgeBinding || !state.ipcRenderer) {
     return
   }
-
-  state.bridgeBound = true
 
   if (!state.commandListenerInstalled) {
     state.ipcRenderer.on(COMMAND_REQUEST_CHANNEL, (event, request) =>
@@ -129,11 +134,18 @@ function bindBridge(state) {
     state.log("info", "Bridge remote command handler installed.")
   }
 
+  // Await the bind: invoke rejects asynchronously, so marking the bridge bound up
+  // front left set-value permanently dead whenever the main-process handler was not
+  // registered yet - and the log still claimed success.
+  state.bridgeBinding = true
   try {
-    void state.ipcRenderer.invoke(BIND_CHANNEL)
-    state.log("info", "Bridge set-value handler bind requested.")
+    await state.ipcRenderer.invoke(BIND_CHANNEL)
+    state.bridgeBound = true
+    state.log("info", "Bridge set-value handler bound.")
   } catch (error) {
-    state.log("warn", "Bridge bind failed.", error?.stack || String(error))
+    state.log("warn", "Bridge bind failed; will retry on the next sync.", formatError(error))
+  } finally {
+    state.bridgeBinding = false
   }
 }
 
@@ -170,22 +182,21 @@ async function syncInstalledApps(state, force = false) {
 
   state.lastSignature = signature
 
-  try {
-    await state.ipcRenderer.invoke(SYNC_CHANNEL, snapshot)
+  const sent = await invokeIpc(
+    state,
+    SYNC_CHANNEL,
+    snapshot,
+    "Installed apps snapshot",
+    "error"
+  )
+  if (sent) {
     state.log(
       "info",
       "Installed apps snapshot sent.",
       `apps=${snapshot.apps.length}, catalogGames=${snapshot.diagnostics.catalogGames}, rawInstalledApps=${snapshot.diagnostics.rawInstalledApps}`
     )
-    return true
-  } catch (error) {
-    state.log(
-      "error",
-      "Installed apps snapshot IPC failed.",
-      error?.stack || String(error)
-    )
-    return false
   }
+  return sent
 }
 
 function queueSync(state, force = false) {
@@ -269,10 +280,24 @@ function startOptionalServicesRetry(state) {
   }
 
   state.optionalServicesTimer = setInterval(() => {
+    state.optionalServicesAttempts += 1
+
     const container = getAureliaContainer()
     const webpackRequire = getWebpackRequire()
     if (container && webpackRequire) {
       resolveRuntimeServices(state, container, webpackRequire)
+    }
+
+    if (
+      state.optionalServicesTimer &&
+      state.optionalServicesAttempts >= MAX_OPTIONAL_SERVICES_ATTEMPTS
+    ) {
+      stopOptionalServicesRetry(state)
+      state.log(
+        "warn",
+        "Optional service retry exhausted.",
+        `attempts=${state.optionalServicesAttempts}`
+      )
     }
   }, OPTIONAL_SERVICES_RETRY_INTERVAL_MS)
 
@@ -341,7 +366,7 @@ function bootstrap(state) {
     }
   }
 
-  bindBridge(state)
+  void bindBridge(state)
   patchRefreshApps(state)
   queueSync(state, true)
   queueFollowUpSync(state)
@@ -369,11 +394,15 @@ function startPollTimer(state) {
   }
 
   state.pollTimer = setInterval(() => {
-    const container = getAureliaContainer()
-    const webpackRequire = getWebpackRequire()
-    if (container && webpackRequire) {
-      resolveRuntimeServices(state, container, webpackRequire)
+    if (hasUnresolvedServices(state)) {
+      const container = getAureliaContainer()
+      const webpackRequire = getWebpackRequire()
+      if (container && webpackRequire) {
+        resolveRuntimeServices(state, container, webpackRequire)
+      }
     }
+
+    void bindBridge(state)
     void syncInstalledApps(state)
   }, SYNC_INTERVAL_MS)
 
@@ -385,7 +414,7 @@ function startPollTimer(state) {
 }
 
 function logMissingContainer(state) {
-  if (state.bootstrapAttempts % 10 !== 0) {
+  if (state.bootstrapAttempts % CONTAINER_LOG_THROTTLE_ATTEMPTS !== 0) {
     return
   }
 

@@ -2,6 +2,7 @@ import { TRAINER_LAUNCH_REQUEST_EXPORT_KEY } from "./constants.js"
 import {
   findExportedConstructor,
   findInstanceInContainerGraph,
+  formatError,
   isRecord,
 } from "./runtime.js"
 
@@ -10,6 +11,15 @@ export function hasMissingOptionalServices(state) {
     !state.gameLifecycleService ||
     !state.trainerVisibilityService ||
     !state.unavailableTitlesService
+  )
+}
+
+export function hasUnresolvedServices(state) {
+  return (
+    hasMissingOptionalServices(state) ||
+    !state.trainerApiService ||
+    !state.trainerService ||
+    !state.trainerLaunchRequestCtor
   )
 }
 
@@ -87,7 +97,7 @@ export function getInstalledAppsService(state, container, webpackRequire) {
     state.log(
       "warn",
       "Failed to resolve installed apps service from Aurelia container.",
-      error?.stack || String(error)
+      formatError(error)
     )
     return null
   }
@@ -129,7 +139,7 @@ export function getStoreRef(state, container, webpackRequire) {
     state.log(
       "warn",
       "Failed to resolve Store from container.",
-      error?.stack || String(error)
+      formatError(error)
     )
     return null
   }
@@ -216,7 +226,7 @@ function getContainerService(state, container, ctor, warningKey, label) {
     state.log(
       "warn",
       `Failed to resolve ${label.toLowerCase()} from Aurelia container.`,
-      error?.stack || String(error)
+      formatError(error)
     )
     return null
   }

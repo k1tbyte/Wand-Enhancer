@@ -1,5 +1,48 @@
+import { CONTAINER_GRAPH_MAX_DEPTH } from "./constants.js"
+
 export function isRecord(value) {
   return typeof value === "object" && value !== null
+}
+
+export function formatError(error) {
+  return error?.stack || String(error)
+}
+
+export async function invokeIpc(state, channel, payload, label, level = "warn") {
+  if (!state.ipcRenderer) {
+    return false
+  }
+
+  try {
+    await state.ipcRenderer.invoke(channel, payload)
+    return true
+  } catch (error) {
+    state.log(level, `${label} IPC failed.`, formatError(error))
+    return false
+  }
+}
+
+export function isDiagnosticsDebugEnabled() {
+  return globalThis.__wandInstalledAppsSyncDebug === true
+}
+
+let lastPredicateErrorLogAt = 0
+
+function logContainerGraphPredicateError(error) {
+  if (!isDiagnosticsDebugEnabled()) {
+    return
+  }
+
+  const now = Date.now()
+  if (now - lastPredicateErrorLogAt < 1000) {
+    return
+  }
+
+  lastPredicateErrorLogAt = now
+  console.debug(
+    "[wand-installed-apps-sync] container graph predicate threw",
+    formatError(error)
+  )
 }
 
 export function getRequire() {
@@ -57,7 +100,26 @@ export function hasAppRoot() {
   return Boolean(getAppRoot())
 }
 
+let cachedAureliaContainer = null
+
+function isUsableContainer(container) {
+  return isRecord(container) && typeof container.get === "function"
+}
+
 export function getAureliaContainer() {
+  if (isUsableContainer(cachedAureliaContainer)) {
+    return cachedAureliaContainer
+  }
+
+  const resolved = resolveAureliaContainer()
+  if (resolved) {
+    cachedAureliaContainer = resolved
+  }
+
+  return resolved
+}
+
+function resolveAureliaContainer() {
   const root = getAppRoot()
   const rootContainer = getContainerFromSubtree(root)
   if (rootContainer) {
@@ -77,6 +139,10 @@ export function getAureliaContainer() {
 }
 
 export function summarizeAureliaSubtree(root) {
+  if (!isDiagnosticsDebugEnabled()) {
+    return "(debug-disabled)"
+  }
+
   if (!root) {
     return "root=null"
   }
@@ -149,7 +215,11 @@ export function findExportedConstructor(webpackRequire, predicate) {
   return null
 }
 
-export function findInstanceInContainerGraph(root, predicate, maxDepth = 4) {
+export function findInstanceInContainerGraph(
+  root,
+  predicate,
+  maxDepth = CONTAINER_GRAPH_MAX_DEPTH
+) {
   if (!root) {
     return null
   }
@@ -171,7 +241,9 @@ export function findInstanceInContainerGraph(root, predicate, maxDepth = 4) {
       if (predicate(value)) {
         return value
       }
-    } catch (error) {}
+    } catch (error) {
+      logContainerGraphPredicateError(error)
+    }
 
     if (depth >= maxDepth) {
       continue
