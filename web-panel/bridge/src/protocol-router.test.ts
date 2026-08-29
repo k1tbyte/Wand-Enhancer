@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { ECheatType } from '../../protocol/messages';
 import { validateClientMessage, validateSetValueTarget } from './protocol-router';
 
 const snapshot = {
   trainerMeta: {
     trainer: { trainerId: 'active' },
-    schema: { cheats: [{ target: 'god', type: 'toggle' }] },
+    schema: { cheats: [{ target: 'god', type: ECheatType.Toggle }] },
   },
   trainerValues: { values: { god: false } },
 };

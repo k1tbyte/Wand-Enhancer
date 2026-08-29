@@ -8,9 +8,31 @@ let cachedStrings: Record<string, string> | null = null
 let inFlightRequestKey = ""
 let inFlightRequest: Promise<Record<string, string> | null> | null = null
 
+type FetchTrainerStringsRequest = {
+  accessToken: string;
+  gameId: string;
+  gameVersion: string;
+  language: string;
+}
+
+type MinimalResponse = {
+  statusCode?: number;
+  resume(): void;
+  setEncoding(encoding: string): void;
+  on(event: 'data', listener: (chunk: Buffer | string) => void): MinimalResponse;
+  on(event: 'end', listener: () => void): MinimalResponse;
+  on(event: 'error', listener: (error: unknown) => void): MinimalResponse;
+};
+
+type MinimalRequest = {
+  destroy(): void;
+  setTimeout(timeout: number, callback: () => void): MinimalRequest;
+  on(event: 'error', listener: (error: unknown) => void): MinimalRequest;
+};
+
 export async function localizeTrainerSnapshot(
-  rawSnapshot,
-  accessToken,
+  rawSnapshot: unknown,
+  accessToken: string | null,
   loadStrings = fetchTrainerStrings
 ) {
   const request = buildTrainerRequest(rawSnapshot, accessToken)
@@ -18,7 +40,7 @@ export async function localizeTrainerSnapshot(
     return rawSnapshot
   }
 
-  let strings
+  let strings: Record<string, string> | null = null
   try {
     strings = await loadStrings(request)
   } catch {
@@ -28,22 +50,24 @@ export async function localizeTrainerSnapshot(
     return rawSnapshot
   }
 
-  const info = rawSnapshot.metadata.info
-  const blueprint = info.blueprint
+  const snap = rawSnapshot as Record<string, unknown>
+  const metadata = snap.metadata as Record<string, unknown> | undefined
+  const info = metadata?.info as Record<string, unknown> | undefined
+  const blueprint = info?.blueprint as Record<string, unknown> | undefined
   if (!Array.isArray(blueprint?.cheats)) {
     return rawSnapshot
   }
 
   return {
-    ...rawSnapshot,
+    ...snap,
     metadata: {
-      ...rawSnapshot.metadata,
+      ...metadata,
       info: {
         ...info,
         blueprint: {
           ...blueprint,
-          cheats: blueprint.cheats.map((cheat) =>
-            localizeCheat(cheat, strings)
+          cheats: blueprint.cheats.map((cheat: unknown) =>
+            localizeCheat(cheat, strings as Record<string, string>)
           ),
         },
       },
@@ -51,13 +75,18 @@ export async function localizeTrainerSnapshot(
   }
 }
 
-function buildTrainerRequest(rawSnapshot, accessToken) {
+function buildTrainerRequest(rawSnapshot: unknown, accessToken: string | null): FetchTrainerStringsRequest | null {
   if (!accessToken || !rawSnapshot || typeof rawSnapshot !== "object") {
     return null
   }
 
+  const snap = rawSnapshot as Record<string, unknown>
+  const trainerInfo = snap.trainerInfo as Record<string, unknown> | undefined
+  const metadata = snap.metadata as Record<string, unknown> | undefined
+  const info = metadata?.info as Record<string, unknown> | undefined
+
   const gameId = stringValue(
-    rawSnapshot.trainerInfo?.gameId || rawSnapshot.metadata?.info?.gameId
+    trainerInfo?.gameId || info?.gameId
   )
   if (!gameId) {
     return null
@@ -66,12 +95,12 @@ function buildTrainerRequest(rawSnapshot, accessToken) {
   return {
     accessToken,
     gameId,
-    gameVersion: stringValue(rawSnapshot.gameVersion),
-    language: stringValue(rawSnapshot.language),
+    gameVersion: stringValue(snap.gameVersion),
+    language: stringValue(snap.language),
   }
 }
 
-function fetchTrainerStrings({ accessToken, gameId, gameVersion, language }) {
+function fetchTrainerStrings({ accessToken, gameId, gameVersion, language }: FetchTrainerStringsRequest) {
   const requestKey = [accessToken, gameId, gameVersion, language].join("\0")
   if (requestKey === cachedRequestKey) {
     return Promise.resolve(cachedStrings)
@@ -87,7 +116,7 @@ function fetchTrainerStrings({ accessToken, gameId, gameVersion, language }) {
   if (language) url.searchParams.set("locale", language)
 
   const request = requestJson(url, accessToken)
-    .then((payload) => normalizeStrings(payload?.i18n?.strings))
+    .then((payload: unknown) => normalizeStrings((payload as { i18n?: { strings?: unknown } })?.i18n?.strings))
     .then((strings) => {
       if (strings) {
         cachedRequestKey = requestKey
@@ -107,10 +136,10 @@ function fetchTrainerStrings({ accessToken, gameId, gameVersion, language }) {
   return request
 }
 
-function requestJson(url, accessToken): Promise<any> {
-  return new Promise<any>((resolve) => {
+function requestJson(url: URL, accessToken: string): Promise<unknown> {
+  return new Promise<unknown>((resolve) => {
     let settled = false
-    const finish = (value) => {
+    const finish = (value: unknown) => {
       if (settled) return
       settled = true
       resolve(value)
@@ -124,7 +153,7 @@ function requestJson(url, accessToken): Promise<any> {
           Authorization: `Bearer ${accessToken}`,
         },
       },
-      (response) => {
+      (response: MinimalResponse) => {
         if (response.statusCode !== 200) {
           response.resume()
           finish(null)
@@ -134,7 +163,7 @@ function requestJson(url, accessToken): Promise<any> {
         let body = ""
         let receivedBytes = 0
         response.setEncoding("utf8")
-        response.on("data", (chunk) => {
+        response.on("data", (chunk: Buffer | string) => {
           receivedBytes += Buffer.byteLength(chunk)
           if (receivedBytes > RESPONSE_LIMIT_BYTES) {
             request.destroy()
@@ -150,15 +179,18 @@ function requestJson(url, accessToken): Promise<any> {
             finish(null)
           }
         })
+        response.on("error", () => {
+          finish(null)
+        })
       }
-    )
+    ) as MinimalRequest
 
     request.setTimeout(REQUEST_TIMEOUT_MS, () => request.destroy())
     request.on("error", () => finish(null))
   })
 }
 
-function normalizeStrings(value): Record<string, string> | null {
+function normalizeStrings(value: unknown): Record<string, string> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
   }
@@ -169,23 +201,24 @@ function normalizeStrings(value): Record<string, string> | null {
   return Object.keys(strings).length > 0 ? strings : null
 }
 
-function localizeCheat(cheat, strings) {
+function localizeCheat(cheat: unknown, strings: Record<string, string>) {
   if (!cheat || typeof cheat !== "object") {
     return cheat
   }
 
+  const c = cheat as Record<string, unknown>
   return {
-    ...cheat,
-    name: translate(cheat.name, strings),
-    description: translate(cheat.description, strings),
-    instructions: translate(cheat.instructions, strings),
+    ...c,
+    name: translate(c.name, strings),
+    description: translate(c.description, strings),
+    instructions: translate(c.instructions, strings),
   }
 }
 
-function translate(value, strings) {
+function translate(value: unknown, strings: Record<string, string>) {
   return typeof value === "string" ? (strings[value] ?? value) : value
 }
 
-function stringValue(value) {
+function stringValue(value: unknown) {
   return typeof value === "string" && value ? value : ""
 }

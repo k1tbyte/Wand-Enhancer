@@ -3,6 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { localizeTrainerSnapshot } from "./trainer-localization"
 
+// The function takes an unknown snapshot and returns it unchanged when it cannot be
+// localized, so tests narrow the result to read into it.
+type LocalizedSnapshot = {
+  metadata: { info: { blueprint: { cheats: { name: string; description: string }[] } } }
+}
+const asLocalized = (value: unknown) => value as LocalizedSnapshot
+
 afterEach(() => vi.restoreAllMocks())
 
 describe("trainer localization", () => {
@@ -25,7 +32,7 @@ describe("trainer localization", () => {
     )
 
     expect(localized).not.toBe(snapshot)
-    expect(localized.metadata.info.blueprint.cheats[0]).toMatchObject({
+    expect(asLocalized(localized).metadata.info.blueprint.cheats[0]).toMatchObject({
       name: "Unverwundbar",
       description: "Kein Schaden",
     })
@@ -68,8 +75,8 @@ describe("trainer localization", () => {
     const cached = await localizeTrainerSnapshot(snapshot, "cache-test-token")
 
     expect(get).toHaveBeenCalledTimes(1)
-    expect(localized[0].metadata.info.blueprint.cheats[0].name).toBe("Cached name")
-    expect(cached.metadata.info.blueprint.cheats[0].name).toBe("Cached name")
+    expect(asLocalized(localized[0]).metadata.info.blueprint.cheats[0].name).toBe("Cached name")
+    expect(asLocalized(cached).metadata.info.blueprint.cheats[0].name).toBe("Cached name")
   })
 })
 

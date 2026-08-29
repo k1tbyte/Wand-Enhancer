@@ -1,5 +1,5 @@
-import { PROTOCOL_VERSION } from './contract';
-import type { IncomingMessage, OutgoingMessage } from './messages';
+import { PROTOCOL_VERSION } from './contract.js';
+import type { IncomingMessage, OutgoingMessage } from './messages.js';
 
 const INCOMING_TYPES = new Set<IncomingMessage['type']>([
   'hello_ack',

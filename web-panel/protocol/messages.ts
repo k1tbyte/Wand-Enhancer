@@ -1,4 +1,4 @@
-export { PROTOCOL_VERSION } from './contract';
+export { PROTOCOL_VERSION } from './contract.js';
 
 // String values mirror the wire protocol; do not rename the right-hand side.
 export enum ECheatType {
