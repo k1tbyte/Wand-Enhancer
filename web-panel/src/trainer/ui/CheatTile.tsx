@@ -1,6 +1,9 @@
 import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { msg } from '@lingui/core/macro';
+import { useLingui } from '@lingui/react';
 
 import { Icon } from '@/shared/ui/Icon';
+import { IconButton } from '@/shared/ui/IconButton';
 import { cn } from '@/shared/lib/ui';
 
 import type { CheatSchema } from '../../../protocol/messages';
@@ -21,23 +24,38 @@ type CheatTileProps = {
 const SWIPE_REVEAL = 80;
 const SWIPE_TRIGGER = 56;
 const SWIPE_DEAD_ZONE = 8;
-const SWIPE_ANIMATION_MS = 220;
+const SWIPE_ANIMATION_MS = 200;
 
 const CheatTileBase = ({ cheat, value, pending, disabled, pinned, first, onChange, onTogglePin }: CheatTileProps) => {
+  const { _ } = useLingui();
   const [offset, setOffset] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [armed, setArmed] = useState(false);
   const dragRef = useRef<{ id: number; startX: number; startY: number; locked: boolean | null } | null>(null);
+  const settleTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setOffset(0);
     setArmed(false);
   }, [pinned]);
 
+  // Cleared on unmount: the tile unmounts on category change while the timer is pending.
+  useEffect(() => () => {
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+  }, []);
+
   const settle = (target: number) => {
     setAnimating(true);
     setOffset(target);
-    window.setTimeout(() => setAnimating(false), SWIPE_ANIMATION_MS);
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+    settleTimerRef.current = window.setTimeout(() => {
+      settleTimerRef.current = null;
+      setAnimating(false);
+    }, SWIPE_ANIMATION_MS);
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -97,8 +115,8 @@ const CheatTileBase = ({ cheat, value, pending, disabled, pinned, first, onChang
     <div className={cn('relative overflow-hidden', first ? '' : 'border-t border-white/[0.06]')}>
       {showReveal ? <PinReveal pinned={pinned} armed={armed} /> : null}
       <div
-        className={cn('relative', animating ? 'transition-transform duration-200 ease-out' : '')}
-        style={{ transform: `translate3d(${offset}px, 0, 0)`, touchAction: 'pan-y' }}
+        className={cn('relative', animating ? 'transition-transform ease-out' : '')}
+        style={{ transform: `translate3d(${offset}px, 0, 0)`, touchAction: 'pan-y', transitionDuration: animating ? `${SWIPE_ANIMATION_MS}ms` : undefined }}
         onPointerCancel={handlePointerEnd}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -110,6 +128,16 @@ const CheatTileBase = ({ cheat, value, pending, disabled, pinned, first, onChang
               <div className="flex items-center gap-2">
                 <h4 className="truncate text-[13.5px] font-medium leading-tight text-(--deck-fg)">{cheat.name}</h4>
                 {pending ? <Icon className="size-3.5 shrink-0 animate-spin text-(--deck-accent)" name="loader" /> : null}
+                {/* The swipe gesture is pointer-only; this is the keyboard and screen-reader path. */}
+                <IconButton
+                  className="ml-auto border-transparent bg-transparent"
+                  icon={pinned ? 'pin-off' : 'pin'}
+                  label={pinned ? _(msg`Unpin ${cheat.name}`) : _(msg`Pin ${cheat.name}`)}
+                  active={pinned}
+                  size="sm"
+                  shrink
+                  onClick={onTogglePin}
+                />
               </div>
               {cheat.description ? <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-(--deck-fg-3)">{cheat.description}</p> : null}
             </div>

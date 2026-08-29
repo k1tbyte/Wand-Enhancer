@@ -1,5 +1,7 @@
 import { i18n, type Messages } from '@lingui/core';
 
+import { loadString, saveString } from '@/shared/storage';
+
 export const DEFAULT_LOCALE = 'en-US';
 
 export const SUPPORTED_LOCALES = [
@@ -36,12 +38,8 @@ export function detectInitialLocale(): LocaleCode {
 }
 
 function readStoredLocale(): LocaleCode | null {
-  try {
-    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-    return isSupportedLocale(stored) ? stored : null;
-  } catch {
-    return null;
-  }
+  const stored = loadString(LOCALE_STORAGE_KEY);
+  return isSupportedLocale(stored) ? stored : null;
 }
 
 function matchBrowserLocale(): LocaleCode | null {
@@ -58,11 +56,7 @@ function matchBrowserLocale(): LocaleCode | null {
 }
 
 function persistLocale(locale: LocaleCode): void {
-  try {
-    localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-  } catch {
-    // Ignore storage failures (private mode, blocked cookies, etc.).
-  }
+  saveString(LOCALE_STORAGE_KEY, locale);
 }
 
 function isSupportedLocale(value: string | null): value is LocaleCode {

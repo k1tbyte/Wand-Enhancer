@@ -24,6 +24,7 @@ export const SearchInput = ({ value, placeholder, className, onChange }: SearchI
       <input
         value={value}
         placeholder={placeholder}
+        aria-label={placeholder}
         spellCheck={false}
         className="min-w-0 flex-1 bg-transparent text-[13px] text-(--deck-fg) outline-none placeholder:text-(--deck-fg-4)"
         onInput={handleInput}

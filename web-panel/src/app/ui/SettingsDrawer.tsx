@@ -4,6 +4,7 @@ import type { MessageDescriptor } from '@lingui/core';
 import { Trans } from '@lingui/react/macro';
 import { useLingui } from '@lingui/react';
 
+import { IconButton } from '@/shared/ui/IconButton';
 import { Icon } from '@/shared/ui/Icon';
 import { cn } from '@/shared/lib/ui';
 import { activateLocale, type LocaleCode, SUPPORTED_LOCALES } from '@/app/i18n';
@@ -61,9 +62,7 @@ export const SettingsDrawer = ({
             <Trans>wand remote · port {WEB_CONTRACT.defaultRemotePort}</Trans>
           </p>
         </div>
-        <button type="button" aria-label={_(msg`Close settings`)} className="remote-glass-control flex size-8 items-center justify-center rounded-[8px] border text-(--deck-fg-2) hover:text-(--deck-fg)" onClick={onClose}>
-          <Icon className="size-4" name="x" />
-        </button>
+        <IconButton label={_(msg`Close settings`)} icon="x" onClick={onClose} />
       </header>
       <div className="remote-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain p-3.5">
         <BridgeControl status={status} wsUrl={wsUrl} onConnect={onConnect} onDisconnect={onDisconnect} onWsUrlChange={onWsUrlChange} />

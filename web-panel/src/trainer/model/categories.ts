@@ -3,7 +3,6 @@ import type { CheatSchema, TrainerMetaPayload, TrainerSummary } from '../../../p
 
 export type CategoryGroup = {
   id: string;
-  label: string;
   cheats: CheatSchema[];
 };
 
@@ -20,8 +19,8 @@ export function groupCheatsByCategory(trainerMeta: TrainerMetaPayload | null): C
   }
 
   return Array.from(grouped.entries())
-    .map(([id, cheats]) => ({ id, label: formatHumanLabel(id), cheats }))
-    .sort((left, right) => left.label.localeCompare(right.label));
+    .map(([id, cheats]) => ({ id, cheats }))
+    .sort((left, right) => formatHumanLabel(left.id).localeCompare(formatHumanLabel(right.id)));
 }
 
 export const PINNED_CATEGORY_ID = 'pinned';
@@ -41,7 +40,6 @@ export function buildPinnedGroup(
 
   return {
     id: PINNED_CATEGORY_ID,
-    label: formatHumanLabel(PINNED_CATEGORY_ID),
     cheats: pinnedCheats,
   };
 }
@@ -54,7 +52,7 @@ export function filterGroups(groups: CategoryGroup[], query: string): CategoryGr
 
   const result: CategoryGroup[] = [];
   for (const group of groups) {
-    const matchesGroup = group.label.toLowerCase().includes(normalized) || group.id.toLowerCase().includes(normalized);
+    const matchesGroup = formatHumanLabel(group.id).toLowerCase().includes(normalized) || group.id.toLowerCase().includes(normalized);
     const cheats = matchesGroup
       ? group.cheats
       : group.cheats.filter((cheat) => cheatMatchesQuery(cheat, normalized));

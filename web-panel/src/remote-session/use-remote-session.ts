@@ -12,13 +12,17 @@ import {
 import { protocolAction } from './remote-session.protocol';
 import { selectIsConnected, selectPendingTargets } from './selectors';
 
-const RECONNECT_DELAY_MS = 2000;
+const RECONNECT_BASE_DELAY_MS = 2000;
+const RECONNECT_MAX_DELAY_MS = 30000;
 
 export function useRemoteSession() {
   const [state, dispatch] = useReducer(remoteSessionReducer, undefined, createInitialRemoteSessionState);
   const stateRef = useRef(state);
   const clientRef = useRef<RemoteSessionClient | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  // Set when the user disconnects on purpose, so refocus does not silently reconnect.
+  const userDisconnectedRef = useRef(false);
   const connectRef = useRef<() => void>(() => {});
   useEffect(() => {
     stateRef.current = state;
@@ -33,19 +37,26 @@ export function useRemoteSession() {
 
   const scheduleReconnect = useCallback(() => {
     clearReconnect();
-    if (document.visibilityState !== 'visible') {
+    if (document.visibilityState !== 'visible' || userDisconnectedRef.current) {
       return;
     }
+
+    // Back off: the bridge is usually down because Wand is closed, and a phone
+    // retrying every 2s until the tab is hidden drains the battery for nothing.
+    const delay = Math.min(RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttemptRef.current, RECONNECT_MAX_DELAY_MS);
+    reconnectAttemptRef.current += 1;
+
     reconnectTimeoutRef.current = window.setTimeout(() => {
       if (document.visibilityState === 'visible' && stateRef.current.wsUrl.trim()) {
         connectRef.current();
       }
-    }, RECONNECT_DELAY_MS);
+    }, delay);
   }, [clearReconnect]);
 
   const connect = useCallback(() => {
     clientRef.current?.disconnect();
     clearReconnect();
+    userDisconnectedRef.current = false;
 
     const wsUrl = stateRef.current.wsUrl.trim();
     if (!wsUrl) {
@@ -58,7 +69,9 @@ export function useRemoteSession() {
         type: 'connecting',
         reconnecting: stateRef.current.connectionStatus === EConnectionStatus.Reconnecting,
       }),
-      onTransportOpen: () => undefined,
+      onTransportOpen: () => {
+        reconnectAttemptRef.current = 0;
+      },
       onMessage: (message) => {
         const action = protocolAction(message);
         if (!action) return;
@@ -76,6 +89,8 @@ export function useRemoteSession() {
   }, [clearReconnect, scheduleReconnect]);
 
   const disconnect = useCallback(() => {
+    userDisconnectedRef.current = true;
+    reconnectAttemptRef.current = 0;
     clearReconnect();
     clientRef.current?.disconnect();
     clientRef.current = null;
@@ -132,7 +147,7 @@ export function useRemoteSession() {
     }
     const gameId = current.gameStatus?.session.gameId ?? current.gameStatus?.trainer.gameId ?? undefined;
     const titleId = current.gameStatus?.session.titleId ?? current.gameStatus?.trainer.titleId ?? undefined;
-    if (!clientRef.current?.stopPlaying(gameId ?? undefined, titleId ?? undefined)) {
+    if (!clientRef.current?.stopPlaying(gameId, titleId)) {
       dispatch({ type: 'error', message: 'Failed to send the stop command to the bridge.' });
     }
   }, []);
@@ -143,7 +158,10 @@ export function useRemoteSession() {
 
   useEffect(() => {
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !clientRef.current?.isOpen()) {
+      if (document.visibilityState !== 'visible' || userDisconnectedRef.current) {
+        return;
+      }
+      if (!clientRef.current?.isOpen()) {
         connectRef.current();
       }
     };
@@ -169,7 +187,6 @@ export function useRemoteSession() {
     state,
     connected,
     pendingTargets,
-    socketReady: connected,
     connect,
     disconnect,
     setWsUrl,

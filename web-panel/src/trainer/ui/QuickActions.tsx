@@ -4,6 +4,7 @@ import { msg } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useLingui } from '@lingui/react';
 
+import { IconButton } from '@/shared/ui/IconButton';
 import { Icon } from '@/shared/ui/Icon';
 import { cn } from '@/shared/lib/ui';
 
@@ -137,9 +138,7 @@ const PresetModal = ({ draftName, onClose, onDraftNameChange, onSubmit }: Preset
               <Trans>Add Preset</Trans>
             </h3>
           </div>
-          <button type="button" aria-label={_(msg`Close preset modal`)} className="remote-glass-control flex size-8 shrink-0 items-center justify-center rounded-[8px] border text-(--deck-fg-2) hover:text-(--deck-fg)" onClick={onClose}>
-            <Icon className="size-4" name="x" />
-          </button>
+          <IconButton shrink label={_(msg`Close preset modal`)} icon="x" onClick={onClose} />
         </div>
         <label className="mb-3 block">
           <span className="mb-1.5 block font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-(--deck-fg-4)">

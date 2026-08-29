@@ -1,6 +1,11 @@
 import { ECheatType, type CheatOption, type CheatOptionLike, type CheatSchema } from '../../../protocol/messages';
+import { stripNumberGrouping } from '../controls/format-number';
 
-const NUMBER_GROUP_SEPARATOR_PATTERN = /[,\s]/g;
+// Wand sends option values as either strings or numbers for the same cheat, so identity
+// is compared by string form.
+export function isSameOption(left: unknown, right: unknown): boolean {
+  return String(left) === String(right);
+}
 
 export function resolveOption(option: CheatOptionLike): CheatOption {
   if (typeof option === 'string' || typeof option === 'number') {
@@ -26,5 +31,5 @@ export function normalizeCheatValue(cheat: CheatSchema, value: unknown): unknown
     return value;
   }
 
-  return Number(value.trim().replace(NUMBER_GROUP_SEPARATOR_PATTERN, ''));
+  return Number(stripNumberGrouping(value.trim()));
 }

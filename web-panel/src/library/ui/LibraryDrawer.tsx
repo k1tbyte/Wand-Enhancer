@@ -4,6 +4,7 @@ import { Plural, Trans } from '@lingui/react/macro';
 import { useLingui } from '@lingui/react';
 
 import { Icon, type IconName } from '@/shared/ui/Icon';
+import { IconButton } from '@/shared/ui/IconButton';
 import { cn } from '@/shared/lib/ui';
 
 import { SearchInput } from '@/shared/ui/SearchInput';
@@ -38,9 +39,7 @@ const LibraryDrawerBase = ({ games, query, canLaunch, onClose, onPin, onPlay, on
             <Plural value={games.length} one="# game detected" other="# games detected" />
           </p>
         </div>
-        <button type="button" aria-label={_(msg`Close library`)} className="remote-glass-control flex size-8 items-center justify-center rounded-[8px] border text-(--deck-fg-2) hover:text-(--deck-fg)" onClick={onClose}>
-          <Icon className="size-4" name="x" />
-        </button>
+        <IconButton label={_(msg`Close library`)} icon="x" onClick={onClose} />
       </header>
       <div className="border-b border-white/6 px-3.5 py-2.5">
         <SearchInput value={query} placeholder={_(msg`Search games`)} onChange={onQueryChange} />
@@ -121,45 +120,17 @@ const GameRow = ({ game, canLaunch, query, onPin, onPlay, onStop }: GameRowProps
         </div>
       </div>
       <div className="flex shrink-0 gap-1">
-        <IconButton active={game.pinned} label={game.pinned ? _(msg`Remove favorite`) : _(msg`Favorite game`)} icon={game.pinned ? 'star-filled' : 'star'} onClick={handlePin} />
+        <IconButton size="sm" active={game.pinned} label={game.pinned ? _(msg`Remove favorite`) : _(msg`Favorite game`)} icon={game.pinned ? 'star-filled' : 'star'} onClick={handlePin} />
         {game.running ? (
-          <IconButton danger label={_(msg`Stop playing`)} icon="stop" onClick={onStop} />
+          <IconButton size="sm" danger label={_(msg`Stop playing`)} icon="stop" onClick={onStop} />
         ) : (
-          <IconButton disabled={!canLaunch || !game.gameId} play label={_(msg`Play`)} icon="play" onClick={handlePlay} />
+          <IconButton size="sm" disabled={!canLaunch || !game.gameId} accent label={_(msg`Play`)} icon="play" onClick={handlePlay} />
         )}
       </div>
     </article>
   );
 };
 
-type IconButtonProps = {
-  icon: IconName;
-  label: string;
-  active?: boolean;
-  danger?: boolean;
-  disabled?: boolean;
-  play?: boolean;
-  onClick: () => void;
-};
-
-const IconButton = ({ icon, label, active = false, danger = false, disabled = false, play = false, onClick }: IconButtonProps) => {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      className={cn(
-        'remote-glass-control flex size-7.5 items-center justify-center rounded-[7px] border text-(--deck-fg-2) disabled:cursor-not-allowed disabled:opacity-40',
-        active ? 'border-[color-mix(in_oklab,var(--deck-accent)_38%,transparent)] bg-[color-mix(in_oklab,var(--deck-accent)_16%,transparent)] text-(--deck-accent) shadow-[0_0_14px_-6px_var(--deck-accent)]' : '',
-        play ? 'bg-[color-mix(in_oklab,var(--deck-accent)_15%,transparent)] text-(--deck-accent) ring-1 ring-[color-mix(in_oklab,var(--deck-accent)_35%,transparent)]' : '',
-        danger ? 'bg-red-500/15 text-red-300 ring-1 ring-red-400/30' : '',
-      )}
-      onClick={onClick}
-    >
-      <Icon className={cn('size-3.5', active ? 'drop-shadow-[0_0_5px_var(--deck-accent)]' : '')} name={icon} />
-    </button>
-  );
-};
 
 function highlightTitle(title: string, query: string): ReactNode {
   const normalized = query.trim().toLowerCase();

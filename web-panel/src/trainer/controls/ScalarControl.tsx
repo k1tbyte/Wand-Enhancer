@@ -1,12 +1,12 @@
-import { type FormEvent } from 'react';
+import { useMemo, type FormEvent } from 'react';
 
 import type { CheatSchema } from '../../../protocol/messages';
 import { resolveOption } from '../model/values';
-import { formatNumber, numericValue } from './format-number';
-import { SliderTrack, type ControlInternalProps } from './shared';
+import { numericValue } from './format-number';
+import { SliderReadout, type ControlInternalProps } from './shared';
 
 export const ScalarControl = ({ cheat, value, disabled, onChange }: ControlInternalProps) => {
-  const numericOptions = getNumericOptions(cheat.args.options ?? []);
+  const numericOptions = useMemo(() => getNumericOptions(cheat.args.options ?? []), [cheat.args.options]);
   const min = cheat.args.min ?? numericOptions[0] ?? 0;
   const max = cheat.args.max ?? numericOptions[numericOptions.length - 1] ?? 100;
   const step = cheat.args.step ?? inferStep(numericOptions) ?? 1;
@@ -15,10 +15,7 @@ export const ScalarControl = ({ cheat, value, disabled, onChange }: ControlInter
 
   return (
     <div className="w-full">
-      <div className="mb-1 flex justify-end font-mono text-[12.5px] tabular-nums text-(--deck-accent)">
-        {formatNumber(currentValue, step)}{cheat.args.postfix ?? ''}
-      </div>
-      <SliderTrack disabled={disabled} max={max} min={min} step={step} value={currentValue} onInput={handleInput} />
+      <SliderReadout disabled={disabled} label={cheat.name} max={max} min={min} postfix={cheat.args.postfix ?? ''} step={step} value={currentValue} onInput={handleInput} />
       <div className="mt-1 flex justify-between font-mono text-[10px] text-(--deck-fg-4)">
         <span>{min}{cheat.args.postfix ?? ''}</span>
         <span>{max}{cheat.args.postfix ?? ''}</span>

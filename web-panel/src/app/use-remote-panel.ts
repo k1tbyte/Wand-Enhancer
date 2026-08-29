@@ -48,31 +48,32 @@ export function useRemotePanel() {
     onError: session.reportError,
   });
 
+  const { changeCheat, launchGame } = session;
+  const { trainerMeta, values } = session.state;
+
   const panic = useCallback(() => {
-    const trainerMeta = session.state.trainerMeta;
     if (!trainerMeta) return;
     for (const cheat of trainerMeta.schema.cheats) {
-      if (cheat.type === ECheatType.Toggle && Boolean(session.state.values[cheat.target])) {
-        session.changeCheat(cheat, false);
+      if (cheat.type === ECheatType.Toggle && Boolean(values[cheat.target])) {
+        changeCheat(cheat, false);
       }
     }
-  }, [session]);
+  }, [trainerMeta, values, changeCheat]);
 
   const applyPreset = useCallback((preset: RemotePreset) => {
-    const trainerMeta = session.state.trainerMeta;
     if (!trainerMeta) return;
     for (const cheat of trainerMeta.schema.cheats) {
       if (cheat.target in preset.values) {
-        session.changeCheat(cheat, preset.values[cheat.target]);
+        changeCheat(cheat, preset.values[cheat.target]);
       }
     }
-  }, [session]);
+  }, [trainerMeta, changeCheat]);
 
   const playGame = useCallback((game: LibraryGame) => {
-    if (session.launchGame(game.app)) {
+    if (launchGame(game.app)) {
       setRightOpen(false);
     }
-  }, [session]);
+  }, [launchGame]);
 
   const totalVisibleCheats = filteredGroups.reduce(
     (count, group) => count + group.cheats.length,
@@ -87,7 +88,6 @@ export function useRemotePanel() {
       values: session.state.values,
       pendingTargets: session.pendingTargets,
       connected: session.connected,
-      socketReady: session.socketReady,
       connect: session.connect,
       disconnect: session.disconnect,
       setWsUrl: session.setWsUrl,

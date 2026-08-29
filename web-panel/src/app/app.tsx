@@ -38,7 +38,7 @@ export const App = () => {
                 />
               ) : (
                 <>
-                  <TrainerHeader trainer={trainer.activeTrainer} game={library.currentGame} isPinned={Boolean(library.currentGame && library.pinnedGameIds[library.currentGame.id])} onPin={() => library.currentGame && library.togglePin(library.currentGame)} />
+                  <TrainerHeader trainer={trainer.activeTrainer} game={library.currentGame} isPinned={Boolean(library.currentGame?.pinned)} onPin={() => library.currentGame && library.togglePin(library.currentGame)} />
                   <QuickActions presets={trainer.presets} onAddPreset={trainer.addPreset} onApplyPreset={trainer.applyPreset} onDeletePreset={trainer.deletePreset} onPanic={trainer.panic} />
                   <div className="sticky top-0 z-10 -mx-3.5 mb-2.5 px-3.5 py-0.5">
                     <SearchInput value={trainer.query} placeholder={_(msg`Search mods`)} onChange={trainer.setQuery} />
@@ -90,7 +90,7 @@ export const App = () => {
             onOpenLibrary={shell.openLibrary}
           />
 
-          <Drawer open={shell.leftOpen} side="left" onClose={shell.closeSettings}>
+          <Drawer open={shell.leftOpen} side="left" label={_(msg`Settings`)} onClose={shell.closeSettings}>
             <SettingsDrawer
               status={session.status}
               wsUrl={session.wsUrl}
@@ -103,11 +103,11 @@ export const App = () => {
               onWsUrlChange={session.setWsUrl}
             />
           </Drawer>
-          <Drawer open={shell.rightOpen} side="right" onClose={shell.closeLibrary}>
+          <Drawer open={shell.rightOpen} side="right" label={_(msg`Game library`)} onClose={shell.closeLibrary}>
             <LibraryDrawer
               games={library.games}
               query={library.query}
-              canLaunch={session.socketReady}
+              canLaunch={session.connected}
               onClose={shell.closeLibrary}
               onPin={library.togglePin}
               onPlay={library.playGame}

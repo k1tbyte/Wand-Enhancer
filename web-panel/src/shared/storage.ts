@@ -19,6 +19,33 @@ export function getTrainerStorageId(trainer: TrainerSummary | null | undefined):
   return id || null;
 }
 
+export function loadString(key: string | null): string | null {
+  const store = getStore();
+  if (!key || !store) {
+    return null;
+  }
+
+  try {
+    return store.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+export function saveString(key: string | null, value: string): boolean {
+  const store = getStore();
+  if (!key || !store) {
+    return false;
+  }
+
+  try {
+    store.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function loadJson<T>(key: string | null, revive: Reviver<T>, fallback: T): T {
   const store = getStore();
   if (!key || !store) {

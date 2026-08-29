@@ -17,12 +17,16 @@ if (!root) {
 
 applySavedAccentColor();
 
-activateLocale(detectInitialLocale()).then(() => {
-  createRoot(root).render(
+function render() {
+  createRoot(root!).render(
     <StrictMode>
       <I18nProvider i18n={i18n}>
         <App />
       </I18nProvider>
     </StrictMode>,
   );
-});
+}
+
+// A failed catalog fetch (flaky LAN, cache miss) must not leave a blank page:
+// mount anyway and let lingui fall back to the source strings.
+activateLocale(detectInitialLocale()).catch(() => undefined).then(render);
