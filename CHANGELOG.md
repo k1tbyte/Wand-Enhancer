@@ -3,16 +3,67 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.0.0.0] - 2026-08-29
+
+### Important
+
+- The bundled `version.dll` proxy is gone. The launcher starts Wand as a child process, apply patches in every process Electron spawns, and detaches once startup settles. This is what fixes Wand refusing to launch after enhancing on related issues: #207 #210 #211 #213 #214 #217
+- The native helper and its CMake build step were removed. Building from source no longer needs `CMake` or the Visual Studio C++ workload.
+- WandEnhancer now installs itself as the Wand launcher entry point, so starting Wand goes through the patcher. Restoring a backup puts the original launcher back.
+
+### Features
+
+- **Auto-patch after Wand updates.** Enable *Auto-apply after updates* in the patch dialog and your selection is saved next to the launcher. When Wand updates and drops the patches, the next launch re-applies them. On failure the UI opens and shows which patch broke instead of silently starting an unpatched client.
+- **Rewritten patch engine with legacy version support.** Patches are located structurally instead of by regex signature: each anchors on something Wand does not rename between builds. A client rebuild that only re-minifies no longer breaks patching, and older clients keep working. #178 #186
+- A patch whose feature is missing from your client is now reported as skipped instead of failing the whole run, and failures name the patch that broke.
+
+### Fixes
+
+- Fixed the "Buy Pro" banner still showing after a successful patch, and Pro not activating on newer clients.
+- Fixed the Enhancer closing itself when any button was pressed. #184
+- Fixed a half-written backup reporting the installation as patched, which blocked patching and restore at the same time.
+- Fixed invalid ASAR integrity metadata produced from short reads, which could yield an archive the client rejects. #170
+- Fixed the packer silently dropping files it could not read, for example while Wand was still running.
+- Fixed archive tree lookups resolving the wrong parent and creating phantom directories in the header.
+- Fixed hangs on symlink cycles and directory junctions while reading or packing an archive.
+- Fixed the language switcher leaking a resource dictionary on every switch. #164
+- Fixed *Restore* freezing the window while it ran.
+- Fixed Squirrel install and update arguments breaking when the Windows user profile path contains spaces.
+- Fixed a latent crash path from a patch type that had no configuration entry. #172
+- Remote panel: fixed a blank page when the interface translations failed to load.
+- Remote panel: fixed number inputs eating the decimal point while typing, and steppers drifting on fractional steps.
+- Remote panel: fixed the increment control refusing to step from a value outside its option list.
+- Remote panel: fixed endless two-second reconnect attempts, and reconnecting again after you disconnected on purpose.
+- Remote panel: fixed installed-game updates not arriving when only the install location changed.
+- Remote panel: fixed value writes silently doing nothing when the client bound to the bridge before it was ready.
+
+### Improvements
+
+- Log messages in the desktop app are now translated into all 12 supported languages.
+- The remote panel is now usable with a keyboard and a screen reader: dialogs trap focus and close on Escape, and controls have accessible names. Pinning a mod previously required a swipe and had no keyboard path at all, so mod rows now have a pin button.
+
+### Security and Privacy
+
+- The panel's static file server now resolves every request inside the panel directory.
+- The local bridge enforces the WebSocket framing rules required of a server (RFC 6455).
+- Late trainer events naming a different trainer no longer overwrite the active trainer's values.
+
+### Maintenance
+
+- The Electron bridge is now fully type-checked; roughly 200 latent typing gaps were fixed.
+- `build.ps1` and CI now run lint, type-check, and a dist verification step that syntax-checks the bundles and fails when dev-only payloads leak into a production build. CI runs on pull requests and pushes to `master`.
+- Removed dead code: the `version.dll` project, an unused control and converter, and unused Pickle helpers.
+
 ## [1.0.9.4] - 2026-07-21
 
 ### Fixes
 
-- Fixed the Remote Web Panel QR code still opening the official Wand mobile client after Wand changed its bundled QR renderer export. The renderer bridge now resolves the current export without adding a fragile C# ASAR patch. [Discussion #140](https://github.com/k1tbyte/Wand-Enhancer/discussions/140)
+- Fixed the Remote Web Panel QR code still opening the official Wand mobile client after Wand changed its bundled QR renderer export. The renderer bridge now resolves the current export without adding a fragile C# ASAR patch. #140
 - Fixed Quick Presets reporting that a preset was saved when browser local storage rejected the write. Failed writes now leave the existing preset list unchanged and show an error, and the save dialog now stays above the bottom navigation dock.
-- Fixed the patcher giving up on process termination because it reused a stale process snapshot by @divya0795 in [#145](https://github.com/k1tbyte/Wand-Enhancer/pull/145). Related issue: [#136](https://github.com/k1tbyte/Wand-Enhancer/issues/136)
-- Fixed ASAR extraction path traversal and corrupt Pickle payload allocation by @divya0795 in [#143](https://github.com/k1tbyte/Wand-Enhancer/pull/143).
+- Fixed the patcher giving up on process termination because it reused a stale process snapshot by @divya0795 in #145. Related issue: #136
+- Fixed ASAR extraction path traversal and corrupt Pickle payload allocation by @divya0795 in #143.
 - Fixed backup restore so `app.asar.unpacked` is restored together with `app.asar`, and the injected `version.dll` is removed after a successful restore.
-- Fixed `version.dll` requiring Visual C++ runtime DLLs on some systems by statically linking the runtime. Release builds now reject accidental dynamic VCRUNTIME, MSVCP, or UCRT dependencies. [#128](https://github.com/k1tbyte/Wand-Enhancer/issues/128)
+- Fixed `version.dll` requiring Visual C++ runtime DLLs on some systems by statically linking the runtime. Release builds now reject accidental dynamic VCRUNTIME, MSVCP, or UCRT dependencies. #128
 
 ### Security and Privacy
 

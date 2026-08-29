@@ -50,3 +50,7 @@ jobs:
           body_path: release-notes.md
           files: CHANGELOG.md
           fail_on_unmatched_files: true
+          # A tag carrying a suffix (1.1.0.0-rc.1) publishes as a pre-release and
+          # does not become the "Latest release" on the repository page.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}
