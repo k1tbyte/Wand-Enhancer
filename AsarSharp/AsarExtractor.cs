@@ -159,18 +159,17 @@ namespace AsarSharp
             FilesystemEntry file, HashSet<string> dirCache)
         {
             var linkSrcPath = Extensions.GetDirectoryName(Path.Combine(dest, file.Link));
-            var linkDestPath = Extensions.GetDirectoryName(destFilename);
-            var relativeLinkPath = Extensions.GetRelativePath(linkDestPath, linkSrcPath);
-
-            try { File.Delete(destFilename); }
-            catch { /* ignore — failing to remove an existing link is non-fatal */ }
-
-            var linkTo = Path.Combine(relativeLinkPath, Path.GetFileName(file.Link));
 
             if (!Extensions.IsPathInside(dest, linkSrcPath))
             {
                 throw new InvalidOperationException(
                     $"{fullPath}: file \"{file.Link}\" links out of the package to \"{linkSrcPath}\"");
+            }
+
+            try { File.Delete(destFilename); }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Nothing to replace, or the old entry is locked; the copy below reports the real failure.
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -189,8 +188,10 @@ namespace AsarSharp
             }
             else
             {
+                var linkDestPath = Extensions.GetDirectoryName(destFilename);
+                var relativeLinkPath = Extensions.GetRelativePath(linkDestPath, linkSrcPath);
                 EnsureParentDir(destFilename, dirCache);
-                Extensions.CreateSymbolicLink(linkTo, destFilename);
+                Extensions.CreateSymbolicLink(Path.Combine(relativeLinkPath, Path.GetFileName(file.Link)), destFilename);
             }
         }
     }

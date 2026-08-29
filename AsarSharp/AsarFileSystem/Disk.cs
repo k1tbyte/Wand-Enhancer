@@ -12,8 +12,6 @@ namespace AsarSharp.AsarFileSystem
     public static class Disk
     {
         private const int StreamBufferSize = 1024 * 1024;
-        private static readonly ConcurrentDictionary<string, Filesystem> _filesystemCache =
-            new ConcurrentDictionary<string, Filesystem>(StringComparer.OrdinalIgnoreCase);
 
         public class ArchiveHeader
         {
@@ -25,7 +23,6 @@ namespace AsarSharp.AsarFileSystem
         public class FilesystemFilesAndLinks
         {
             public List<BasicFileInfo> Files { get; set; } = new List<BasicFileInfo>();
-            public List<BasicFileInfo> Links { get; set; } = new List<BasicFileInfo>();
         }
 
         public class BasicFileInfo
@@ -42,14 +39,14 @@ namespace AsarSharp.AsarFileSystem
                        65536, FileOptions.SequentialScan))
             {
                 byte[] sizeBuf = new byte[8];
-                if (fs.Read(sizeBuf, 0, 8) != 8)
+                if (fs.ReadFull(sizeBuf, 0, 8) != 8)
                     throw new Exception("Unable to read header size");
 
                 var sizePickle = Pickle.CreateFromBuffer(sizeBuf);
                 var size = sizePickle.CreateIterator().ReadUInt32();
 
                 var headerBuf = new byte[size];
-                if (fs.Read(headerBuf, 0, (int)size) != size)
+                if (fs.ReadFull(headerBuf, 0, (int)size) != size)
                     throw new Exception("Unable to read header");
 
                 var headerPickle = Pickle.CreateFromBuffer(headerBuf);
@@ -65,62 +62,28 @@ namespace AsarSharp.AsarFileSystem
             }
         }
 
+        /// <summary>
+        /// Reads the header fresh every time: an archive is repacked in place during a patch run,
+        /// so a cached header would hand out stale offsets on the next read of the same path.
+        /// </summary>
         public static Filesystem ReadFilesystemSync(string archivePath)
         {
-            return _filesystemCache.GetOrAdd(archivePath, key =>
-            {
-                var header = ReadArchiveHeaderSync(key);
-                var filesystem = new Filesystem(key);
-                filesystem.SetHeader(header.Header, header.HeaderSize);
-                return filesystem;
-            });
-        }
-
-        public static byte[] ReadFileSync(Filesystem filesystem, string filename, FilesystemEntry info)
-        {
-            if (!info.IsFile || !info.Size.HasValue)
-                throw new ArgumentException("Entry is not a file", nameof(info));
-
-            long size = info.Size.Value;
-            byte[] buffer = new byte[size];
-
-            if (size <= 0) return buffer;
-
-            if (info.Unpacked == true)
-            {
-                string filePath = Path.Combine($"{filesystem.GetRootPath()}.unpacked", filename);
-                return File.ReadAllBytes(filePath);
-            }
-
-            using (var fs = new FileStream(filesystem.GetRootPath(), FileMode.Open, FileAccess.Read,
-                       FileShare.Read, 65536, FileOptions.RandomAccess))
-            {
-                long offset = 8 + filesystem.GetHeaderSize() + long.Parse(info.Offset);
-                fs.Position = offset;
-                int bytesRead = fs.Read(buffer, 0, (int)size);
-                if (bytesRead != size)
-                    throw new Exception($"Failed to read entire file, got {bytesRead} bytes instead of {size}");
-            }
-
-            return buffer;
+            var header = ReadArchiveHeaderSync(archivePath);
+            var filesystem = new Filesystem(archivePath);
+            filesystem.SetHeader(header.Header, header.HeaderSize);
+            return filesystem;
         }
 
         #endregion
 
-        public static bool UncacheFilesystem(string archivePath)
-        {
-            return _filesystemCache.TryRemove(archivePath, out _);
-        }
-
-        public static void UncacheAll()
-        {
-            _filesystemCache.Clear();
-        }
-
         public static void CopyFile(string dest, string rootPath, string filename)
         {
-            if (dest == null || rootPath == null || filename == null)
-                throw new ArgumentNullException();
+            if (dest == null)
+                throw new ArgumentNullException(nameof(dest));
+            if (rootPath == null)
+                throw new ArgumentNullException(nameof(rootPath));
+            if (filename == null)
+                throw new ArgumentNullException(nameof(filename));
 
             string normalizedDestRoot = Path.GetFullPath(dest)
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -191,6 +154,18 @@ namespace AsarSharp.AsarFileSystem
 
                 var patchedSizePickle = Pickle.CreateEmpty();
                 patchedSizePickle.WriteUInt32((uint)patchedPickle.GetTotalSize());
+
+                // The rewrite lands on top of the placeholder header, so it must be exactly as
+                // long. Placeholder hashes are the same width as real ones, so this holds unless
+                // a file changed size between crawl and write - which would silently shred the
+                // payload that follows.
+                if (patchedPickle.GetTotalSize() != headerPickle.GetTotalSize() ||
+                    patchedSizePickle.GetTotalSize() != sizePickleSize)
+                {
+                    throw new InvalidOperationException(
+                        "ASAR header changed size while packing (a source file was modified mid-build). " +
+                        "Aborting rather than writing a corrupt archive.");
+                }
 
                 fs.Position = 0;
                 patchedSizePickle.WriteTo(fs);

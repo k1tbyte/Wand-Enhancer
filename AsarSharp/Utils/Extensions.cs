@@ -5,8 +5,30 @@ using System.Text;
 
 namespace AsarSharp.Utils
 {
-    internal static class Extensions
+    public static class Extensions
     {
+        /// <summary>
+        /// Fills <paramref name="count"/> bytes. Stream.Read may legally return fewer than
+        /// asked for; treating a short read as EOF corrupts header parsing and block hashes.
+        /// Returns the bytes actually read, which is less than count only at end of stream.
+        /// </summary>
+        public static int ReadFull(this Stream stream, byte[] buffer, int offset, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int read = stream.Read(buffer, offset + total, count - total);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                total += read;
+            }
+
+            return total;
+        }
+
         /// <summary>
         /// Compute path relative to <paramref name="relativeTo"/>.
         /// Fast common-case (path is inside relativeTo): plain prefix-strip.
@@ -170,19 +192,7 @@ namespace AsarSharp.Utils
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return;
 
-            var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "chmod",
-                    Arguments = $"{permission} \"{filePath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            process.WaitForExit();
+            RunTool("chmod", $"{permission} \"{filePath}\"");
         }
 
 
@@ -190,32 +200,41 @@ namespace AsarSharp.Utils
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                NativeMethods.CreateSymbolicLink(linkPath, linkTarget,
+                bool success = NativeMethods.CreateSymbolicLink(linkPath, linkTarget,
                     Directory.Exists(linkTarget)
                         ? NativeMethods.SymLinkFlag.Directory
                         : NativeMethods.SymLinkFlag.File);
+                if (!success)
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
                 return;
             }
 
-            var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "ln",
-                    Arguments = $"-s \"{linkTarget}\" \"{linkPath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            process.WaitForExit();
+            RunTool("ln", $"-s \"{linkTarget}\" \"{linkPath}\"");
         }
-
 
         public static bool IsWindowsPlatform()
         {
-            return Environment.OSVersion.Platform == PlatformID.Win32NT;
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
+
+        private static void RunTool(string fileName, string arguments)
+        {
+            using (var process = new System.Diagnostics.Process
+                   {
+                       StartInfo = new System.Diagnostics.ProcessStartInfo
+                       {
+                           FileName = fileName,
+                           Arguments = arguments,
+                           UseShellExecute = false,
+                           CreateNoWindow = true
+                       }
+                   })
+            {
+                process.Start();
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException($"Tool {fileName} failed with exit code {process.ExitCode}.");
+            }
         }
     }
 }
