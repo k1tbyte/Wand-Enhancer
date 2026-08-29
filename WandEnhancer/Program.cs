@@ -44,28 +44,45 @@ namespace WandEnhancer
                 return false;
 
             string myDir = Path.GetDirectoryName(myExe);
+            string forwardedArgs = args.Length > 0 ? QuoteArguments(args) : null;
+
+            LauncherLog.Open(myDir, $"WandEnhancer {Constants.Version} | {myExe}" +
+                                    (forwardedArgs == null ? "" : $" | args {forwardedArgs}"));
 
             if (args.Length > 0 &&
                 args[0].StartsWith("--squirrel", StringComparison.OrdinalIgnoreCase))
             {
                 string updateExe = Path.Combine(myDir, "Update.exe");
                 if (File.Exists(updateExe))
+                {
+                    LauncherLog.Write($"Squirrel hook {args[0]} forwarded to Update.exe.", ELogType.Info);
                     Process.Start(updateExe, QuoteArguments(args));
+                }
+                else
+                {
+                    LauncherLog.Write($"Squirrel hook {args[0]} ignored: Update.exe is missing.", ELogType.Warn);
+                }
+
                 return true;
             }
 
             var config = WeModInstalls.FindLatestWeMod(myDir);
             if (config == null)
+            {
+                LauncherLog.Write($"No Wand install found under {myDir}; opening the UI instead.", ELogType.Error);
                 return false;
+            }
+
+            bool isPatched = Enhancer.IsPatched(config.RootDirectory);
+            LauncherLog.Write($"Install {config.ExecutablePath} is {(isPatched ? "patched" : "not patched")}.",
+                ELogType.Info);
 
             // A fresh Wand version drops our patches; re-apply the saved selection automatically.
             // On failure fall through to the UI so the user sees which patch broke.
-            if (!Enhancer.IsPatched(config.RootDirectory) && !TryAutoPatch(config, myDir))
+            if (!isPatched && !TryAutoPatch(config, myDir))
                 return false;
 
-            string forwardedArgs = args.Length > 0 ? QuoteArguments(args) : null;
-            FuseLauncher.Launch(config.ExecutablePath, forwardedArgs,
-                message => RecordStartupLog(message, ELogType.Warn));
+            FuseLauncher.Launch(config.ExecutablePath, forwardedArgs, LauncherLog.Write);
             return true;
         }
 
@@ -132,9 +149,12 @@ namespace WandEnhancer
             }
         }
 
+        /// <summary>Buffers for the UI and mirrors to disk: auto-patch runs headless, so the
+        /// file is the only copy if the user never opens the window afterwards.</summary>
         private static void RecordStartupLog(string message, ELogType type)
         {
             StartupLog.Add(new KeyValuePair<string, ELogType>(message, type));
+            LauncherLog.Write(message, type);
         }
         
         

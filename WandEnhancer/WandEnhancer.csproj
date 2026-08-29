@@ -67,6 +67,7 @@
         <Compile Include="Core\Enhancer.cs" />
         <Compile Include="Core\EnhancerConfig.cs" />
         <Compile Include="Core\FuseLauncher.cs" />
+        <Compile Include="Core\LauncherLog.cs" />
         <Compile Include="Core\JavaScriptPatchApplier.cs" />
         <Compile Include="Core\Js\JsCursor.cs" />
         <Compile Include="Core\Js\JsFunction.cs" />

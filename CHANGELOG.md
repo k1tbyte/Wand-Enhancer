@@ -40,6 +40,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Improvements
 
+- The launcher now writes a `launcher.log` next to itself, recording every process Electron starts and whether its fuse was cleared, exit and crash codes, and how long it stayed attached. Starting Wand happens without a window, so until now a client that refused to open left nothing to go on.
 - Log messages in the desktop app are now translated into all 12 supported languages.
 - The remote panel is now usable with a keyboard and a screen reader: dialogs trap focus and close on Escape, and controls have accessible names. Pinning a mod previously required a swipe and had no keyboard path at all, so mod rows now have a pin button.
 

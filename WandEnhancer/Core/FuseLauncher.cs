@@ -4,6 +4,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using WandEnhancer.View.MainWindow;
 
 namespace WandEnhancer.Core
 {
@@ -41,6 +42,9 @@ namespace WandEnhancer.Core
         private const int OffsetThreadId = 8;
         private const int OffsetUnion = 16;
         private const int OffsetExceptionCode = OffsetUnion;
+        // EXCEPTION_DEBUG_INFO is EXCEPTION_RECORD (152 bytes on x64) followed by dwFirstChance.
+        private const int OffsetExceptionFirstChance = OffsetUnion + 152;
+        private const int OffsetExitCode = OffsetUnion;
         private const int OffsetCreateProcessFile = OffsetUnion;
         private const int OffsetCreateProcessHandle = OffsetUnion + 8;
         private const int OffsetCreateProcessImageBase = OffsetUnion + 24;
@@ -51,10 +55,17 @@ namespace WandEnhancer.Core
         private const long QuietMs = 1500;
         private const long MaxDebugMs = 9000;
 
+        // Electron dies a second or two after a renderer fails, which is past the detach.
+        // Watching that window is the only way the exit code reaches the log.
+        private const int PostDetachWatchMs = 5000;
+
+        /// <summary>Electron's exit code when the ASAR integrity fuse rejects the archive.</summary>
+        private const int AsarIntegrityExitCode = -36861;
+
         private static readonly byte[] Sentinel =
             Encoding.ASCII.GetBytes("dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX");
 
-        public static bool Launch(string exePath, string args, Action<string> log = null)
+        public static bool Launch(string exePath, string args, Action<string, ELogType> log = null)
         {
             var si = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
             var cmdLine = new StringBuilder(
@@ -64,20 +75,35 @@ namespace WandEnhancer.Core
                     false, DEBUG_PROCESS, IntPtr.Zero,
                     Path.GetDirectoryName(exePath), ref si, out var pi))
             {
-                log?.Invoke($"Could not start Wand under the fuse patcher (win32 error {Marshal.GetLastWin32Error()}).");
+                log?.Invoke($"Could not start Wand under the fuse patcher (win32 error {Marshal.GetLastWin32Error()}).",
+                    ELogType.Error);
                 return false;
             }
 
             // Debugged processes must survive after we detach and exit.
             DebugSetProcessKillOnExit(false);
             CloseHandle(pi.hThread);
-            CloseHandle(pi.hProcess);
+            log?.Invoke($"Started {exePath} as pid {pi.dwProcessId}.", ELogType.Info);
 
-            DrivePatchingDebugLoop(pi.dwProcessId, log);
+            try
+            {
+                // The process handle outlives the debug loop on purpose: once detached it is
+                // the only remaining way to read why Wand died.
+                if (!DrivePatchingDebugLoop(pi.dwProcessId, log))
+                {
+                    WatchAfterDetach(pi.hProcess, log);
+                }
+            }
+            finally
+            {
+                CloseHandle(pi.hProcess);
+            }
+
             return true;
         }
 
-        private static void DrivePatchingDebugLoop(int mainPid, Action<string> log)
+        /// <returns>True when the main process exited while the debugger was still attached.</returns>
+        private static bool DrivePatchingDebugLoop(int mainPid, Action<string, ELogType> log)
         {
             var pids = new List<int>();
             var brokeIn = new HashSet<int>();
@@ -86,6 +112,8 @@ namespace WandEnhancer.Core
             // every ~25 days, and a negative elapsed would keep the debugger attached forever.
             var clock = Stopwatch.StartNew();
             long lastCreate = 0;
+            int created = 0;
+            int patched = 0;
 
             while (true)
             {
@@ -109,8 +137,13 @@ namespace WandEnhancer.Core
                         var hProc = (IntPtr)BitConverter.ToInt64(evt, OffsetCreateProcessHandle);
                         var baseImg = (IntPtr)BitConverter.ToInt64(evt, OffsetCreateProcessImageBase);
                         if (!pids.Contains(pid)) pids.Add(pid);
-                        if (!PatchFuse(hProc, baseImg))
-                            log?.Invoke($"Fuse not cleared in pid {pid}; renderers may fail with -36861.");
+                        created++;
+                        bool cleared = PatchFuse(hProc, baseImg);
+                        if (cleared) patched++;
+                        log?.Invoke(
+                            $"pid {pid} started at {now} ms - fuse " +
+                            (cleared ? "cleared." : $"NOT cleared, it may exit with {AsarIntegrityExitCode}."),
+                            cleared ? ELogType.Info : ELogType.Warn);
                         // The debugger owns the image handle the kernel hands over with this event.
                         if (hFile != IntPtr.Zero) CloseHandle(hFile);
                         lastCreate = now;
@@ -122,14 +155,27 @@ namespace WandEnhancer.Core
                         status = (exCode == EXCEPTION_BREAKPOINT && brokeIn.Add(pid))
                             ? DBG_CONTINUE
                             : DBG_EXCEPTION_NOT_HANDLED;
+                        // Chromium raises first-chance exceptions constantly and handles them.
+                        // A second chance means nothing handled it and the process is dying.
+                        if (BitConverter.ToInt32(evt, OffsetExceptionFirstChance) == 0)
+                            log?.Invoke($"pid {pid} hit an unhandled exception at {now} ms: {DescribeCode(exCode)}.",
+                                ELogType.Error);
                         break;
 
                     case EXIT_PROCESS_DEBUG_EVENT:
+                        int exitCode = BitConverter.ToInt32(evt, OffsetExitCode);
                         pids.Remove(pid);
+                        log?.Invoke(
+                            $"{(pid == mainPid ? "Main process" : $"pid {pid}")} exited at {now} ms " +
+                            $"with code {DescribeCode(exitCode)}.",
+                            exitCode == 0 ? ELogType.Info : ELogType.Error);
+
                         if (pid == mainPid)
                         {
+                            log?.Invoke($"Wand exited during startup: {created} processes started, {patched} fuse-patched.",
+                                ELogType.Error);
                             ContinueDebugEvent(pid, tid, status);
-                            return;
+                            return true;
                         }
                         break;
                 }
@@ -141,8 +187,59 @@ namespace WandEnhancer.Core
                     break;
             }
 
+            long detachedAt = clock.ElapsedMilliseconds;
+            // The detach reason matters: hitting the cap means Electron was still spawning
+            // processes we never patched, which looks exactly like "Wand does not open".
+            string reason = detachedAt > MaxDebugMs
+                ? $"{MaxDebugMs} ms cap reached"
+                : $"no new process for {QuietMs} ms";
+            log?.Invoke(
+                $"Detached after {detachedAt} ms ({reason}): {created} processes started, " +
+                $"{patched} fuse-patched, {pids.Count} still attached.",
+                patched == 0 ? ELogType.Error : ELogType.Info);
+
             foreach (var pid in pids)
                 DebugActiveProcessStop(pid);
+
+            return false;
+        }
+
+        /// <summary>
+        /// Electron usually dies a second or two after a renderer fails, which lands after the
+        /// detach. Without this the log ends on a healthy-looking "detached" line.
+        /// </summary>
+        private static void WatchAfterDetach(IntPtr hProcess, Action<string, ELogType> log)
+        {
+            if (WaitForSingleObject(hProcess, PostDetachWatchMs) != WAIT_OBJECT_0)
+            {
+                log?.Invoke($"Wand still running {PostDetachWatchMs} ms after detach.", ELogType.Success);
+                return;
+            }
+
+            if (!GetExitCodeProcess(hProcess, out int exitCode))
+            {
+                log?.Invoke($"Wand exited after detach, exit code unreadable (win32 error {Marshal.GetLastWin32Error()}).",
+                    ELogType.Error);
+                return;
+            }
+
+            log?.Invoke($"Wand exited right after detach with code {DescribeCode(exitCode)}.", ELogType.Error);
+        }
+
+        /// <summary>Names the exit and exception codes that actually turn up when Wand will not start.</summary>
+        private static string DescribeCode(int code)
+        {
+            switch (code)
+            {
+                case 0: return "0";
+                case AsarIntegrityExitCode:
+                    return $"{code} (ASAR integrity check failed - the fuse was not cleared in that process)";
+                case unchecked((int)0xC0000005): return $"0x{code:X8} (access violation)";
+                case unchecked((int)0xC0000135): return $"0x{code:X8} (a required DLL is missing)";
+                case unchecked((int)0xC0000142): return $"0x{code:X8} (a DLL failed to initialise)";
+                case unchecked((int)0xC0000409): return $"0x{code:X8} (stack buffer overrun)";
+                default: return $"{code} (0x{code:X8})";
+            }
         }
 
         private static bool ShouldDetach(long elapsed, long sinceLastCreate)
@@ -229,6 +326,7 @@ namespace WandEnhancer.Core
         private const int CREATE_PROCESS_DEBUG_EVENT = 3;
         private const int EXIT_PROCESS_DEBUG_EVENT = 5;
         private const int EXCEPTION_BREAKPOINT = unchecked((int)0x80000003);
+        private const uint WAIT_OBJECT_0 = 0;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct STARTUPINFO
@@ -282,6 +380,12 @@ namespace WandEnhancer.Core
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool DebugSetProcessKillOnExit(bool KillOnExit);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(IntPtr hHandle, int dwMilliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetExitCodeProcess(IntPtr hProcess, out int lpExitCode);
 
         [DllImport("kernel32.dll")]
         private static extern bool CloseHandle(IntPtr hObject);
