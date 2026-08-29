@@ -434,32 +434,22 @@ namespace WandEnhancer.Core
                 throw new Exception("app.asar not found");
             }
 
+            // Everything past this point mutates the installation. A half-applied patch does
+            // not boot - the fuse is only cleared by the deployed launcher, so a patched
+            // app.asar without it dies with -36861 - so failure has to put the files back.
             try
             {
-                _logger("[ENHANCER] Extracting app.asar...", ELogType.Info);
-                AsarExtractor.ExtractAll(_asarPath, _unpackedPath);
+                ExtractSources();
+                PatchAsar();
+                InjectRemotePanelFiles();
+                PackSources();
+                DeployLauncher();
             }
-            catch (Exception e)
+            catch
             {
-                throw new Exception($"[ENHANCER] Failed to unpack app.asar: {e.Message}", e);
+                RollbackQuietly();
+                throw;
             }
-
-            PatchAsar();
-            InjectRemotePanelFiles();
-
-            try
-            {
-                new AsarCreator(_unpackedPath, _asarPath, new CreateOptions
-                {
-                    Unpack = new Regex(@"^static\\unpacked.*$")
-                }).CreatePackageWithOptions();
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"[ENHANCER] Failed to pack app.asar: {e.Message}", e);
-            }
-
-            DeployLauncher();
 
             // enhancer.json only exists to drive auto-patch. Without it the launcher still
             // runs Wand (fuse patch only), so drop it when the user opts out.
@@ -473,6 +463,66 @@ namespace WandEnhancer.Core
             }
 
             _logger("[ENHANCER] Done!", ELogType.Success);
+        }
+
+        private void ExtractSources()
+        {
+            try
+            {
+                _logger("[ENHANCER] Extracting app.asar...", ELogType.Info);
+                AsarExtractor.ExtractAll(_asarPath, _unpackedPath);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"[ENHANCER] Failed to unpack app.asar: {e.Message}", e);
+            }
+        }
+
+        private void PackSources()
+        {
+            try
+            {
+                new AsarCreator(_unpackedPath, _asarPath, new CreateOptions
+                {
+                    Unpack = new Regex(@"^static\\unpacked.*$")
+                }).CreatePackageWithOptions();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"[ENHANCER] Failed to pack app.asar: {e.Message}", e);
+            }
+        }
+
+        /// <summary>
+        /// Best-effort restore after a failed patch. Never throws: the caller is already
+        /// propagating the real failure and it must not be replaced by a cleanup error.
+        /// </summary>
+        private void RollbackQuietly()
+        {
+            try
+            {
+                if (File.Exists(_backupPath))
+                {
+                    File.Copy(_backupPath, _asarPath, true);
+                }
+
+                if (Directory.Exists(_unpackedBackupPath))
+                {
+                    if (Directory.Exists(_unpackedPath))
+                    {
+                        Directory.Delete(_unpackedPath, true);
+                    }
+
+                    AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, _unpackedPath);
+                }
+
+                _logger("[ENHANCER] Patch failed - the original Wand files were restored.", ELogType.Warn);
+            }
+            catch (Exception e)
+            {
+                _logger($"[ENHANCER] Patch failed and the rollback did not finish: {e.Message}. " +
+                        "Use Restore before launching Wand.", ELogType.Error);
+            }
         }
 
         public void Restore()

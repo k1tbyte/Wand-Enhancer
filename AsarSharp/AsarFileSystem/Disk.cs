@@ -128,7 +128,54 @@ namespace AsarSharp.AsarFileSystem
             var buf = new byte[StreamBufferSize];
             var blockBuf = new byte[4 * 1024 * 1024]; // shared across all files — avoids 4MB alloc per file
 
-            using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
+            // Build beside the target and swap at the end. Writing straight into dest truncates
+            // it on open, so any failure mid-write left the caller with a destroyed archive.
+            string tempPath = dest + ".building";
+            try
+            {
+                WriteArchive(tempPath, dest, fileSystem, lists, serializerSettings,
+                    headerPickle, sizePickle, sizePickleSize, buf, blockBuf);
+                ReplaceFile(tempPath, dest);
+            }
+            catch
+            {
+                TryDelete(tempPath);
+                throw;
+            }
+        }
+
+        private static void ReplaceFile(string tempPath, string dest)
+        {
+            if (!File.Exists(dest))
+            {
+                File.Move(tempPath, dest);
+                return;
+            }
+
+            // File.Replace swaps in one step, so dest is never observed missing or half-written.
+            File.Replace(tempPath, dest, null, true);
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Leftover build file only wastes space; the real failure is already propagating.
+            }
+        }
+
+        private static void WriteArchive(string archivePath, string dest, Filesystem fileSystem,
+            FilesystemFilesAndLinks lists, JsonSerializerSettings serializerSettings,
+            Pickle headerPickle, Pickle sizePickle, int sizePickleSize, byte[] buf, byte[] blockBuf)
+        {
+            using (var fs = new FileStream(archivePath, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
             {
                 sizePickle.WriteTo(fs);
                 headerPickle.WriteTo(fs);
