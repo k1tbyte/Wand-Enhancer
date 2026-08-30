@@ -66,6 +66,7 @@
         <Compile Include="Converters\ToVisibilityConverter.cs" />
         <Compile Include="Core\Enhancer.cs" />
         <Compile Include="Core\EnhancerConfig.cs" />
+        <Compile Include="Core\ElectronFuse.cs" />
         <Compile Include="Core\FuseLauncher.cs" />
         <Compile Include="Core\LauncherLog.cs" />
         <Compile Include="Core\JavaScriptPatchApplier.cs" />

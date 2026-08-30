@@ -7,7 +7,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Important
 
-- The bundled `version.dll` proxy is gone. The launcher starts Wand as a child process, apply patches in every process Electron spawns, and detaches once startup settles. This is what fixes Wand refusing to launch after enhancing on related issues: #207 #210 #211 #213 #214 #217
+- The bundled `version.dll` proxy is gone. The launcher now starts Wand and keeps the patch applied in every process Electron spawns, for as long as Wand runs. This is what fixes Wand refusing to launch after enhancing on related issues: #207 #210 #211 #213 #214 #217
 - The native helper and its CMake build step were removed. Building from source no longer needs `CMake` or the Visual Studio C++ workload.
 - WandEnhancer now installs itself as the Wand launcher entry point, so starting Wand goes through the patcher. Restoring a backup puts the original launcher back.
 
@@ -19,6 +19,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Fixes
 
+- Fixed the in-game overlay never appearing after enhancing, while Wand itself looked healthy. Wand creates the process that draws the overlay when a game starts, minutes or hours after launch, and only the startup processes were being covered - that one shut down the instant it opened the patched files, so nothing ever drew the overlay.
 - Fixed the "Buy Pro" banner still showing after a successful patch, and Pro not activating on newer clients.
 - Fixed the Enhancer closing itself when any button was pressed. #184
 - A failed patch now puts your original Wand files back instead of leaving a half-patched install behind. Packing also builds the archive beside the old one and swaps it in at the end, so a failure can no longer destroy `app.asar`. #221
