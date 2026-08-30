@@ -28,9 +28,18 @@ namespace WandEnhancer
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
+            bool startupFailed = StartupLog.Exists(entry => entry.Value == ELogType.Error);
+
             var application = new App();
             application.InitializeComponent();
-            application.MainWindow = new MainWindow();
+            var window = new MainWindow();
+
+            // Launch mode has no window at all, so a user whose Wand never opened would have to
+            // be told where launcher.log lives. Put the same lines in front of them instead.
+            if (startupFailed)
+                window.Loaded += (sender, e) => BringToFront(window);
+
+            application.MainWindow = window;
             application.Run();
         }
 
@@ -82,14 +91,21 @@ namespace WandEnhancer
             if (!isPatched && !TryAutoPatch(config, myDir))
                 return false;
 
-            FuseLauncher.Launch(config.ExecutablePath, forwardedArgs, LauncherLog.Write);
-            return true;
+            // RecordStartupLog, not LauncherLog.Write: whatever the launcher says has to survive
+            // into the window on the failure path below.
+            return FuseLauncher.Launch(config.ExecutablePath, forwardedArgs, RecordStartupLog);
         }
 
-        /// <summary>
-        /// Re-quotes argv for a command line. Squirrel hands us paths with spaces
-        /// (`--squirrel-install "C:\Users\Some Name\..."`); re-joining on spaces splits them.
-        /// </summary>
+
+        private static void BringToFront(System.Windows.Window window)
+        {
+            window.WindowState = System.Windows.WindowState.Normal;
+            window.Topmost = true;
+            window.Activate();
+            window.Topmost = false;
+        }
+
+
         private static string QuoteArguments(IEnumerable<string> args)
         {
             return string.Join(" ", args.Select(QuoteArgument));

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using WandEnhancer.View.MainWindow;
@@ -20,7 +21,8 @@ namespace WandEnhancer.Core
     {
         private const int AsarIntegrityExitCode = -36861;
 
-        public static void Launch(string exePath, string args, Action<string, ELogType> log = null)
+        /// <returns>False when the session ended badly enough to be worth showing the user.</returns>
+        public static bool Launch(string exePath, string args, Action<string, ELogType> log = null)
         {
             long stateRva = ElectronFuse.FindStateRva(exePath);
 
@@ -34,12 +36,12 @@ namespace WandEnhancer.Core
                     IntPtr.Zero, System.IO.Path.GetDirectoryName(exePath), ref startupInfo, out var info))
             {
                 log?.Invoke($"Could not start Wand (win32 error {Marshal.GetLastWin32Error()}).", ELogType.Error);
-                return;
+                return false;
             }
 
             IntPtr job = IntPtr.Zero;
             IntPtr port = IntPtr.Zero;
-            bool mainCleared = false;
+            bool resumed = false;
 
             try
             {
@@ -49,10 +51,10 @@ namespace WandEnhancer.Core
                 {
                     log?.Invoke($"No Electron fuse block in {exePath}. A patched Wand will exit " +
                                 $"with {AsarIntegrityExitCode}; an unpatched one is unaffected.", ELogType.Error);
-                    return;
+                    return false;
                 }
 
-                mainCleared = ElectronFuse.ClearIn(info.hProcess, stateRva);
+                bool mainCleared = ElectronFuse.ClearIn(info.hProcess, stateRva);
                 log?.Invoke(mainCleared
                         ? $"pid {info.dwProcessId} started - fuse cleared."
                         : $"Fuse not cleared in pid {info.dwProcessId}; it may exit with {AsarIntegrityExitCode}.",
@@ -62,28 +64,42 @@ namespace WandEnhancer.Core
                 {
                     log?.Invoke($"Could not watch Wand for new processes (win32 error {Marshal.GetLastWin32Error()}). " +
                                 "Wand will run, but the in-game overlay will not.", ELogType.Error);
-                    return;
+                    return false;
                 }
-            }
-            finally
-            {
-                ResumeThread(info.hThread);
-                CloseHandle(info.hThread);
-            }
 
-            try
-            {
+                ResumeThread(info.hThread);
+                resumed = true;
+
                 ClearFuseInNewProcesses(port, exePath, stateRva, info.dwProcessId, mainCleared, log);
-                log?.Invoke(GetExitCodeProcess(info.hProcess, out int exitCode)
-                        ? $"Wand exited with code {DescribeCode(exitCode)}."
-                        : "Wand exited, code unreadable.",
-                    ELogType.Info);
+
+                if (!GetExitCodeProcess(info.hProcess, out int exitCode))
+                {
+                    log?.Invoke("Wand exited, and its exit code could not be read.", ELogType.Error);
+                    return false;
+                }
+
+                log?.Invoke($"Wand exited with code {DescribeCode(exitCode)}.",
+                    exitCode == 0 ? ELogType.Info : ELogType.Error);
+                return exitCode == 0;
             }
             finally
             {
-                CloseHandle(port);
-                CloseHandle(job);
+                if (!resumed)
+                {
+                    ResumeThread(info.hThread);
+                }
+
+                CloseHandle(info.hThread);
                 CloseHandle(info.hProcess);
+                if (port != IntPtr.Zero)
+                {
+                    CloseHandle(port);
+                }
+
+                if (job != IntPtr.Zero)
+                {
+                    CloseHandle(job);
+                }
             }
         }
 
@@ -116,40 +132,85 @@ namespace WandEnhancer.Core
         private static void ClearFuseInNewProcesses(IntPtr port, string exePath, long stateRva,
             int mainProcessId, bool mainCleared, Action<string, ELogType> log)
         {
+            var tracked = new Dictionary<int, IntPtr>();
             int cleared = mainCleared ? 1 : 0;
             int missed = mainCleared ? 0 : 1;
 
-            while (GetQueuedCompletionStatus(port, out uint message, out _, out IntPtr value, INFINITE))
+            try
             {
-                if (message == JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO)
+                while (GetQueuedCompletionStatus(port, out uint message, out _, out IntPtr value, INFINITE))
                 {
-                    break;
-                }
+                    if (message == JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO)
+                    {
+                        break;
+                    }
 
-                int processId = value.ToInt32();
-                // The main process is announced here too, having been patched while it was still
-                // suspended, and a game started from Wand joins the job like any other child.
-                if (message != JOB_OBJECT_MSG_NEW_PROCESS || processId == mainProcessId ||
-                    !IsImage(processId, exePath))
-                {
-                    continue;
-                }
+                    int processId = value.ToInt32();
+                    if (message == JOB_OBJECT_MSG_EXIT_PROCESS || message == JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS)
+                    {
+                        ReportExit(tracked, processId, log);
+                        continue;
+                    }
 
-                if (Clear(processId, stateRva))
-                {
-                    cleared++;
-                    log?.Invoke($"pid {processId} started - fuse cleared.", ELogType.Info);
+                    // The main process is announced here too, having been patched while it was
+                    // still suspended, and a game started from Wand joins the job like any child.
+                    if (message != JOB_OBJECT_MSG_NEW_PROCESS || processId == mainProcessId ||
+                        !IsImage(processId, exePath))
+                    {
+                        continue;
+                    }
+
+                    // The handle is kept open: it is what makes the exit code readable later, and
+                    // it also stops Windows handing the pid to someone else in the meantime.
+                    IntPtr process = OpenProcess(ProcessAccess, false, processId);
+                    if (process != IntPtr.Zero)
+                    {
+                        tracked[processId] = process;
+                    }
+
+                    if (process != IntPtr.Zero && ElectronFuse.ClearIn(process, stateRva))
+                    {
+                        cleared++;
+                        log?.Invoke($"pid {processId} started - fuse cleared.", ELogType.Info);
+                    }
+                    else
+                    {
+                        missed++;
+                        log?.Invoke($"Fuse not cleared in pid {processId}; it may exit with {AsarIntegrityExitCode}.",
+                            ELogType.Warn);
+                    }
                 }
-                else
+            }
+            finally
+            {
+                foreach (var handle in tracked.Values)
                 {
-                    missed++;
-                    log?.Invoke($"Fuse not cleared in pid {processId}; it may exit with {AsarIntegrityExitCode}.",
-                        ELogType.Warn);
+                    CloseHandle(handle);
                 }
             }
 
             log?.Invoke($"Wand closed: fuse cleared in {cleared} processes" + (missed == 0 ? "." : $", {missed} missed."),
                 missed == 0 ? ELogType.Info : ELogType.Warn);
+        }
+
+        /// <summary>
+        /// Only anomalies are reported: on a normal shutdown every process exits with 0, and a
+        /// line each would bury the one death that matters.
+        /// </summary>
+        private static void ReportExit(Dictionary<int, IntPtr> tracked, int processId, Action<string, ELogType> log)
+        {
+            if (!tracked.TryGetValue(processId, out IntPtr process))
+            {
+                return;
+            }
+
+            tracked.Remove(processId);
+            if (GetExitCodeProcess(process, out int exitCode) && exitCode != 0)
+            {
+                log?.Invoke($"pid {processId} exited with code {DescribeCode(exitCode)}.", ELogType.Error);
+            }
+
+            CloseHandle(process);
         }
 
         /// <summary>
@@ -177,24 +238,6 @@ namespace WandEnhancer.Core
             }
         }
 
-        private static bool Clear(int processId, long stateRva)
-        {
-            IntPtr process = OpenProcess(ProcessAccess, false, processId);
-            if (process == IntPtr.Zero)
-            {
-                return false;
-            }
-
-            try
-            {
-                return ElectronFuse.ClearIn(process, stateRva);
-            }
-            finally
-            {
-                CloseHandle(process);
-            }
-        }
-
         private static string DescribeCode(int code)
         {
             switch (code)
@@ -202,6 +245,8 @@ namespace WandEnhancer.Core
                 case 0: return "0";
                 case AsarIntegrityExitCode:
                     return $"{code} (ASAR integrity check failed - the fuse was not cleared in time)";
+                // Chromium breaks into a debugger that is not there when it hits a fatal error.
+                case unchecked((int)0x80000003): return $"0x{code:X8} (Wand aborted itself during startup)";
                 case unchecked((int)0xC0000005): return $"0x{code:X8} (access violation)";
                 case unchecked((int)0xC0000135): return $"0x{code:X8} (a required DLL is missing)";
                 case unchecked((int)0xC0000142): return $"0x{code:X8} (a DLL failed to initialise)";
@@ -219,6 +264,8 @@ namespace WandEnhancer.Core
         private const int JobObjectAssociateCompletionPortInformation = 7;
         private const uint JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4;
         private const uint JOB_OBJECT_MSG_NEW_PROCESS = 6;
+        private const uint JOB_OBJECT_MSG_EXIT_PROCESS = 7;
+        private const uint JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS = 8;
         private const uint INFINITE = 0xFFFFFFFF;
         private static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
