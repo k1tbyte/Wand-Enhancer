@@ -20,6 +20,18 @@ namespace WandEnhancer.Core
     internal static class FuseLauncher
     {
         private const int AsarIntegrityExitCode = -36861;
+        private const int ClearWindowMs = 1000;
+        private const uint RetryIntervalMs = 4;
+
+        /// <summary>A process whose fuse is not cleared yet, and why it is not.</summary>
+        private sealed class PendingClear
+        {
+            public int ProcessId;
+            public IntPtr Process;
+            public int Deadline;
+            public string Problem;
+            public string Role;
+        }
 
         /// <returns>False when the session ended badly enough to be worth showing the user.</returns>
         public static bool Launch(string exePath, string args, Action<string, ELogType> log = null)
@@ -54,10 +66,12 @@ namespace WandEnhancer.Core
                     return false;
                 }
 
-                bool mainCleared = ElectronFuse.ClearIn(info.hProcess, stateRva);
+                // No retry for this one: it is suspended, so nothing about it can still be forming.
+                bool mainCleared = ElectronFuse.ClearIn(info.hProcess, stateRva, out string problem);
                 log?.Invoke(mainCleared
                         ? $"pid {info.dwProcessId} started - fuse cleared."
-                        : $"Fuse not cleared in pid {info.dwProcessId}; it may exit with {AsarIntegrityExitCode}.",
+                        : $"Fuse not cleared in pid {info.dwProcessId}: {problem}. " +
+                          $"It may exit with {AsarIntegrityExitCode}.",
                     mainCleared ? ELogType.Info : ELogType.Warn);
 
                 if (!TryTrackChildren(info.hProcess, out job, out port))
@@ -133,13 +147,28 @@ namespace WandEnhancer.Core
             int mainProcessId, bool mainCleared, Action<string, ELogType> log)
         {
             var tracked = new Dictionary<int, IntPtr>();
+            var pending = new List<PendingClear>();
             int cleared = mainCleared ? 1 : 0;
             int missed = mainCleared ? 0 : 1;
 
             try
             {
-                while (GetQueuedCompletionStatus(port, out uint message, out _, out IntPtr value, INFINITE))
+                while (true)
                 {
+                    // Waiting forever is only right while nothing is due for a retry.
+                    if (!GetQueuedCompletionStatus(port, out uint message, out _, out IntPtr value,
+                            pending.Count == 0 ? INFINITE : RetryIntervalMs))
+                    {
+                        if (Marshal.GetLastWin32Error() != WAIT_TIMEOUT)
+                        {
+                            break;
+                        }
+
+                        // Nothing arrived, and the other outputs are undefined after a timeout.
+                        message = JOB_OBJECT_MSG_NONE;
+                        value = IntPtr.Zero;
+                    }
+
                     if (message == JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO)
                     {
                         break;
@@ -148,37 +177,31 @@ namespace WandEnhancer.Core
                     int processId = value.ToInt32();
                     if (message == JOB_OBJECT_MSG_EXIT_PROCESS || message == JOB_OBJECT_MSG_ABNORMAL_EXIT_PROCESS)
                     {
-                        ReportExit(tracked, processId, log);
-                        continue;
-                    }
+                        if (DropPending(pending, processId, log))
+                        {
+                            missed++;
+                        }
 
+                        ReportExit(tracked, processId, log);
+                    }
                     // The main process is announced here too, having been patched while it was
                     // still suspended, and a game started from Wand joins the job like any child.
-                    if (message != JOB_OBJECT_MSG_NEW_PROCESS || processId == mainProcessId ||
-                        !IsImage(processId, exePath))
+                    else if (message == JOB_OBJECT_MSG_NEW_PROCESS && processId != mainProcessId &&
+                             IsImage(processId, exePath))
                     {
-                        continue;
+                        var entry = new PendingClear
+                        {
+                            ProcessId = processId,
+                            Deadline = Environment.TickCount + ClearWindowMs
+                        };
+
+                        if (!TryClear(entry, stateRva, tracked, log, ref cleared))
+                        {
+                            pending.Add(entry);
+                        }
                     }
 
-                    // The handle is kept open: it is what makes the exit code readable later, and
-                    // it also stops Windows handing the pid to someone else in the meantime.
-                    IntPtr process = OpenProcess(ProcessAccess, false, processId);
-                    if (process != IntPtr.Zero)
-                    {
-                        tracked[processId] = process;
-                    }
-
-                    if (process != IntPtr.Zero && ElectronFuse.ClearIn(process, stateRva))
-                    {
-                        cleared++;
-                        log?.Invoke($"pid {processId} started - fuse cleared.", ELogType.Info);
-                    }
-                    else
-                    {
-                        missed++;
-                        log?.Invoke($"Fuse not cleared in pid {processId}; it may exit with {AsarIntegrityExitCode}.",
-                            ELogType.Warn);
-                    }
+                    RetryPending(pending, stateRva, tracked, log, ref cleared, ref missed);
                 }
             }
             finally
@@ -191,6 +214,90 @@ namespace WandEnhancer.Core
 
             log?.Invoke($"Wand closed: fuse cleared in {cleared} processes" + (missed == 0 ? "." : $", {missed} missed."),
                 missed == 0 ? ELogType.Info : ELogType.Warn);
+        }
+
+        /// <summary>
+        /// A process the job announces can be younger than its own PEB, and on a slow machine it
+        /// still is by the time the first write is attempted. Electron opens the archive a few
+        /// hundred milliseconds in, and that gap is the budget being spent here.
+        /// </summary>
+        private static void RetryPending(List<PendingClear> pending, long stateRva,
+            Dictionary<int, IntPtr> tracked, Action<string, ELogType> log, ref int cleared, ref int missed)
+        {
+            for (int i = pending.Count - 1; i >= 0; i--)
+            {
+                var entry = pending[i];
+                if (TryClear(entry, stateRva, tracked, log, ref cleared))
+                {
+                    pending.RemoveAt(i);
+                }
+                else if (Environment.TickCount - entry.Deadline >= 0)
+                {
+                    missed++;
+                    log?.Invoke($"Fuse not cleared in pid {Describe(entry)} after {ClearWindowMs} ms: " +
+                                $"{entry.Problem}. It may exit with {AsarIntegrityExitCode}.", ELogType.Warn);
+                    pending.RemoveAt(i);
+                }
+            }
+        }
+
+        private static bool TryClear(PendingClear entry, long stateRva, Dictionary<int, IntPtr> tracked,
+            Action<string, ELogType> log, ref int cleared)
+        {
+            if (entry.Process == IntPtr.Zero)
+            {
+                // The handle is kept open: it is what makes the exit code readable later, and it
+                // also stops Windows handing the pid to someone else in the meantime.
+                entry.Process = OpenProcess(ProcessAccess, false, entry.ProcessId);
+                if (entry.Process == IntPtr.Zero)
+                {
+                    entry.Problem = $"it could not be opened (win32 error {Marshal.GetLastWin32Error()})";
+                    return false;
+                }
+
+                tracked[entry.ProcessId] = entry.Process;
+            }
+
+            // Read while the process is alive: the one worth naming in the log is the one that
+            // dies, and by then its command line is gone with it.
+            if (entry.Role == null)
+            {
+                entry.Role = ProcessInfo.GetElectronRole(entry.Process);
+            }
+
+            if (!ElectronFuse.ClearIn(entry.Process, stateRva, out string problem))
+            {
+                entry.Problem = problem;
+                return false;
+            }
+
+            cleared++;
+            log?.Invoke($"pid {Describe(entry)} started - fuse cleared.", ELogType.Info);
+            return true;
+        }
+
+        /// <summary>A process that dies before its fuse is cleared is the failure being counted.</summary>
+        private static bool DropPending(List<PendingClear> pending, int processId, Action<string, ELogType> log)
+        {
+            int index = pending.FindIndex(entry => entry.ProcessId == processId);
+            if (index < 0)
+            {
+                return false;
+            }
+
+            log?.Invoke($"Fuse not cleared in pid {Describe(pending[index])} before it exited: " +
+                        $"{pending[index].Problem}.", ELogType.Warn);
+            pending.RemoveAt(index);
+            return true;
+        }
+
+        /// <summary>
+        /// The pid alone says nothing; the Electron role is what turns a line into a diagnosis,
+        /// since the overlay lives in a renderer.
+        /// </summary>
+        private static string Describe(PendingClear entry)
+        {
+            return entry.Role == null ? entry.ProcessId.ToString() : $"{entry.ProcessId} ({entry.Role})";
         }
 
         /// <summary>
@@ -262,6 +369,8 @@ namespace WandEnhancer.Core
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
         private const int MaxPathLength = 260;
         private const int JobObjectAssociateCompletionPortInformation = 7;
+        private const int WAIT_TIMEOUT = 258;
+        private const uint JOB_OBJECT_MSG_NONE = 0;
         private const uint JOB_OBJECT_MSG_ACTIVE_PROCESS_ZERO = 4;
         private const uint JOB_OBJECT_MSG_NEW_PROCESS = 6;
         private const uint JOB_OBJECT_MSG_EXIT_PROCESS = 7;

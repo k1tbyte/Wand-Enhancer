@@ -46,14 +46,19 @@ namespace WandEnhancer.Core
         }
 
         /// <summary>
-        /// Clears the fuse in a running process. False when the image does not look like the one
-        /// <see cref="FindStateRva"/> measured, or the write was refused.
+        /// Clears the fuse in a running process.
         /// </summary>
-        public static bool ClearIn(IntPtr process, long stateRva)
+        /// <param name="problem">
+        /// Why it did not happen, phrased for the log. Every failure here reaches a user as
+        /// "Wand opens but nothing works", and a bare false leaves nobody anything to act on.
+        /// </param>
+        public static bool ClearIn(IntPtr process, long stateRva, out string problem)
         {
-            IntPtr imageBase = GetImageBase(process);
+            problem = null;
+            IntPtr imageBase = ProcessInfo.GetImageBase(process);
             if (imageBase == IntPtr.Zero)
             {
+                problem = "it has no image base yet";
                 return false;
             }
 
@@ -62,6 +67,7 @@ namespace WandEnhancer.Core
 
             if (!ReadProcessMemory(process, start, block, block.Length, out int read) || read != block.Length)
             {
+                problem = $"its memory could not be read (win32 error {Marshal.GetLastWin32Error()})";
                 return false;
             }
 
@@ -72,6 +78,7 @@ namespace WandEnhancer.Core
                 block[SentinelLength] != SupportedWireVersion ||
                 block[SentinelLength + 1] < MinFuseCount)
             {
+                problem = "the fuse block is not where the file on disk said it would be";
                 return false;
             }
 
@@ -83,33 +90,19 @@ namespace WandEnhancer.Core
             var target = new IntPtr(imageBase.ToInt64() + stateRva);
             if (!VirtualProtectEx(process, target, (UIntPtr)1, PAGE_READWRITE, out uint previous))
             {
+                problem = $"the page could not be made writable (win32 error {Marshal.GetLastWin32Error()})";
                 return false;
             }
 
             bool written = WriteProcessMemory(process, target, new[] { StateRemoved }, 1, out _);
-            VirtualProtectEx(process, target, (UIntPtr)1, previous, out _);
-            return written;
-        }
-
-        /// <summary>
-        /// Read out of the PEB rather than the module list: a process that has only just been
-        /// created - or one still suspended, which is where the main process is patched - has no
-        /// module list yet, but the kernel fills in the image base before the first instruction.
-        /// </summary>
-        private static IntPtr GetImageBase(IntPtr process)
-        {
-            var info = new PROCESS_BASIC_INFORMATION();
-            if (NtQueryInformationProcess(process, ProcessBasicInformation, ref info,
-                    Marshal.SizeOf(info), out _) != 0 || info.PebBaseAddress == IntPtr.Zero)
+            if (!written)
             {
-                return IntPtr.Zero;
+                // Taken before the protection is restored, which would overwrite the error.
+                problem = $"the write was refused (win32 error {Marshal.GetLastWin32Error()})";
             }
 
-            var buffer = new byte[IntPtr.Size];
-            var address = new IntPtr(info.PebBaseAddress.ToInt64() + PebImageBaseOffset);
-            return ReadProcessMemory(process, address, buffer, buffer.Length, out int read) && read == buffer.Length
-                ? new IntPtr(BitConverter.ToInt64(buffer, 0))
-                : IntPtr.Zero;
+            VirtualProtectEx(process, target, (UIntPtr)1, previous, out _);
+            return written;
         }
 
         private static long FindStateOffset(Stream stream)
@@ -207,24 +200,6 @@ namespace WandEnhancer.Core
 
         private const int SectionEntrySize = 40;
         private const uint PAGE_READWRITE = 0x04;
-        private const int ProcessBasicInformation = 0;
-        private const int PebImageBaseOffset = 0x10;
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct PROCESS_BASIC_INFORMATION
-        {
-            public IntPtr ExitStatus;
-            public IntPtr PebBaseAddress;
-            public IntPtr AffinityMask;
-            public IntPtr BasePriority;
-            public IntPtr UniqueProcessId;
-            public IntPtr InheritedFromUniqueProcessId;
-        }
-
-        [DllImport("ntdll.dll")]
-        private static extern int NtQueryInformationProcess(
-            IntPtr hProcess, int processInformationClass, ref PROCESS_BASIC_INFORMATION processInformation,
-            int processInformationLength, out int returnLength);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool ReadProcessMemory(

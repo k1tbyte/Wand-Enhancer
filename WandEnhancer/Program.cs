@@ -55,7 +55,7 @@ namespace WandEnhancer
             string myDir = Path.GetDirectoryName(myExe);
             string forwardedArgs = args.Length > 0 ? QuoteArguments(args) : null;
 
-            LauncherLog.Open(myDir, $"WandEnhancer {Constants.Version} | {myExe}" +
+            LauncherLog.Open(myDir, $"WandEnhancer {Constants.Version} build {Constants.Build} | {myExe}" +
                                     (forwardedArgs == null ? "" : $" | args {forwardedArgs}"));
 
             if (args.Length > 0 &&

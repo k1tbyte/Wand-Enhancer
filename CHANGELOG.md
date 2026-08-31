@@ -20,6 +20,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 ### Fixes
 
 - Fixed the in-game overlay never appearing after enhancing, while Wand itself looked healthy. Wand creates the process that draws the overlay when a game starts, minutes or hours after launch, and only the startup processes were being covered - that one shut down the instant it opened the patched files, so nothing ever drew the overlay.
+- Fixed the patch missing the processes Wand starts on slower machines, which left Wand on a black window with a dead overlay. Windows announces a process before it has finished creating it, and one attempt at that moment could arrive too early; the launcher now keeps trying for a second.
 - Fixed the "Buy Pro" banner still showing after a successful patch, and Pro not activating on newer clients.
 - Fixed the Enhancer closing itself when any button was pressed. #184
 - A failed patch now puts your original Wand files back instead of leaving a half-patched install behind. Packing also builds the archive beside the old one and swaps it in at the end, so a failure can no longer destroy `app.asar`. #221
@@ -42,7 +43,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Improvements
 
-- When Wand fails to start, the Enhancer window now opens by itself with the reason already in the log, instead of leaving you to find a log file. The same lines are still written to a `launcher.log` next to the launcher: every process Electron starts and whether the patch reached it, plus exit and crash codes.
+- When Wand fails to start, the Enhancer window now opens by itself with the reason already in the log, instead of leaving you to find a log file. The same lines are still written to a `launcher.log` next to the launcher: every process Electron starts and whether the patch reached it, plus exit and crash codes. Each line now names what the process is - renderer, gpu-process, network service - and a failed attempt says what stopped it, so a log alone is enough to tell a dead overlay from a dead client. The header carries the commit the build came from, which tells two builds of one version apart.
 - Log messages in the desktop app are now translated into all 12 supported languages.
 - The remote panel is now usable with a keyboard and a screen reader: dialogs trap focus and close on Escape, and controls have accessible names. Pinning a mod previously required a swipe and had no keyboard path at all, so mod rows now have a pin button.
 

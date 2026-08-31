@@ -67,6 +67,7 @@
         <Compile Include="Core\Enhancer.cs" />
         <Compile Include="Core\EnhancerConfig.cs" />
         <Compile Include="Core\ElectronFuse.cs" />
+    <Compile Include="Core\ProcessInfo.cs" />
         <Compile Include="Core\FuseLauncher.cs" />
         <Compile Include="Core\LauncherLog.cs" />
         <Compile Include="Core\JavaScriptPatchApplier.cs" />
@@ -167,6 +168,30 @@
         <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
       </PropertyGroup>
       <Error Condition="!Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.2.0.41\build\ILRepack.props'))" />
+    </Target>
+
+    <!-- Which commit a binary was built from. AssemblyVersion is pinned to the release tag, so
+         every candidate for one version reports the same number, and everyone builds their own
+         binary. Empty when there is no git to ask, which Constants reports as unofficial. -->
+    <Target Name="StampBuild" BeforeTargets="CoreCompile">
+        <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; describe --always --dirty --match=nothing 2&gt;nul"
+              ConsoleToMSBuild="true" ContinueOnError="true"
+              StandardOutputImportance="low" IgnoreStandardErrorWarningFormat="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="BuildStamp" />
+            <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
+        </Exec>
+
+        <PropertyGroup>
+            <BuildStamp Condition="'$(GitExitCode)' != '0'"></BuildStamp>
+            <BuildStampFile>$(IntermediateOutputPath)BuildStamp.cs</BuildStampFile>
+        </PropertyGroup>
+
+        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                          Lines="namespace WandEnhancer { internal static class BuildStamp { public const string Value = &quot;$(BuildStamp)&quot;%3B } }" />
+
+        <ItemGroup>
+            <Compile Include="$(BuildStampFile)" />
+        </ItemGroup>
     </Target>
 
     <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
