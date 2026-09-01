@@ -559,7 +559,10 @@ namespace WandEnhancer.Core
                 File.Delete(stubBackup);
             }
 
-            foreach (var leftover in new[] { Constants.AutoPatchConfigFileName, LauncherLog.FileName })
+            foreach (var leftover in new[]
+                     {
+                         Constants.AutoPatchConfigFileName, LauncherLog.FileName, LauncherLog.PreviousFileName
+                     })
             {
                 string path = Path.Combine(squirrelRoot, leftover);
                 if (File.Exists(path))

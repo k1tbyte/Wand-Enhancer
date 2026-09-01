@@ -55,7 +55,10 @@ namespace WandEnhancer
             string myDir = Path.GetDirectoryName(myExe);
             string forwardedArgs = args.Length > 0 ? QuoteArguments(args) : null;
 
-            LauncherLog.Open(myDir, $"WandEnhancer {Constants.Version} build {Constants.Build} | {myExe}" +
+            var patchConfig = Enhancer.LoadAutoPatchConfig(myDir);
+
+            LauncherLog.Open(myDir, $"WandEnhancer {Constants.Version} build {Constants.Build} | " +
+                                    $"patches {DescribePatches(patchConfig)} | {myExe}" +
                                     (forwardedArgs == null ? "" : $" | args {forwardedArgs}"));
 
             if (args.Length > 0 &&
@@ -88,7 +91,7 @@ namespace WandEnhancer
 
             // A fresh Wand version drops our patches; re-apply the saved selection automatically.
             // On failure fall through to the UI so the user sees which patch broke.
-            if (!isPatched && !TryAutoPatch(config, myDir))
+            if (!isPatched && !TryAutoPatch(config, patchConfig))
                 return false;
 
             // RecordStartupLog, not LauncherLog.Write: whatever the launcher says has to survive
@@ -144,9 +147,22 @@ namespace WandEnhancer
             return quoted.Append('\\', backslashes * 2).Append('"').ToString();
         }
 
-        private static bool TryAutoPatch(WeModConfig config, string launcherDir)
+        /// <summary>
+        /// Which patches the last patch run saved. A report then says what was applied and not
+        /// only which build applied it - two installs on one build behave nothing alike when one
+        /// carries the remote panel and the other does not. Unrecorded when auto-patch is off,
+        /// which is the only case where nothing on disk remembers the selection.
+        /// </summary>
+        private static string DescribePatches(PatchConfig patchConfig)
         {
-            var patchConfig = Enhancer.LoadAutoPatchConfig(launcherDir);
+            if (patchConfig?.PatchTypes == null)
+                return "unrecorded";
+
+            return patchConfig.PatchTypes.Count == 0 ? "none" : string.Join(",", patchConfig.PatchTypes);
+        }
+
+        private static bool TryAutoPatch(WeModConfig config, PatchConfig patchConfig)
+        {
             if (patchConfig == null)
                 return true; // nothing saved to replay; launch as-is
 

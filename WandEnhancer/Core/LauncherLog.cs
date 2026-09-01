@@ -13,6 +13,7 @@ namespace WandEnhancer.Core
     internal static class LauncherLog
     {
         public const string FileName = "launcher.log";
+        public const string PreviousFileName = "launcher.prev.log";
         private const long MaxBytes = 512 * 1024;
 
         private static string _path;
@@ -21,15 +22,18 @@ namespace WandEnhancer.Core
         {
             try
             {
-                var file = new FileInfo(Path.Combine(launcherDirectory, FileName));
-                // Dropped whole rather than trimmed: the session being diagnosed is the last
-                // one, and keeping half a rotated file is not worth the code.
+                string path = Path.Combine(launcherDirectory, FileName);
+                var file = new FileInfo(path);
+                // Rotated whole rather than trimmed. One generation is kept because the run
+                // worth reading is often the one before the restart that rolled the file.
                 if (file.Exists && file.Length > MaxBytes)
                 {
-                    file.Delete();
+                    string previous = Path.Combine(launcherDirectory, PreviousFileName);
+                    File.Delete(previous);
+                    file.MoveTo(previous);
                 }
 
-                _path = file.FullName;
+                _path = path;
                 Write($"=== {DateTime.Now:yyyy-MM-dd} {header}", ELogType.Info);
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException ||
