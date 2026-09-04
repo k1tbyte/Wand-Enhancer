@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using AsarSharp;
 using WandEnhancer.Models;
@@ -32,6 +33,20 @@ namespace WandEnhancer.Core
         private const string JavaScriptFileSearchPattern = "*.js";
         private const string DuplicateScriptSuffix = ".custom";
         private const int FirstDuplicateScriptIndex = 1;
+
+        // Electron fuse wire, see https://github.com/electron/fuses. The proxy DLL used to
+        // rely on patching this in-memory at runtime, but on some Electron builds nothing
+        // ever triggers the LoadLibrary("version.dll") call early enough (or at all) in the
+        // browser process before the asar integrity check runs, so the in-memory patch never
+        // takes effect and Wand fatally crashes on launch ("Integrity check failed for asar
+        // archive"). Patching the fuse directly in the exe on disk sidesteps that timing
+        // dependency entirely: the flag is already off before the process even starts.
+        private const string FuseSentinel = "dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX";
+        private const int FuseSupportedVersion = 1;
+        private const int FuseMinWireLength = 5;
+        private const int FuseAsarIntegrityValidationIndex = 4;
+        private const byte FuseStateRemoved = (byte)'r';
+        private const string ExecutableBackupFileName = "{0}.orig";
 
         private readonly WeModConfig _weModConfig;
         private readonly Action<string, ELogType> _logger;
@@ -418,6 +433,92 @@ namespace WandEnhancer.Core
             _logger($"[ENHANCER] Injected remote panel assets and renderer scripts into app.asar (default: {defaultScriptCount}, selected: {selectedScriptCount}, local: {localScriptCount})", ELogType.Info);
         }
 
+        private void PatchAsarIntegrityFuse()
+        {
+            string exePath = _weModConfig.ExecutablePath;
+            string backupPath = string.Format(ExecutableBackupFileName, exePath);
+
+            if (!File.Exists(backupPath))
+            {
+                _logger("[ENHANCER] Backing up original executable...", ELogType.Info);
+                File.Copy(exePath, backupPath);
+            }
+            else
+            {
+                _logger("[ENHANCER] Restoring pristine executable before patching fuse...", ELogType.Info);
+                File.Copy(backupPath, exePath, true);
+            }
+
+            byte[] exeBytes = File.ReadAllBytes(exePath);
+            byte[] sentinel = Encoding.ASCII.GetBytes(FuseSentinel);
+
+            int sentinelOffset = IndexOfBytes(exeBytes, sentinel);
+            if (sentinelOffset < 0)
+            {
+                throw new Exception("[ENHANCER] Could not locate Electron fuse wire in the executable. The version may not be supported.");
+            }
+
+            int wireOffset = sentinelOffset + sentinel.Length;
+            byte version = exeBytes[wireOffset];
+            byte wireLength = exeBytes[wireOffset + 1];
+
+            if (version != FuseSupportedVersion)
+            {
+                throw new Exception($"[ENHANCER] Unsupported Electron fuse wire version: {version}.");
+            }
+
+            if (wireLength < FuseMinWireLength || FuseAsarIntegrityValidationIndex >= wireLength)
+            {
+                throw new Exception("[ENHANCER] Electron fuse wire is too short to contain the asar integrity flag.");
+            }
+
+            int fuseOffset = wireOffset + 2 + FuseAsarIntegrityValidationIndex;
+
+            using (var stream = new FileStream(exePath, FileMode.Open, FileAccess.Write, FileShare.None))
+            {
+                stream.Seek(fuseOffset, SeekOrigin.Begin);
+                stream.WriteByte(FuseStateRemoved);
+            }
+
+            _logger("[ENHANCER] Disabled asar integrity validation fuse directly in the executable", ELogType.Success);
+        }
+
+        private static int IndexOfBytes(byte[] haystack, byte[] needle)
+        {
+            if (needle.Length == 0 || haystack.Length < needle.Length)
+            {
+                return -1;
+            }
+
+            byte first = needle[0];
+            int lastPossible = haystack.Length - needle.Length;
+
+            for (int i = 0; i <= lastPossible; i++)
+            {
+                if (haystack[i] != first)
+                {
+                    continue;
+                }
+
+                bool match = true;
+                for (int j = 1; j < needle.Length; j++)
+                {
+                    if (haystack[i + j] != needle[j])
+                    {
+                        match = false;
+                        break;
+                    }
+                }
+
+                if (match)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         private void AttachProxyDll()
         {
             var assembly = Assembly.GetExecutingAssembly();
@@ -499,7 +600,16 @@ namespace WandEnhancer.Core
             }
             
             AttachProxyDll();
-            
+
+            try
+            {
+                PatchAsarIntegrityFuse();
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"[ENHANCER] Failed to disable asar integrity validation: {e.Message}");
+            }
+
             _logger("[ENHANCER] Done!", ELogType.Success);
         }
     }
