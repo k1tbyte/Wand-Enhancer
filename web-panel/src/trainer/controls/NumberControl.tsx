@@ -1,30 +1,74 @@
-import { type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 
 import { cn } from '@/shared/lib/ui';
 
 import { formatInputNumber, numericValue, stripNumberGrouping } from './format-number';
-import { StepButton, type ControlInternalProps } from './shared';
+import { type ControlInternalProps, STEPPER_SHELL_CLASS, StepButton } from './shared';
+import { snapToStep } from './step';
 
 const NUMBER_STEP_GRID = 'grid-cols-[48px_minmax(0,1fr)_48px]';
 
 export const NumberControl = ({ cheat, value, disabled, onChange }: ControlInternalProps) => {
-  const step = cheat.args.step ?? 1;
-  const currentValue = numericValue(value, 0);
-  const handleInput = (event: FormEvent<HTMLInputElement>) => onChange(stripNumberGrouping(event.currentTarget.value));
-  const decrement = () => onChange(Math.max(cheat.args.min ?? Number.NEGATIVE_INFINITY, currentValue - step));
-  const increment = () => onChange(Math.min(cheat.args.max ?? Number.POSITIVE_INFINITY, currentValue + step));
+    const step = cheat.args.step ?? 1;
+    const currentValue = numericValue(value, 0);
+    // While focused the raw text is authoritative, otherwise formatting would eat the
+    // decimal point in "0." and re-group digits under the caret as the user types.
+    const [draft, setDraft] = useState<string | null>(null);
 
-  return (
-    <div className={cn('grid h-[38px] w-full items-stretch overflow-hidden rounded-[10px] border border-white/10 bg-white/[0.055] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl', NUMBER_STEP_GRID)}>
-      <StepButton border="right" disabled={disabled} icon="minus" onClick={decrement} />
-      <input
-        type="text"
-        value={formatInputNumber(value)}
-        disabled={disabled}
-        className="min-w-0 bg-transparent px-2 text-center font-mono text-[15px] font-semibold tabular-nums text-(--deck-fg) outline-none disabled:opacity-50"
-        onInput={handleInput}
-      />
-      <StepButton border="left" disabled={disabled} icon="plus" onClick={increment} />
-    </div>
-  );
+    const handleInput = (event: FormEvent<HTMLInputElement>) => {
+        const raw = event.currentTarget.value;
+        setDraft(raw);
+        // Half-typed values like "-" parse to NaN; wait for a finite number.
+        const parsed = stripNumberGrouping(raw);
+        if (parsed && Number.isFinite(Number(parsed))) onChange(parsed);
+    };
+
+    const commit = (next: number) => {
+        setDraft(null);
+        onChange(next);
+    };
+
+    const decrement = () =>
+        commit(
+            snapToStep(
+                Math.max(cheat.args.min ?? Number.NEGATIVE_INFINITY, currentValue - step),
+                step,
+            ),
+        );
+    const increment = () =>
+        commit(
+            snapToStep(
+                Math.min(cheat.args.max ?? Number.POSITIVE_INFINITY, currentValue + step),
+                step,
+            ),
+        );
+
+    return (
+        <div className={cn(STEPPER_SHELL_CLASS, NUMBER_STEP_GRID)}>
+            <StepButton
+                border="right"
+                disabled={disabled}
+                icon="minus"
+                label={`Decrease ${cheat.name}`}
+                onClick={decrement}
+            />
+            <input
+                type="text"
+                inputMode="decimal"
+                aria-label={cheat.name}
+                value={draft ?? formatInputNumber(value)}
+                disabled={disabled}
+                className="min-w-0 bg-transparent px-2 text-center font-mono text-[15px] font-semibold tabular-nums text-(--deck-fg) outline-none disabled:opacity-50"
+                onInput={handleInput}
+                onBlur={() => setDraft(null)}
+            />
+            <StepButton
+                border="left"
+                disabled={disabled}
+                icon="plus"
+                label={`Increase ${cheat.name}`}
+                onClick={increment}
+            />
+        </div>
+    );
 };

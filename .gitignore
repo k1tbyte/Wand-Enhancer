@@ -134,6 +134,7 @@ dist
 ./WandEnhancer/bin/
 ./AsarSharp/obj/
 ./AsarSharp/bin/
+**/..out/
 .idea
 packages
 */bin/
@@ -146,3 +147,5 @@ appsettings.json
 .tmp
 .source
 web-panel/bridge/wand-remote-bridge.cjs
+.vscode
+docs

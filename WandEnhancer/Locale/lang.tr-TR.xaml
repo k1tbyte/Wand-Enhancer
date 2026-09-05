@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Klasör yolu</s:String>
     <s:String x:Key="mw_folder_not_found">Klasör bulunamadı</s:String>
     <s:String x:Key="mw_patch">Uygula</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Seçilen .js dosyaları Wand içine paketlenir ve renderer'da yüklenir.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Betik seçilmedi</s:String>
     <s:String x:Key="pv_start">Başlat</s:String>
+    <s:String x:Key="pv_auto_apply">Güncellemelerden sonra otomatik uygula</s:String>
     <s:String x:Key="pv_popup_title">Neyi geliştireceğiz?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">WeMod dizini {0} konumunda bulundu ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod zaten yamanmış. Tekrar yamamak istiyorsanız, lütfen önce yedeği geri yükleyin.</s:String>
+    <s:String x:Key="log_ready">Yama işlemi için hazır.</s:String>
+    <s:String x:Key="log_install_not_found">WeMod dizini bulunamadı.</s:String>
+    <s:String x:Key="log_no_directory">İşlem yapılamıyor. Lütfen önce dizini belirtin.</s:String>
+    <s:String x:Key="log_invalid_directory">Seçilen {0} klasörü geçerli bir WeMod dizini değil.</s:String>
+    <s:String x:Key="log_restore_failed">Yedek geri yüklenemedi: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Yama yapılamadı: {0}</s:String>
+    <s:String x:Key="log_copied">Günlükler panoya kopyalandı.</s:String>
+    <s:String x:Key="log_copy_failed">Günlükler kopyalanamadı: {0}</s:String>
+    <s:String x:Key="log_exported">Günlükler {0} konumuna dışa aktarıldı.</s:String>
+    <s:String x:Key="log_export_failed">Günlükler dışa aktarılamadı: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">{0} bir tarayıcıda açılamadı.</s:String>
+    <s:String x:Key="dialog_pick_install">WeMod dizinini seçin</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

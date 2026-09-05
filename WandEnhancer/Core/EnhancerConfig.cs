@@ -1,105 +1,41 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using WandEnhancer.Core.Js;
 using WandEnhancer.Models;
 
 namespace WandEnhancer.Core
 {
-    public static class EnhancerConfig
+    /// <summary>
+    /// Anchors patches on stable API names and resolves renamed identifiers within each method.
+    /// </summary>
+    internal static class EnhancerConfig
     {
-        public class ResolveContext
-        {
-            public string Placeholder { get; set; }
-            public Func<string, string> Handler { get; set; }
-        }
+        /// <summary>Locates the edits a patch must make, or null when the anchor is absent from this file.</summary>
+        public delegate JsEdit[] PatchLocator(JsCursor js);
 
-        public class PatchEntry
+        public sealed class PatchEntry
         {
-            public Regex Target { get; set; }
-            public string Patch { get; set; }
-            public Func<Match, string> PatchFactory { get; set; }
             public string Name { get; set; }
-            public bool Applied { get; set; }
-            public bool SingleMatch { get; set; } = true;
+            public PatchLocator Locate { get; set; }
             public string[] CandidateFileNames { get; set; }
             public string[] SearchHints { get; set; }
-            public ResolveContext Resolver { get; set; }
-        }
 
-        private static string RequireGroup(Match match, string groupName, string patchName)
-        {
-            var group = match.Groups[groupName];
-            if (!group.Success || string.IsNullOrEmpty(group.Value))
-            {
-                throw new Exception($"{patchName} failed to resolve {groupName}");
-            }
+            /// <summary>Marks the patch optional: builds without these strings lack the feature entirely.</summary>
+            public string[] CapabilityHints { get; set; }
 
-            return group.Value;
-        }
+            public bool Applied { get; set; }
+            public bool CapabilityDetected { get; set; }
 
-        private static string RequirePattern(string source, string pattern, string groupName, string patchName)
-        {
-            var match = Regex.Match(source, pattern, RegexOptions.Singleline);
-            return RequireGroup(match, groupName, patchName);
-        }
+            public bool IsOptional => CapabilityHints != null && CapabilityHints.Length > 0;
 
-        private static string BuildSetAccountLanguagePatch(Match match)
-        {
-            var parameters = RequireGroup(match, "params", "setAccountLanguage");
-            var expr = RequireGroup(match, "expr", "setAccountLanguage");
-            return $"setAccountLanguage({parameters}){{return ({expr}).then(response=>{{response&&\"object\"==typeof response&&(response.subscription={{period:\"yearly\",state:\"active\"}});return response;}})}}";
-        }
-
-        private static string BuildSetAccountReducerPatch(Match match)
-        {
-            var decl = RequireGroup(match, "decl", "setAccountReducer");
-            var fn = RequireGroup(match, "fn", "setAccountReducer");
-            var parameters = RequireGroup(match, "params", "setAccountReducer");
-            var state = RequireGroup(match, "state", "setAccountReducer");
-            var account = RequireGroup(match, "account", "setAccountReducer");
-            return
-                $"const {decl}=\"ACTION_SET_ACCOUNT\";function {fn}({parameters}){{const a={account}&&\"object\"==typeof {account}?{{...{account},subscription:{{period:\"yearly\",state:\"active\"}}}}:{account};return{{...{state},account:a}}}}";
-        }
-
-        private static string BuildRemoteBridgeResetPatch(Match match)
-        {
-            var source = match.Value;
-            var method = RequireGroup(match, "method", "remoteBridgeReset");
-            var disposableField = RequirePattern(source, @"this\.(?<disposable>#[\w$]+)\s*&&\s*\(\s*this\.\k<disposable>\.dispose\(\)", "disposable", "remoteBridgeReset");
-            var instanceField = RequirePattern(source, @"this\.(?<instance>#[\w$]+)\s*=\s*Date\.now\(\)\.toString\(\)", "instance", "remoteBridgeReset");
-            var trainerIdField = RequirePattern(source, @"Date\.now\(\)\.toString\(\)\s*\)?\s*,\s*\(?\s*this\.(?<trainerId>#[\w$]+)\s*=\s*null", "trainerId", "remoteBridgeReset");
-            var supportedVersionsField = RequirePattern(source, @"this\.(?<versions>#[\w$]+)\s*=\s*\[\]", "versions", "remoteBridgeReset");
-            var trainerField = RequirePattern(source, @"this\.(?<versions>#[\w$]+)\s*=\s*\[\]\s*\)?\s*,\s*\(?\s*this\.(?<trainer>#[\w$]+)\s*=\s*null", "trainer", "remoteBridgeReset");
-
-            return $"{method}(){{this.{disposableField}&&(this.{disposableField}.dispose(),this.{disposableField}=null),this.{instanceField}=Date.now().toString(),this.{trainerIdField}=null,this.{supportedVersionsField}=[],this.{trainerField}=null,this.__wandRemoteTrainerInfo=null,this.__wandRemoteBridge?.sync(null)}}";
-        }
-
-        private static string BuildRemoteBridgeSyncSnapshotPatch(Match match)
-        {
-            var source = match.Value;
-            var method = RequireGroup(match, "method", "remoteBridgeSyncSnapshot");
-            var statusAlias = RequirePattern(source, @"this\.status\s*===\s*(?<value>[\w$]+)\.Connected", "value", "remoteBridgeSyncSnapshot");
-            var trainerField = RequirePattern(source, @"this\.(?<trainer>#[\w$]+)\?\.\s*getMetadata\s*\(\s*(?<metadata>[\w$]+\.[\w$]+)\s*\)\?\.\s*gameVersion", "trainer", "remoteBridgeSyncSnapshot");
-            var metadataExport = RequirePattern(source, @"this\.(?<trainer>#[\w$]+)\?\.\s*getMetadata\s*\(\s*(?<metadata>[\w$]+\.[\w$]+)\s*\)\?\.\s*gameVersion", "metadata", "remoteBridgeSyncSnapshot");
-            var notesField = RequirePattern(source, @"this\.(?<notes>#[\w$]+)\s*\[\s*this\.(?<trainerId>#[\w$]+)\s*\?\?\s*""""\s*\]", "notes", "remoteBridgeSyncSnapshot");
-            var trainerIdField = RequirePattern(source, @"this\.(?<notes>#[\w$]+)\s*\[\s*this\.(?<trainerId>#[\w$]+)\s*\?\?\s*""""\s*\]", "trainerId", "remoteBridgeSyncSnapshot");
-            var gameField = RequirePattern(source, @"this\.(?<game>#[\w$]+)\s*&&.*?getPreferredInstallationInfo\s*\(\s*this\.\k<game>\s*\)", "game", "remoteBridgeSyncSnapshot");
-            var installationField = RequirePattern(source, @"this\.(?<game>#[\w$]+)\s*&&.*?this\.(?<installation>#[\w$]+)\.getPreferredInstallationInfo\s*\(\s*this\.\k<game>\s*\)", "installation", "remoteBridgeSyncSnapshot");
-            var supportedVersionsField = RequirePattern(source, @"!\s*this\.(?<versions>#[\w$]+)\.includes\s*\(\s*[\w$]+\.version\s*\)", "versions", "remoteBridgeSyncSnapshot");
-            var remoteChannelField = RequirePattern(source, @"this\.(?<remote>#[\w$]+)\?\.\s*send\s*\(\s*""client-state""", "remote", "remoteBridgeSyncSnapshot");
-            var valuesMethod = RequirePattern(source, @"values\s*:\s*this\.(?<values>#[\w$]+)\s*\(\s*\)", "values", "remoteBridgeSyncSnapshot");
-            var instanceField = RequirePattern(source, @"instanceId\s*:\s*this\.(?<instance>#[\w$]+)", "instance", "remoteBridgeSyncSnapshot");
-            var themeField = RequirePattern(source, @"themeId\s*:\s*this\.(?<theme>#[\w$]+)", "theme", "remoteBridgeSyncSnapshot");
-            var settingsHelper = RequirePattern(source, @"settings\s*:\s*(?<settings>[\w$]+)\s*\(\s*this\.settings\s*\)", "settings", "remoteBridgeSyncSnapshot");
-            var languageField = RequirePattern(source, @"language\s*:\s*this\.(?<language>#[\w$]+)", "language", "remoteBridgeSyncSnapshot");
-            var timerField = RequirePattern(source, @"isTimeLimitExpired\s*:\s*""expired""\s*===\s*this\.(?<timer>#[\w$]+)\.timerState", "timer", "remoteBridgeSyncSnapshot");
-
-            return $"{method}(){{let e,t=!1,s=this.{trainerField}?.getMetadata({metadataExport})?.gameVersion??null,o=!1;const n=this.{notesField}[this.{trainerIdField}??\"\"]||null;this.{gameField}&&(e=this.{installationField}.getPreferredInstallationInfo(this.{gameField}),e.app&&(t=!0,s??=e.version??null,o=\"number\"==typeof e.version&&!this.{supportedVersionsField}.includes(e.version)));this.status==={statusAlias}.Connected&&this.{remoteChannelField}?.send(\"client-state\",{{instanceId:this.{instanceField},trainerId:this.{trainerIdField},trainerLoading:this.{trainerField}?.isLoading(),gameInstalled:t,gameVersion:s,needsCompatibilityWarning:o,values:this.{valuesMethod}(),themeId:this.{themeField},settings:{settingsHelper}(this.settings),language:this.{languageField},accountUuid:this.account.uuid,notesReadHash:n,isTimeLimitExpired:\"expired\"===this.{timerField}.timerState}});this.__wandRemoteBridge?.sync({{instanceId:this.{instanceField},trainerId:this.{trainerIdField},trainerInfo:this.__wandRemoteTrainerInfo??null,metadata:this.{trainerField}?.getMetadata({metadataExport})??null,trainerLoading:this.{trainerField}?.isLoading()??false,gameInstalled:t,gameVersion:s,needsCompatibilityWarning:o,language:this.{languageField},themeId:this.{themeField},notesReadHash:n,isTimeLimitExpired:\"expired\"===this.{timerField}.timerState,values:this.{valuesMethod}()}})}}";
+            /// <summary>True once the patch is applied, or once a scan proved the feature is absent.</summary>
+            public bool IsResolved => Applied || (IsOptional && !CapabilityDetected);
         }
 
         public static Dictionary<EPatchType, PatchEntry[]> GetInstance()
         {
-            return new Dictionary<EPatchType, PatchEntry[]>()
+            return new Dictionary<EPatchType, PatchEntry[]>
             {
                 {
                     EPatchType.ActivatePro,
@@ -107,80 +43,38 @@ namespace WandEnhancer.Core
                     {
                         new PatchEntry
                         {
-                            SearchHints = new[] { "getUserAccount()", "/v3/account" },
-                            Resolver = new ResolveContext
-                            {
-                                Handler = (targetFunction) =>
-                                {
-                                    var fetchMatch = Regex.Match(targetFunction, @"return\s+this\.#(\w+)\.fetch");
-                                    return fetchMatch.Success ? fetchMatch.Groups[1].Value : null;
-                                },
-                                Placeholder = "<service_name>"
-                            },
                             Name = "getUserAccount",
-                            Target = new Regex(@"getUserAccount\(\)\{.*?return\s+this\.#\w+\.fetch\(\{.*?\}\)\}",
-                                RegexOptions.Singleline),
-                            Patch =
-                                "getUserAccount(){return this.#<service_name>.fetch({endpoint:\"/v3/account\",method:\"GET\",name:\"/v3/account\",collectMetrics:0}).then(response=>{response.subscription={period:\"yearly\",state:\"active\"};return response;})}"
+                            SearchHints = new[] { "getUserAccount(" },
+                            Locate = js => ForceProSubscription(js, "getUserAccount")
                         },
                         new PatchEntry
                         {
-                            SearchHints = new[] { "setAccountWandBrandExperience()", "/v3/account/brand_experience_wand" },
-                            Resolver = new ResolveContext
-                            {
-                                Handler = (targetFunction) =>
-                                {
-                                    var match = Regex.Match(targetFunction, @"return\s+this\.#(\w+)\.post");
-                                    return match.Success ? match.Groups[1].Value : null;
-                                },
-                                Placeholder = "<service_name>"
-                            },
                             Name = "setAccountWandBrandExperience",
-                            Target = new Regex(
-                                @"setAccountWandBrandExperience\(\)\{.*?return\s+this\.#\w+\.post\(""/v3/account/brand_experience_wand""\)\}",
-                                RegexOptions.Singleline),
-                            Patch =
-                                "setAccountWandBrandExperience(){return this.#<service_name>.post(\"/v3/account/brand_experience_wand\").then(response=>{response.subscription={period:\"yearly\",state:\"active\"};return response;})}"
+                            SearchHints = new[] { "setAccountWandBrandExperience(" },
+                            CapabilityHints = new[] { "/v3/account/brand_experience_wand" },
+                            Locate = js => ForceProSubscription(js, "setAccountWandBrandExperience")
                         },
                         new PatchEntry
                         {
-                            // Account-returning endpoint the original patches missed: changing
-                            // language dispatches its (non-Pro) response into the store and
-                            // wiped Pro. Wrap the result the same way. Param names are captured
-                            // so the rewritten body keeps the real argument identifiers.
+                            // Language changes replace the account in the store.
                             Name = "setAccountLanguage",
-                            SearchHints = new[] { "setAccountLanguage(", "/v3/account/language" },
-                            Target = new Regex(
-                                @"setAccountLanguage\((?<params>[^)]*)\)\{\s*return\s+(?<expr>this\.#\w+\.post\(""/v3/account/language"",\{[^}]*\}\))\s*;?\s*\}",
-                                RegexOptions.Singleline),
-                            PatchFactory = BuildSetAccountLanguagePatch
+                            SearchHints = new[] { "setAccountLanguage(" },
+                            Locate = js => ForceProSubscription(js, "setAccountLanguage")
                         },
                         new PatchEntry
                         {
-                            // Last-resort guard: any code path that dispatches ACTION_SET_ACCOUNT
-                            // (periodic refreshAccount, push updates, profile edits, etc.) must keep
-                            // subscription on the store object even when it bypasses the account API
-                            // service methods patched above.
+                            // Covers account writes that bypass the API wrappers.
                             Name = "setAccountReducer",
                             SearchHints = new[] { "ACTION_SET_ACCOUNT" },
-                            Target = new Regex(
-                                @"const (?<decl>\w+)=""ACTION_SET_ACCOUNT"";function (?<fn>\w+)\((?<params>[^)]*)\)\{return\{\.\.\.(?<state>\w+),account:(?<account>\w+)\}\}",
-                                RegexOptions.Singleline),
-                            PatchFactory = BuildSetAccountReducerPatch
+                            Locate = LocateAccountReducer
                         },
                         new PatchEntry
                         {
-                            // Wand's native "connect phone" pairing (POST /v3/auth/remote_code)
-                            // triggers a server-side device handoff that deauthorizes this desktop
-                            // session - the reported "entered the mobile activation key and got
-                            // signed out" bug. Neutralize the code issuer so native pairing can
-                            // never start. The injected remote panel is independent of this flow
-                            // (IPC bridge, not Wand's Pusher pairing) and keeps working. The
-                            // rejection is swallowed by the caller's try/catch (renders no code).
+                            // Native phone pairing signs out the patched desktop session.
                             Name = "disableNativeRemotePairing",
-                            SearchHints = new[] { "requestRemoteAuthCode", "/v3/auth/remote_code" },
-                            Target = new Regex(@"requestRemoteAuthCode\(\)\{return this\.#[\w$]+\.post\(""/v3/auth/remote_code""\)\}"),
-                            Patch = "requestRemoteAuthCode(){return Promise.reject(new Error(\"wand-enhancer: native mobile pairing disabled\"))}"
+                            SearchHints = new[] { "requestRemoteAuthCode" },
+                            Locate = js => Edits(js.FindFunction("requestRemoteAuthCode")?
+                                .ReplaceBody(PatchPayload.Load("disable-native-pairing")))
                         }
                     }
                 },
@@ -188,15 +82,12 @@ namespace WandEnhancer.Core
                     EPatchType.DisableUpdates,
                     new[]
                     {
-                        // Regex consumes 4 closing parens (`)))) `); the 5th (registerHandler's own close)
-                        // remains in the original file after replacement. Patch must end with 3 parens — NOT 4.
                         new PatchEntry
                         {
+                            Name = "disableUpdateCheck",
                             CandidateFileNames = new[] { "index.js" },
                             SearchHints = new[] { "ACTION_CHECK_FOR_UPDATE" },
-                            Target = new Regex(@"registerHandler\(""ACTION_CHECK_FOR_UPDATE"".*?\)\)\)\)",
-                                RegexOptions.Singleline),
-                            Patch = "registerHandler(\"ACTION_CHECK_FOR_UPDATE\",(e=>expectUpdateFeedUrl(e,(e=>null)))"
+                            Locate = LocateUpdateHandler
                         }
                     }
                 },
@@ -206,18 +97,11 @@ namespace WandEnhancer.Core
                     {
                         new PatchEntry
                         {
+                            // Electron's main-process API is more stable than the renderer dispatcher.
                             Name = "devToolsBeforeInputEvent",
                             CandidateFileNames = new[] { "index.js" },
                             SearchHints = new[] { "whenReady().then(" },
-                            // Anchor on the Electron main-process `<app>.whenReady().then(`
-                            // call. This site is far more stable than the minified renderer
-                            // keydown listener that previously held the F12 -> ACTION_OPEN_DEV_TOOLS
-                            // dispatch (its identifiers and shape change on every Wand release).
-                            // We attach a `before-input-event` hook to every BrowserWindow's
-                            // webContents which toggles DevTools on F12 directly from the main
-                            // process, bypassing the renderer dispatcher entirely.
-                            Target = new Regex(@"(?<app>\w+)\.whenReady\(\)\.then\("),
-                            Patch = "${app}.on(\"browser-window-created\",((_,w)=>{try{w.webContents.on(\"before-input-event\",((_,i)=>{if(\"F12\"===i.key&&\"keyDown\"===i.type){w.webContents.isDevToolsOpened()?w.webContents.closeDevTools():w.webContents.openDevTools({mode:\"detach\"})}}))}catch(e){}})),${app}.whenReady().then("
+                            Locate = LocateDevToolsHook
                         }
                     }
                 },
@@ -230,53 +114,292 @@ namespace WandEnhancer.Core
                             Name = "remoteBridgeMainBoot",
                             CandidateFileNames = new[] { "index.js" },
                             SearchHints = new[] { "whenReady().then(run)" },
-                            Target = new Regex(@"(?<app>\w+)\.whenReady\(\)\.then\(run\)"),
-                            Patch = "${app}.whenReady().then(()=>{try{const p=require(\"node:path\");require(p.join(__dirname,\"remote-panel\",\"bridge.cjs\")).installWandRuntime(require(\"electron\"));}catch(e){try{const fs=require(\"node:fs\"),os=require(\"node:os\"),p=require(\"node:path\");fs.appendFileSync(p.join(os.tmpdir(),\"wand-remote-bridge.log\"),\"[\"+new Date().toISOString()+\"] [boot-error] \"+(e&&e.stack||e)+\"\\n\");}catch(_){}}return run()})"
+                            Locate = LocateBridgeBoot
                         },
                         new PatchEntry
                         {
                             Name = "remoteBridgeReset",
                             SearchHints = new[] { "client-state" },
-                            Target = new Regex(@"(?<method>#[\w$]+)\(\)\s*\{\s*(?<body>(?:(?!__wandRemoteBridge|}\s*#[\w$]+\(\)).)*?Date\.now\(\)\.toString\(\)(?:(?!__wandRemoteBridge|}\s*#[\w$]+\(\)).)*?\[\](?:(?!__wandRemoteBridge|}\s*#[\w$]+\(\)).)*?)\s*\}\s*(?=#[\w$]+\(\)\s*\{\s*if\s*\(\s*this\.status\s*===\s*[\w$]+\.Connected\s*\).*?""client-state"")",
-                                RegexOptions.Singleline),
-                            PatchFactory = BuildRemoteBridgeResetPatch
+                            Locate = LocateBridgeReset
                         },
                         new PatchEntry
                         {
                             Name = "remoteBridgeSyncSnapshot",
                             SearchHints = new[] { "client-state" },
-                            Target = new Regex(@"(?<method>#[\w$]+)\(\)\s*\{\s*if\s*\(\s*this\.status\s*===\s*[\w$]+\.Connected\s*\)\s*\{(?<body>.*?""client-state"".*?isTimeLimitExpired\s*:\s*""expired""\s*===\s*this\.\#[\w$]+\.timerState.*?\)\s*;?\s*\)?\s*;?)\s*\}\s*\}(?=\s*#[\w$]+\(\)\s*\{\s*if\s*\(\s*!this\.\#[\w$]+\?\.\s*isActive\(\)\s*\)\s*return\s*null)",
-                                RegexOptions.Singleline),
-                            PatchFactory = BuildRemoteBridgeSyncSnapshotPatch
+                            Locate = LocateBridgeSync
                         },
                         new PatchEntry
                         {
-                            // Inject the bridge init + setHandler right after the method's opening
-                            // brace; the rest of setCurrentTrainer is left untouched. Only `${trainer}`
-                            // (active-trainer field) and `${remoteSource}` (value-source enum, taken
-                            // via lookahead from the sole `e.source!==` site) vary between builds and
-                            // are resolved from the match — nothing is hardcoded.
                             Name = "remoteBridgeBindHandler",
-                            SearchHints = new[] { "client-state" },
-                            Target = new Regex(@"(?<head>setCurrentTrainer\(e,t=null\)\{)(?=const s=e\?\.trainerId\|\|null,i=\(s\?e\?\.gameId:null\)\|\|null,n=\(s\?e\?\.supportedVersions:null\)\|\|\[\];if\(s===this\.#[\w$]+&&t===this\.(?<trainer>#[\w$]+)\)return;)(?=.*?e\.source!==(?<remoteSource>[\w$]+\.[\w$]+\.Remote))",
-                                RegexOptions.Singleline),
-                            Patch = "${head}this.__wandRemoteBridge||(this.__wandRemoteBridge=(()=>{try{const r=globalThis.require||require;const{ipcRenderer:c}=r(\"electron\");try{c.invoke(\"wand-remote-url\").then((u=>{u&&(globalThis.__wandRemoteBridgeUrl=u)}))}catch(e){}const send=(ch,p)=>{try{return c.invoke(ch,p&&JSON.parse(JSON.stringify(p)))}catch(e){}};return{sync:(s)=>send(\"wand-remote-sync\",s),valueChanged:(s)=>send(\"wand-remote-value-changed\",s),setHandler:(h)=>{if(this.__wandRemoteBridgeBound)return;this.__wandRemoteBridgeBound=true;try{c.invoke(\"wand-remote-set-handler-bind\")}catch(e){}c.on(\"wand-remote-set-value\",(_e,req)=>{try{h(req)}catch(e){}})}}}catch(e){try{const r=globalThis.require||require,fs=r(\"node:fs\"),os=r(\"node:os\"),p=r(\"node:path\");fs.appendFileSync(p.join(os.tmpdir(),\"wand-remote-bridge.log\"),\"[\"+new Date().toISOString()+\"] [renderer-bind-error] \"+(e&&e.stack||e)+\"\\n\");}catch(_){}return null}})());this.__wandRemoteBridge?.setHandler((e=>{if(!this.${trainer}||!e?.target)return!1;return this.${trainer}.isActive()?this.${trainer}.setValue(e.target,e.value,${remoteSource},e.cheatId):!1}));this.__wandRemoteTrainerInfo=e??null;"
+                            SearchHints = new[] { "setCurrentTrainer(" },
+                            Locate = LocateBridgeBindHandler
                         },
                         new PatchEntry
                         {
-                            // Pure insertion: splice one `valueChanged` bridge call in after the
-                            // existing `client-value-changed` send, before the onValueSet callback
-                            // closes. Resolves no private names — `${head}`/`${tail}` carry the
-                            // original text verbatim. trainerId is omitted from the payload;
-                            // bridge-state falls back to the active snapshot trainer.
                             Name = "remoteBridgeValueDelta",
                             SearchHints = new[] { "client-value-changed" },
-                            Target = new Regex(@"(?<head>#[\w$]+\(e,t\)\{t\.push\(e\.onValueSet\(e=>\{this\.status===[\w$]+\.Connected&&e\.source!==[\w$]+\.[\w$]+\.Remote&&this\.#[\w$]+\?\.send\(""client-value-changed"",\{instanceId:this\.#[\w$]+,name:e\.name,value:e\.value,cheatId:e\.cheatId\}\))(?<tail>\}\)\),this\.#[\w$]+\(\)\})"),
-                            Patch = "${head},this.__wandRemoteBridge?.valueChanged({target:e.name,value:e.value,oldValue:e.oldValue,source:String(e.source??\"desktop\"),cheatId:e.cheatId})${tail}"
+                            Locate = LocateBridgeValueDelta
                         }
                     }
                 }
             };
         }
+
+        /// <summary>Wraps the account-returning promise so the resolved account always reports an active subscription.</summary>
+        private static JsEdit[] ForceProSubscription(JsCursor js, string methodName)
+        {
+            return Edits(js.FindFunction(methodName)?.WrapReturn(PatchPayload.Load("pro-subscription")));
+        }
+
+        private static JsEdit[] LocateAccountReducer(JsCursor js)
+        {
+            int anchor = js.IndexOf("\"ACTION_SET_ACCOUNT\"");
+            var reducer = anchor < 0 ? null : js.FindFunctionAfter(anchor);
+            if (reducer == null)
+            {
+                return null;
+            }
+
+            // ${account} is a regex back-reference, not a PatchPayload placeholder.
+            return Edits(reducer.ReplaceInBody(
+                @"account:\s*(?<account>[\w$]+)",
+                PatchPayload.Load("pro-account-reducer")));
+        }
+
+        private static JsEdit[] LocateUpdateHandler(JsCursor js)
+        {
+            int callOpen = js.FindCall("registerHandler", "\"ACTION_CHECK_FOR_UPDATE\"");
+            if (callOpen < 0)
+            {
+                return null;
+            }
+
+            return Edits(new JsEdit(callOpen + 1, js.MatchClose(callOpen), PatchPayload.Load("disable-updates")));
+        }
+
+        private static JsEdit[] LocateDevToolsHook(JsCursor js)
+        {
+            var match = WhenReady.Match(js.Text);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var payload = PatchPayload.Load("devtools-f12", "app", match.Groups["app"].Value);
+            return Edits(new JsEdit(match.Index, match.Index, payload));
+        }
+
+        private static JsEdit[] LocateBridgeBoot(JsCursor js)
+        {
+            var match = WhenReadyThenRun.Match(js.Text);
+            if (!match.Success)
+            {
+                return null;
+            }
+
+            var payload = PatchPayload.Load("remote-bridge-boot", "app", match.Groups["app"].Value);
+            return Edits(new JsEdit(match.Index, match.Index + match.Length, payload));
+        }
+
+        /// <summary>Clears the bridge alongside the session fields the reset method already nulls out.</summary>
+        private static JsEdit[] LocateBridgeReset(JsCursor js)
+        {
+            var sync = FindClientStateMethod(js);
+            var reset = sync == null ? null : js.FunctionEndingAt(js.SkipWhitespaceBack(sync.Start - 1));
+            if (reset == null || reset.Body.IndexOf("Date.now()", StringComparison.Ordinal) < 0)
+            {
+                return null;
+            }
+
+            return Edits(reset.InsertAtEnd(PatchPayload.Load("remote-bridge-reset")));
+        }
+
+        /// <summary>Copies Wand's client-state fields without depending on their names or order.</summary>
+        private static JsEdit[] LocateBridgeSync(JsCursor js)
+        {
+            int sendOpen = js.FindCall("send", "\"client-state\"");
+            if (sendOpen < 0)
+            {
+                return null;
+            }
+
+            var method = js.EnclosingFunction(sendOpen);
+            int snapshotOpen = js.IndexOf("{", sendOpen);
+            int snapshotClose = js.MatchClose(snapshotOpen);
+            if (method == null || snapshotOpen < 0 || snapshotClose < 0)
+            {
+                throw new Exception("client-state payload object could not be located");
+            }
+
+            // Remove the trailing comma before appending bridge fields.
+            string snapshot = js.Text.Substring(snapshotOpen + 1, snapshotClose - snapshotOpen - 1)
+                .Trim()
+                .TrimEnd(',');
+
+            var payload = PatchPayload.Load(
+                "remote-bridge-sync",
+                "snapshot", snapshot,
+                "trainer", method.Resolve(@"this\.(?<trainer>#[\w$]+)\s*\?\.\s*getMetadata", "trainer"),
+                "metadata", method.Resolve(@"getMetadata\(\s*(?<metadata>[\w$]+\.[\w$]+)\s*\)", "metadata"));
+
+            var edits = new List<JsEdit> { new JsEdit(js.MatchClose(sendOpen) + 1, payload) };
+            edits.AddRange(HoistConnectedGuard(js, sendOpen));
+            return edits.ToArray();
+        }
+
+        /// <summary>
+        /// Moves the connection guard onto Wand's send so local bridge snapshots remain unconditional.
+        /// </summary>
+        private static IEnumerable<JsEdit> HoistConnectedGuard(JsCursor js, int sendOpen)
+        {
+            int blockOpen = js.EnclosingOpener(sendOpen, '{');
+            int closeParen = blockOpen < 0 ? -1 : js.SkipWhitespaceBack(blockOpen - 1);
+            if (closeParen < 0 || js.Text[closeParen] != ')')
+            {
+                yield break;
+            }
+
+            var stack = js.OpenerStack(closeParen);
+            if (stack.Count == 0 || js.NameBefore(stack[0]) != "if")
+            {
+                yield break;
+            }
+
+            int openParen = stack[0];
+            string test = js.Text.Substring(openParen + 1, closeParen - openParen - 1);
+
+            // Preserve unrelated conditions and any else branch.
+            if (test.IndexOf("this.status", StringComparison.Ordinal) < 0 || HasElseBranch(js, blockOpen))
+            {
+                yield break;
+            }
+
+            int guardStart = js.SkipWhitespaceBack(openParen - 1) - 1;
+
+            int calleeStart = sendOpen;
+            while (calleeStart > 0 && IsCalleeChar(js.Text[calleeStart - 1]))
+            {
+                calleeStart--;
+            }
+
+            yield return new JsEdit(calleeStart, calleeStart, $"({test})&&");
+            yield return new JsEdit(guardStart, blockOpen, string.Empty);
+        }
+
+        private static bool HasElseBranch(JsCursor js, int blockOpen)
+        {
+            int afterBlock = js.SkipWhitespaceForward(js.MatchClose(blockOpen) + 1);
+            return string.CompareOrdinal(js.Text, afterBlock, "else", 0, 4) == 0;
+        }
+
+        private static JsEdit[] LocateBridgeBindHandler(JsCursor js)
+        {
+            var method = js.FindFunction("setCurrentTrainer");
+            if (method == null)
+            {
+                return null;
+            }
+
+            var receiveOpen = js.FindCall("listen", "\"client-value-changed\"");
+            var receive = receiveOpen < 0 ? null : js.EnclosingFunction(receiveOpen);
+            if (receive == null)
+            {
+                throw new Exception("Remote value listener could not be located");
+            }
+
+            string handler = receive.Resolve(
+                @"listen\(\s*""client-value-changed""\s*,\s*\(?\s*[\w$]+\s*\)?\s*=>\s*this\.(?<handler>#[\w$]+)\(",
+                "handler");
+            var handlerMethod = js.FindFunction(handler);
+            if (handlerMethod == null)
+            {
+                throw new Exception("Remote value handler could not be located");
+            }
+
+            var setValue = MatchExactlyOnce(RemoteSetValue, handlerMethod.Body, "Remote setValue call");
+            var parameter = MatchExactlyOnce(
+                new Regex(@"setCurrentTrainer\(\s*(?<info>[\w$]+)"),
+                js.Text.Substring(method.Start, method.BodyOpen - method.Start),
+                "Trainer info parameter");
+
+            return Edits(method.InsertAtStart(PatchPayload.Load(
+                "remote-bridge-renderer",
+                "trainer", setValue.Groups["trainer"].Value,
+                "trainerInfo", parameter.Groups["info"].Value,
+                "remoteSource", setValue.Groups["source"].Value)));
+        }
+
+        private static JsEdit[] LocateBridgeValueDelta(JsCursor js)
+        {
+            int sendOpen = js.FindCall("send", "\"client-value-changed\"");
+            if (sendOpen < 0)
+            {
+                return null;
+            }
+
+            var subscription = js.EnclosingFunction(sendOpen);
+            var snapshot = FindClientStateMethod(js);
+            if (subscription == null || snapshot == null ||
+                subscription.Body.IndexOf(".onValueSet(", StringComparison.Ordinal) < 0)
+            {
+                throw new Exception("Trainer value subscription could not be located");
+            }
+
+            // Capture at subscription time so a late callback cannot impersonate the next trainer.
+            string trainerId = snapshot.Resolve(@"trainerId:\s*(?<id>this\.#[\w$]+)", "id");
+            string change = subscription.Resolve(@"name:\s*(?<change>[\w$]+)\.name", "change");
+            var callback = Regex.Match(subscription.Body,
+                @"\.onValueSet\(\s*\(?\s*" + Regex.Escape(change) + @"\s*\)?\s*=>\s*\{");
+            if (!callback.Success)
+            {
+                throw new Exception("Trainer value callback could not be located");
+            }
+
+            return new[]
+            {
+                subscription.InsertAtStart(PatchPayload.Load("remote-bridge-value-subscription", "trainerId", trainerId)),
+                new JsEdit(subscription.BodyOpen + 1 + callback.Index + callback.Length,
+                    PatchPayload.Load("remote-bridge-value-delta", "change", change))
+            };
+        }
+
+        private static JsFunction FindClientStateMethod(JsCursor js)
+        {
+            int sendOpen = js.FindCall("send", "\"client-state\"");
+            return sendOpen < 0 ? null : js.EnclosingFunction(sendOpen);
+        }
+
+        private static JsEdit[] Edits(JsEdit edit)
+        {
+            return edit == null ? null : new[] { edit };
+        }
+
+        private static bool IsCalleeChar(char value)
+        {
+            return char.IsLetterOrDigit(value) || value == '_' || value == '$' || value == '#'
+                   || value == '.' || value == '?';
+        }
+
+        /// <summary>Match that must be unambiguous: zero or several hits mean an unsupported build.</summary>
+        private static Match MatchExactlyOnce(Regex pattern, string text, string what)
+        {
+            var match = pattern.Match(text);
+            if (!match.Success)
+            {
+                throw new Exception($"{what} could not be located");
+            }
+
+            if (match.NextMatch().Success)
+            {
+                throw new Exception($"{what} matched more than once; cannot tell which call site is the right one");
+            }
+
+            return match;
+        }
+
+        private static readonly Regex WhenReady = new Regex(@"(?<app>[\w$]+)\.whenReady\(\)\.then\(");
+        private static readonly Regex WhenReadyThenRun = new Regex(@"(?<app>[\w$]+)\.whenReady\(\)\.then\(run\)");
+        private static readonly Regex RemoteSetValue =
+            new Regex(@"this\.(?<trainer>#[\w$]+)\.setValue\(\s*(?<change>[\w$]+)\.name\s*,\s*\k<change>\.value\s*,\s*(?<source>[^,]+?)\s*,");
     }
 }

@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">フォルダパス</s:String>
     <s:String x:Key="mw_folder_not_found">フォルダが見つかりません</s:String>
     <s:String x:Key="mw_patch">適用</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">選択した .js ファイルは Wand に組み込まれ、レンダラーで読み込まれます。</s:String>
     <s:String x:Key="pv_no_custom_scripts">スクリプトが選択されていません</s:String>
     <s:String x:Key="pv_start">開始</s:String>
+    <s:String x:Key="pv_auto_apply">更新後に自動適用</s:String>
     <s:String x:Key="pv_popup_title">何を改善しますか？</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">WeModディレクトリが {0} ({1}) に見つかりました</s:String>
+    <s:String x:Key="log_already_patched">WeModは既にパッチが適用されています。もう一度パッチを適用する場合は、まずバックアップを復元してください。</s:String>
+    <s:String x:Key="log_ready">パッチ適用の準備ができました。</s:String>
+    <s:String x:Key="log_install_not_found">WeModディレクトリが見つかりません。</s:String>
+    <s:String x:Key="log_no_directory">実行できません。先にディレクトリを指定してください。</s:String>
+    <s:String x:Key="log_invalid_directory">選択したフォルダ {0} は有効なWeModディレクトリではありません。</s:String>
+    <s:String x:Key="log_restore_failed">バックアップの復元に失敗しました: {0}</s:String>
+    <s:String x:Key="log_patch_failed">パッチの適用に失敗しました: {0}</s:String>
+    <s:String x:Key="log_copied">ログをクリップボードにコピーしました。</s:String>
+    <s:String x:Key="log_copy_failed">ログのコピーに失敗しました: {0}</s:String>
+    <s:String x:Key="log_exported">ログを {0} にエクスポートしました。</s:String>
+    <s:String x:Key="log_export_failed">ログのエクスポートに失敗しました: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">{0} をブラウザで開くことができませんでした。</s:String>
+    <s:String x:Key="dialog_pick_install">WeModディレクトリを選択してください</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

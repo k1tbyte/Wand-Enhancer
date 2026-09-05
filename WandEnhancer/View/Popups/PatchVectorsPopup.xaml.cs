@@ -7,13 +7,13 @@ using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using WandEnhancer.Models;
+using WandEnhancer.Utils;
 
 namespace WandEnhancer.View.Popups
 {
     public partial class PatchVectorsPopup : UserControl
     {
         private const string JavaScriptDialogFilter = "JavaScript files (*.js)|*.js";
-        private const string JavaScriptFileExtension = ".js";
 
         private readonly Action<PatchConfig> _onApply;
         private readonly ObservableCollection<SelectedScript> _selectedScripts = new ObservableCollection<SelectedScript>();
@@ -40,7 +40,7 @@ namespace WandEnhancer.View.Popups
                 return;
             }
 
-            foreach (var path in dialog.FileNames.Where(IsJavaScriptFile))
+            foreach (var path in dialog.FileNames.Where(WeModInstalls.IsJavaScriptFile))
             {
                 AddScript(path);
             }
@@ -99,7 +99,7 @@ namespace WandEnhancer.View.Popups
             {
                 PatchTypes = result,
                 CustomScriptPaths = _selectedScripts.Select(script => script.FullPath).ToList(),
-                AutoApplyPatches = false
+                AutoApplyAfterUpdate = AutoApplyBox.IsChecked == true
             });
         }
 
@@ -112,11 +112,6 @@ namespace WandEnhancer.View.Popups
             }
 
             _selectedScripts.Add(new SelectedScript(fullPath));
-        }
-
-        private static bool IsJavaScriptFile(string path)
-        {
-            return File.Exists(path) && string.Equals(Path.GetExtension(path), JavaScriptFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         private void UpdateScriptsEmptyState()

@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Caminho da pasta</s:String>
     <s:String x:Key="mw_folder_not_found">Pasta não encontrada</s:String>
     <s:String x:Key="mw_patch">Aplicar</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Os arquivos .js selecionados são empacotados no Wand e carregados no renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Nenhum script selecionado</s:String>
     <s:String x:Key="pv_start">Iniciar</s:String>
+    <s:String x:Key="pv_auto_apply">Aplicar automaticamente após atualizações</s:String>
     <s:String x:Key="pv_popup_title">O que vamos melhorar?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">Diretório do WeMod encontrado em {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">O WeMod já foi modificado. Se quiser modificar novamente, restaure o backup primeiro.</s:String>
+    <s:String x:Key="log_ready">Pronto para modificar.</s:String>
+    <s:String x:Key="log_install_not_found">Diretório do WeMod não encontrado.</s:String>
+    <s:String x:Key="log_no_directory">Não é possível fazer isso. Por favor, especifique o diretório primeiro.</s:String>
+    <s:String x:Key="log_invalid_directory">A pasta selecionada {0} não é um diretório válido do WeMod.</s:String>
+    <s:String x:Key="log_restore_failed">Falha ao restaurar o backup: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Falha ao modificar: {0}</s:String>
+    <s:String x:Key="log_copied">Logs copiados para a área de transferência.</s:String>
+    <s:String x:Key="log_copy_failed">Falha ao copiar logs: {0}</s:String>
+    <s:String x:Key="log_exported">Logs exportados para {0}.</s:String>
+    <s:String x:Key="log_export_failed">Falha ao exportar logs: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Não foi possível abrir {0} no navegador.</s:String>
+    <s:String x:Key="dialog_pick_install">Selecione o diretório do WeMod</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

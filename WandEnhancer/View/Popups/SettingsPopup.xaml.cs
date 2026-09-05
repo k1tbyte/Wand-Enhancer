@@ -16,6 +16,13 @@ namespace WandEnhancer.View.Popups
         {
             InitializeComponent();
             LoadLanguages();
+#if ENABLE_UPDATE_NOTIFICATIONS
+            var savedSettings = SettingsManager.LoadSettings();
+            UpdateCheckCheckBox.IsChecked = savedSettings?.CheckUpdates ?? true;
+            CheckPrereleasesCheckBox.IsChecked = savedSettings?.CheckPrereleases ?? false;
+#else
+            UpdateCheckRows.Visibility = Visibility.Collapsed;
+#endif
         }
 
         private void LoadLanguages()
@@ -49,14 +56,21 @@ namespace WandEnhancer.View.Popups
 
         private void OnSaveClick(object sender, RoutedEventArgs e)
         {
-            if (_selectedLanguage != null && 
-                (LocalizationManager.CurrentLanguage == null || 
+            if (_selectedLanguage != null &&
+                (LocalizationManager.CurrentLanguage == null ||
                  _selectedLanguage.Name != LocalizationManager.CurrentLanguage.Name))
             {
                 LocalizationManager.CurrentLanguage = _selectedLanguage;
             }
-            
-            MainWindow.MainWindow.Instance.ClosePopup();
+
+#if ENABLE_UPDATE_NOTIFICATIONS
+            // CurrentLanguage already saved the merged settings; persist the checkbox on top.
+            var settings = SettingsManager.LoadSettings() ?? new AppSettings();
+            settings.CheckUpdates = UpdateCheckCheckBox.IsChecked == true;
+            settings.CheckPrereleases = CheckPrereleasesCheckBox.IsChecked == true;
+            SettingsManager.SaveSettings(settings);
+#endif
+            MainWindow.MainWindow.Instance?.ClosePopup();
         }
 
         private class LanguageItem

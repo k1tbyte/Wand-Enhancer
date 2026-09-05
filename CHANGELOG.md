@@ -3,16 +3,86 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.0.0.0] - 2026-09-05
+
+### Important
+
+- The bundled `version.dll` proxy is gone. The launcher now starts Wand and keeps the patch applied in every process Electron spawns, for as long as Wand runs. This is what fixes Wand refusing to launch after enhancing on related issues: #207 #210 #211 #213 #214 #217
+- The native helper and its CMake build step were removed. Building from source no longer needs `CMake` or the Visual Studio C++ workload.
+- WandEnhancer now installs itself as the Wand launcher entry point, so starting Wand goes through the patcher. Restoring a backup puts the original launcher back.
+
+### Features
+
+- **Auto-patch after Wand updates.** Enable *Auto-apply after updates* in the patch dialog and your selection is saved next to the launcher. When Wand updates and drops the patches, the next launch re-applies them. On failure the UI opens and shows which patch broke instead of silently starting an unpatched client.
+- **Rewritten patch engine with legacy version support.** Patches are located structurally instead of by regex signature: each anchors on something Wand does not rename between builds. A client rebuild that only re-minifies no longer breaks patching, and older clients keep working. #178 #186
+- **Opt-in update notifications.** The manual build workflow can compile in a GitHub release check that runs when Wand starts. When compiled in, the check is on by default and can be turned off with a checkbox in Settings, with a second checkbox to also notify about pre-releases (off by default). A new release shows a native Windows notification and a badge next to the window title, and clicking either opens the release notes in the patcher (the release page when only the launcher is running). It never downloads or installs anything, and builds without the option contain none of the checker or network code. #220
+- A patch whose feature is missing from your client is now reported as skipped instead of failing the whole run, and failures name the patch that broke.
+
+### Fixes
+
+- Fixed Remote Panel values changed in Wand desktop not syncing back to the panel. Renderer events now carry the trainer ID captured when subscribing, so late events from an old trainer are still rejected. #277
+- Fixed Remote Play failing on stable Wand builds whose trainer launch module exposes fewer companion exports than beta builds.
+- Fixed stopping a trainer incorrectly ending a separately monitored game session while the game was still running.
+- Fixed drawer search losing keyboard focus after every keystroke.
+- Fixed accidental slider changes while scrolling on a phone. Sliders now require an intentional horizontal drag and include an editable numeric value. #277
+- Fixed the tile swipe-to-pin gesture stealing slider drags, and numeric inputs sending half-typed values like a lone minus sign to the trainer.
+- Fixed native memory read/write byte counts using 32-bit types in the x64 launcher and process diagnostics.
+- Fixed failed patches still reporting the restored installation as patched. Incomplete patch state is now tracked separately while preserving backups for retry or Restore, and Restore remains available in that state.
+- Fixed the in-game overlay never appearing after enhancing, while Wand itself looked healthy. Wand creates the process that draws the overlay when a game starts, minutes or hours after launch, and only the startup processes were being covered - that one shut down the instant it opened the patched files, so nothing ever drew the overlay.
+- Fixed the patch missing the processes Wand starts on slower machines, which left Wand on a black window with a dead overlay. Windows announces a process before it has finished creating it, and one attempt at that moment could arrive too early; the launcher now keeps trying for a second.
+- Fixed the "Buy Pro" banner still showing after a successful patch, and Pro not activating on newer clients.
+- Fixed the Enhancer closing itself when any button was pressed. #184
+- A failed patch now puts your original Wand files back instead of leaving a half-patched install behind. Initial backups and packed archives are built beside their final paths and moved into place only when complete, so an interrupted copy or pack can no longer be mistaken for a valid backup or destroy `app.asar`. #221
+- Fixed patching and *Restore* both failing with "Access to the path is denied" after the first successful patch. Copying carried the read-only flag from the patcher onto the launcher it installs, and then refused to overwrite what it had written - so running WandEnhancer straight out of the downloaded `.zip`, which Windows marks read-only, broke every later run. #214
+- Fixed a half-written backup reporting the installation as patched, which blocked patching and restore at the same time.
+- Fixed invalid ASAR integrity metadata produced from short reads, which could yield an archive the client rejects. #170
+- Fixed the packer missing source size changes that happen after crawling but before the file is streamed, which could corrupt later archive offsets.
+- Fixed the packer silently dropping files it could not read, for example while Wand was still running.
+- Fixed archive tree lookups resolving the wrong parent and creating phantom directories in the header.
+- Fixed hangs on symlink cycles and directory junctions while reading or packing an archive.
+- Fixed the language switcher leaking a resource dictionary on every switch. #164
+- Fixed *Restore* freezing the window while it ran.
+- Fixed Squirrel install and update arguments breaking when the Windows user profile path contains spaces.
+- Fixed a latent crash path from a patch type that had no configuration entry. #172
+- Remote panel: fixed a blank page when the interface translations failed to load.
+- Remote panel: fixed number inputs eating the decimal point while typing, and steppers drifting on fractional steps.
+- Remote panel: fixed the increment control refusing to step from a value outside its option list.
+- Remote panel: fixed endless two-second reconnect attempts, and reconnecting again after you disconnected on purpose.
+- Remote panel: fixed installed-game updates not arriving when only the install location changed.
+- Remote panel: fixed value writes silently doing nothing when the client bound to the bridge before it was ready.
+
+### Improvements
+
+- When Wand fails to start, the Enhancer window now opens by itself with the reason already in the log, instead of leaving you to find a log file. The same lines are still written to a `launcher.log` next to the launcher: every process Electron starts and whether the patch reached it, plus exit and crash codes. Each line now names what the process is - renderer, gpu-process, network service - and a failed attempt says what stopped it, so a log alone is enough to tell a dead overlay from a dead client. The header carries the commit the build came from and the patches that were applied, which tells two builds of one version apart and two installs of one build apart. The log now keeps one previous generation as `launcher.prev.log` instead of dropping it, so the run before a restart is still there to read.
+- Log messages in the desktop app are now translated into all 12 supported languages.
+- The remote panel is now usable with a keyboard and a screen reader: dialogs trap focus and close on Escape, and controls have accessible names. Pinning a mod previously required a swipe and had no keyboard path at all, so mod rows now have a pin button.
+
+### Security and Privacy
+
+- The panel's static file server now resolves every request inside the panel directory.
+- The local bridge enforces the WebSocket framing rules required of a server (RFC 6455).
+- Late trainer events naming a different trainer no longer overwrite the active trainer's values.
+
+### Maintenance
+
+- Builds now run web regression tests, desktop backup/rollback and native-signature checks, and structural patch fixtures in prettified and minified forms. A local harness also checks original extracted Wand bundles without changing them.
+- RC branches now run CI on pushes. Bug reports request the source commit and launcher logs to distinguish candidate builds.
+- Updated web dependencies within their existing major versions and moved the demo/test WebSocket package out of production dependencies.
+- Shortened release-branch comments while preserving patch and launcher invariants.
+- The Electron bridge is now fully type-checked; roughly 200 latent typing gaps were fixed.
+- `build.ps1` and CI now run lint, type-check, and a dist verification step that syntax-checks the bundles and fails when dev-only payloads leak into a production build. CI runs on pull requests and pushes to `master`.
+- Removed dead code: the `version.dll` project, an unused control and converter, and unused Pickle helpers.
+
 ## [1.0.9.4] - 2026-07-21
 
 ### Fixes
 
-- Fixed the Remote Web Panel QR code still opening the official Wand mobile client after Wand changed its bundled QR renderer export. The renderer bridge now resolves the current export without adding a fragile C# ASAR patch. [Discussion #140](https://github.com/k1tbyte/Wand-Enhancer/discussions/140)
+- Fixed the Remote Web Panel QR code still opening the official Wand mobile client after Wand changed its bundled QR renderer export. The renderer bridge now resolves the current export without adding a fragile C# ASAR patch. #140
 - Fixed Quick Presets reporting that a preset was saved when browser local storage rejected the write. Failed writes now leave the existing preset list unchanged and show an error, and the save dialog now stays above the bottom navigation dock.
-- Fixed the patcher giving up on process termination because it reused a stale process snapshot by @divya0795 in [#145](https://github.com/k1tbyte/Wand-Enhancer/pull/145). Related issue: [#136](https://github.com/k1tbyte/Wand-Enhancer/issues/136)
-- Fixed ASAR extraction path traversal and corrupt Pickle payload allocation by @divya0795 in [#143](https://github.com/k1tbyte/Wand-Enhancer/pull/143).
+- Fixed the patcher giving up on process termination because it reused a stale process snapshot by @divya0795 in #145. Related issue: #136
+- Fixed ASAR extraction path traversal and corrupt Pickle payload allocation by @divya0795 in #143.
 - Fixed backup restore so `app.asar.unpacked` is restored together with `app.asar`, and the injected `version.dll` is removed after a successful restore.
-- Fixed `version.dll` requiring Visual C++ runtime DLLs on some systems by statically linking the runtime. Release builds now reject accidental dynamic VCRUNTIME, MSVCP, or UCRT dependencies. [#128](https://github.com/k1tbyte/Wand-Enhancer/issues/128)
+- Fixed `version.dll` requiring Visual C++ runtime DLLs on some systems by statically linking the runtime. Release builds now reject accidental dynamic VCRUNTIME, MSVCP, or UCRT dependencies. #128
 
 ### Security and Privacy
 

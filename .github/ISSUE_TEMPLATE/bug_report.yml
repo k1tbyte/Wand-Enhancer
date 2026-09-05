@@ -24,7 +24,7 @@ body:
     id: client_version
     attributes:
       label: Client (Wand) version
-      description: What version of the client are you using? (e.g., 9.0.0)
+      description: Include the exact version and stable/beta channel (for example, 12.52.0 stable).
     validations:
       required: true
 
@@ -35,6 +35,29 @@ body:
       description: What version of this tool are you using?
     validations:
       required: true
+
+  - type: textarea
+    id: build_commit
+    attributes:
+      label: Build branch and commit
+      description: Copy the branch and source commit SHA from your Actions run or launcher.log. A version number alone cannot distinguish RC builds. No upstream pull request is needed to build your fork.
+      placeholder: "feature/rc_v_2.0.0.0, commit abc1234"
+    validations:
+      required: true
+
+  - type: textarea
+    id: patch_selection
+    attributes:
+      label: Selected patches and installation state
+      description: List the enabled patches and whether this is a fresh installation, upgrade, automatic re-patch, or Restore.
+    validations:
+      required: true
+
+  - type: textarea
+    id: launcher_logs
+    attributes:
+      label: Launcher logs
+      description: For startup failures, attach launcher.log and launcher.prev.log from the Wand installation root. If absent, say so. Redact personal paths; never include tokens, account storage dumps or executables.
 
   - type: textarea
     id: bug_description

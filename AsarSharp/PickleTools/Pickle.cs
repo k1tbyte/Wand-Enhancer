@@ -28,15 +28,17 @@ namespace AsarSharp.PickleTools
         {
             if (buffer != null)
             {
+                if (buffer.Length < SIZE_UINT32)
+                    throw new ArgumentException("Buffer is too small.", nameof(buffer));
+
                 _header = buffer;
-                _headerSize = buffer.Length - GetPayloadSize();
+                int payloadSize = GetPayloadSize();
+                if (payloadSize > buffer.Length)
+                    throw new ArgumentException("Payload size exceeds buffer length.", nameof(buffer));
+
+                _headerSize = buffer.Length - payloadSize;
                 _capacityAfterHeader = CAPACITY_READ_ONLY;
                 _writeOffset = 0;
-
-                if (_headerSize > buffer.Length)
-                {
-                    _headerSize = 0;
-                }
 
                 if (_headerSize != AlignInt(_headerSize, SIZE_UINT32))
                 {
@@ -86,7 +88,7 @@ namespace AsarSharp.PickleTools
         }
 
 
-        public bool WriteBool(bool value) => WriteInt(value ? 1 : 0);
+
 
         public bool WriteInt(int value)
         {
@@ -121,74 +123,7 @@ namespace AsarSharp.PickleTools
             return true;
         }
 
-        public bool WriteInt64(long value)
-        {
-            const int dataLength = SIZE_INT64;
-            int newSize = _writeOffset + dataLength;
 
-            if (newSize > _capacityAfterHeader)
-            {
-                Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
-            }
-
-            WriteInt64LE(value, _headerSize + _writeOffset);
-            SetPayloadSize(newSize);
-            _writeOffset = newSize;
-            return true;
-        }
-
-
-        public bool WriteUInt64(ulong value)
-        {
-            const int dataLength = SIZE_UINT64;
-            int newSize = _writeOffset + dataLength;
-
-            if (newSize > _capacityAfterHeader)
-            {
-                Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
-            }
-
-            WriteUInt64LE(value, _headerSize + _writeOffset);
-            SetPayloadSize(newSize);
-            _writeOffset = newSize;
-            return true;
-        }
-
-        public bool WriteFloat(float value)
-        {
-            const int dataLength = SIZE_FLOAT;
-            int newSize = _writeOffset + dataLength;
-
-            if (newSize > _capacityAfterHeader)
-            {
-                Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
-            }
-
-            int bits = BitConverter.ToInt32(BitConverter.GetBytes(value), 0);
-            WriteInt32LE(bits, _headerSize + _writeOffset);
-
-            SetPayloadSize(newSize);
-            _writeOffset = newSize;
-            return true;
-        }
-
-        public bool WriteDouble(double value)
-        {
-            const int dataLength = SIZE_DOUBLE;
-            int newSize = _writeOffset + dataLength;
-
-            if (newSize > _capacityAfterHeader)
-            {
-                Resize(Math.Max((int)_capacityAfterHeader * 2, newSize));
-            }
-
-            long bits = BitConverter.DoubleToInt64Bits(value);
-            WriteInt64LE(bits, _headerSize + _writeOffset);
-
-            SetPayloadSize(newSize);
-            _writeOffset = newSize;
-            return true;
-        }
 
         public bool WriteString(string value)
         {
@@ -226,7 +161,13 @@ namespace AsarSharp.PickleTools
             WriteUInt32LE((uint)payloadSize, 0);
         }
 
-        public int GetPayloadSize() => (int)ReadUInt32LE(0);
+        public int GetPayloadSize()
+        {
+            uint size = ReadUInt32LE(0);
+            if (size > int.MaxValue)
+                throw new InvalidOperationException("Payload size exceeds maximum allowed (2GB).");
+            return (int)size;
+        }
 
         private void Resize(int newCapacity)
         {
@@ -275,29 +216,7 @@ namespace AsarSharp.PickleTools
             _header[offset + 3] = (byte)(value >> 24);
         }
 
-        private void WriteInt64LE(long value, int offset)
-        {
-            _header[offset]     = (byte)value;
-            _header[offset + 1] = (byte)(value >> 8);
-            _header[offset + 2] = (byte)(value >> 16);
-            _header[offset + 3] = (byte)(value >> 24);
-            _header[offset + 4] = (byte)(value >> 32);
-            _header[offset + 5] = (byte)(value >> 40);
-            _header[offset + 6] = (byte)(value >> 48);
-            _header[offset + 7] = (byte)(value >> 56);
-        }
 
-        private void WriteUInt64LE(ulong value, int offset)
-        {
-            _header[offset]     = (byte)value;
-            _header[offset + 1] = (byte)(value >> 8);
-            _header[offset + 2] = (byte)(value >> 16);
-            _header[offset + 3] = (byte)(value >> 24);
-            _header[offset + 4] = (byte)(value >> 32);
-            _header[offset + 5] = (byte)(value >> 40);
-            _header[offset + 6] = (byte)(value >> 48);
-            _header[offset + 7] = (byte)(value >> 56);
-        }
 
 
         #endregion
