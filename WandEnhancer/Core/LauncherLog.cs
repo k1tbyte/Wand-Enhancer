@@ -5,10 +5,8 @@ using WandEnhancer.View.MainWindow;
 namespace WandEnhancer.Core
 {
     /// <summary>
-    /// Append-only log written next to the deployed launcher. Launch mode has no window and
-    /// exits as soon as Wand is up, so without this file a "Wand does not start" report
-    /// carries no evidence at all. Every operation swallows its own failure: diagnostics must
-    /// never be the reason Wand fails to launch.
+    /// Append-only log written next to the deployed launcher.
+    /// Diagnostics failures are swallowed so they never prevent Wand from launching.
     /// </summary>
     internal static class LauncherLog
     {
@@ -24,8 +22,7 @@ namespace WandEnhancer.Core
             {
                 string path = Path.Combine(launcherDirectory, FileName);
                 var file = new FileInfo(path);
-                // Rotated whole rather than trimmed. One generation is kept because the run
-                // worth reading is often the one before the restart that rolled the file.
+                // Rotated whole. One previous generation is kept.
                 if (file.Exists && file.Length > MaxBytes)
                 {
                     string previous = Path.Combine(launcherDirectory, PreviousFileName);

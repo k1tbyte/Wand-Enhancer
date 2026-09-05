@@ -25,7 +25,7 @@ export function useRemoteSession() {
     const clientRef = useRef<RemoteSessionClient | null>(null);
     const reconnectTimeoutRef = useRef<number | null>(null);
     const reconnectAttemptRef = useRef(0);
-    // Set when the user disconnects on purpose, so refocus does not silently reconnect.
+    // True if user disconnected intentionally; prevents auto-reconnect on refocus.
     const userDisconnectedRef = useRef(false);
     const connectRef = useRef<() => void>(() => {});
     useEffect(() => {
@@ -45,8 +45,7 @@ export function useRemoteSession() {
             return;
         }
 
-        // Back off: the bridge is usually down because Wand is closed, and a phone
-        // retrying every 2s until the tab is hidden drains the battery for nothing.
+        // Back off to prevent battery drain on phones when the bridge is down.
         const delay = Math.min(
             RECONNECT_BASE_DELAY_MS * 2 ** reconnectAttemptRef.current,
             RECONNECT_MAX_DELAY_MS,

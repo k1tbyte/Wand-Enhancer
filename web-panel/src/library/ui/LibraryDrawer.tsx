@@ -241,8 +241,8 @@ function highlightTitle(title: string, query: string): ReactNode {
     }
 
     const before = title.slice(0, index);
-    const match = title.slice(index, index + query.length);
-    const after = title.slice(index + query.length);
+    const match = title.slice(index, index + normalized.length);
+    const after = title.slice(index + normalized.length);
     return (
         <>
             {before}

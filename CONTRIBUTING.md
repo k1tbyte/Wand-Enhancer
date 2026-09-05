@@ -36,9 +36,9 @@ The project consists of the following main components:
 
 2. Open the solution `Wand-Enhancer.sln` in Visual Studio or JetBrains Rider.
 
-3. Restore NuGet packages.
+3. Install Node.js, pnpm and the .NET Framework 4.8 desktop targeting pack.
 
-4. Build the project.
+4. Run `build.cmd`. It restores dependencies, builds the web panel and WPF app, and runs regression checks.
 
 ## Bug Reports
 
@@ -112,12 +112,27 @@ Suggestions for new features or improvements are welcome! Create an Issue descri
 
 ## Testing
 
-Before submitting a Pull Request, ensure that:
+`build.cmd` runs web lint, type checks, production validation, Vitest, desktop state/interop checks and structural patch fixtures. It does not launch or patch Wand.
 
-1. Your code compiles without errors
-2. You've manually tested the functionality
-3. The patch works with the current version of WeMod
-4. Changes don't break existing functionality
+Run a focused web test from `web-panel` with `pnpm exec vitest run <test-file>`.
+
+After building, validate against an original extracted Wand bundle directory:
+
+```powershell
+.\scripts\test-patch-locators.ps1 -AssemblyPath .\WandEnhancer\bin\Release\WandEnhancer.exe -BundleDirectory .\.source\11.6.0-clean
+```
+
+The locator harness applies patches only to temporary copies and runs `node --check`. Its default synthetic fixtures cover prettified and reminified identifiers separately. Do not commit proprietary extracted bundles.
+
+Before releasing an RC, record the exact commit, Wand version/channel and enabled patches, then manually check:
+
+- Fresh patch, upgrade from the previous Enhancer, failed patch followed by retry, and Restore.
+- Repeated Wand startup and an overlay opened after a game starts later in the session.
+- Wand update followed by automatic re-patching, including a failed re-patch.
+- Remote desktop-to-panel and panel-to-desktop values, trainer switching, reconnect, mobile scrolling and exact slider input.
+- Drawer search with a keyboard and mobile keyboard, Escape and focus restoration.
+
+Use `launcher.log` and `launcher.prev.log` for startup diagnostics. Remove private paths and never share tokens or account storage.
 
 ## License
 

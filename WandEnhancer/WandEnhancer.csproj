@@ -40,6 +40,9 @@
     <PropertyGroup>
         <StartupObject>WandEnhancer.Program</StartupObject>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(EnableUpdateNotifications)' == 'true'">
+        <DefineConstants>$(DefineConstants);ENABLE_UPDATE_NOTIFICATIONS</DefineConstants>
+    </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
           <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -47,6 +50,7 @@
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
+        <Reference Include="System.Drawing" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Reference Include="System.Windows.Forms" />
         <Reference Include="System.Xml" />
         <Reference Include="System.Xaml">
@@ -70,6 +74,10 @@
     <Compile Include="Core\ProcessInfo.cs" />
         <Compile Include="Core\FuseLauncher.cs" />
         <Compile Include="Core\LauncherLog.cs" />
+        <Compile Include="Core\UpdateNotifier.cs" Condition="'$(EnableUpdateNotifications)' == 'true'" />
+        <Compile Include="View\Popups\UpdatePopup.xaml.cs" Condition="'$(EnableUpdateNotifications)' == 'true'">
+          <DependentUpon>UpdatePopup.xaml</DependentUpon>
+        </Compile>
         <Compile Include="Core\JavaScriptPatchApplier.cs" />
         <Compile Include="Core\Js\JsCursor.cs" />
         <Compile Include="Core\Js\JsFunction.cs" />
@@ -119,6 +127,7 @@
         <Page Include="View\Controls\PopupHost.xaml" />
         <Page Include="View\MainWindow\MainWindow.xaml" />
         <Page Include="View\Popups\PatchVectorsPopup.xaml" />
+        <Page Include="View\Popups\UpdatePopup.xaml" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Page Include="View\Popups\SettingsPopup.xaml" />
     </ItemGroup>
     <ItemGroup>

@@ -173,7 +173,7 @@ function hasAllMethods(target, methods) {
     return true;
 }
 
-function getTrainerLaunchRequestCtor(state, webpackRequire) {
+export function getTrainerLaunchRequestCtor(state, webpackRequire) {
     const cache = webpackRequire?.c;
     if (!cache || typeof cache !== 'object') {
         warnMissingOptionalService(
@@ -194,8 +194,7 @@ function getTrainerLaunchRequestCtor(state, webpackRequire) {
         if (
             typeof candidate === 'function' &&
             typeof exports.ZS === 'function' &&
-            typeof exports.jR === 'function' &&
-            typeof exports.UY === 'function'
+            typeof exports.jR === 'function'
         ) {
             clearMissingOptionalServiceWarning(state, 'trainerLaunchRequestCtor');
             return candidate;

@@ -24,29 +24,29 @@
         "bridge:demo": "node ./bridge/dev-server.mjs"
     },
     "dependencies": {
-        "@lingui/core": "^6.3.0",
-        "@lingui/react": "^6.3.0",
-        "preact": "^10.27.2",
-        "ws": "^8.18.3"
+        "@lingui/core": "^6.6.0",
+        "@lingui/react": "^6.6.0",
+        "preact": "^10.29.8"
     },
     "devDependencies": {
         "@biomejs/biome": "2.5.11",
-        "@lingui/babel-plugin-lingui-macro": "^6.3.0",
-        "@lingui/cli": "^6.3.0",
-        "@lingui/format-po": "^6.3.0",
-        "@lingui/vite-plugin": "^6.3.0",
-        "@tailwindcss/vite": "^4.2.1",
+        "@lingui/babel-plugin-lingui-macro": "^6.6.0",
+        "@lingui/cli": "^6.6.0",
+        "@lingui/format-po": "^6.6.0",
+        "@lingui/vite-plugin": "^6.6.0",
+        "@tailwindcss/vite": "^4.3.3",
         "@testing-library/preact": "^3.2.4",
-        "@types/node": "^24.12.0",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
+        "@types/node": "^24.13.3",
+        "@types/react": "^19.2.18",
+        "@types/react-dom": "^19.2.7",
         "@types/ws": "^8.18.1",
         "@vitejs/plugin-react": "^5.2.0",
-        "esbuild": "0.27.7",
+        "esbuild": "0.28.1",
         "jsdom": "^29.1.1",
-        "tailwindcss": "^4.2.1",
+        "tailwindcss": "^4.3.3",
         "typescript": "^5.9.3",
-        "vite": "^7.3.2",
-        "vitest": "^4.1.8"
+        "vite": "^7.3.6",
+        "vitest": "^4.1.11",
+        "ws": "^8.21.3"
     }
 }

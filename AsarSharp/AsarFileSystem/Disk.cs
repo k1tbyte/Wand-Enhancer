@@ -63,8 +63,7 @@ namespace AsarSharp.AsarFileSystem
         }
 
         /// <summary>
-        /// Reads the header fresh every time: an archive is repacked in place during a patch run,
-        /// so a cached header would hand out stale offsets on the next read of the same path.
+        /// Reads the header fresh every time to avoid stale offsets during repacking.
         /// </summary>
         public static Filesystem ReadFilesystemSync(string archivePath)
         {
@@ -128,8 +127,7 @@ namespace AsarSharp.AsarFileSystem
             var buf = new byte[StreamBufferSize];
             var blockBuf = new byte[4 * 1024 * 1024]; // shared across all files — avoids 4MB alloc per file
 
-            // Build beside the target and swap at the end. Writing straight into dest truncates
-            // it on open, so any failure mid-write left the caller with a destroyed archive.
+            // Build beside the target and swap at the end to prevent corruption on failure.
             string tempPath = dest + ".building";
             try
             {
@@ -152,9 +150,9 @@ namespace AsarSharp.AsarFileSystem
                 return;
             }
 
-            // A read-only or hidden archive would fail the swap the same way an overwrite does.
+            // Clear attributes to prevent swap failure on read-only/hidden files.
             Extensions.ClearAttributes(dest);
-            // File.Replace swaps in one step, so dest is never observed missing or half-written.
+            // Atomic swap.
             File.Replace(tempPath, dest, null, true);
         }
 
@@ -169,7 +167,7 @@ namespace AsarSharp.AsarFileSystem
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
-                // Leftover build file only wastes space; the real failure is already propagating.
+                // Ignore cleanup errors.
             }
         }
 
@@ -204,10 +202,7 @@ namespace AsarSharp.AsarFileSystem
                 var patchedSizePickle = Pickle.CreateEmpty();
                 patchedSizePickle.WriteUInt32((uint)patchedPickle.GetTotalSize());
 
-                // The rewrite lands on top of the placeholder header, so it must be exactly as
-                // long. Placeholder hashes are the same width as real ones, so this holds unless
-                // a file changed size between crawl and write - which would silently shred the
-                // payload that follows.
+                // Check if file size changed between crawl and write to prevent corruption.
                 if (patchedPickle.GetTotalSize() != headerPickle.GetTotalSize() ||
                     patchedSizePickle.GetTotalSize() != sizePickleSize)
                 {
@@ -233,11 +228,19 @@ namespace AsarSharp.AsarFileSystem
             using (var hasher = new IntegrityHelper.StreamingHasher(estimatedBlocks, blockBuf))
             using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
             {
+                long totalRead = 0;
                 int read;
                 while ((read = src.Read(buf, 0, buf.Length)) > 0)
                 {
+                    totalRead += read;
                     hasher.Append(buf, 0, read);
                     dest?.Write(buf, 0, read);
+                }
+
+                if (totalRead != fileSize)
+                {
+                    throw new IOException(
+                        $"{srcPath}: file size changed while packing (expected {fileSize}, read {totalRead})");
                 }
 
                 if (node != null)

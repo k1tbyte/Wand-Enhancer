@@ -61,8 +61,7 @@ namespace AsarSharp.Integrity
                 var blockHashes = new List<string>(estimatedBlockCount);
                 int bytesRead;
 
-                // ReadFull, not Read: a short read would hash a partial block and produce
-                // integrity blocks Electron rejects.
+                // Use ReadFull to ensure complete block hashes.
                 while ((bytesRead = fileStream.ReadFull(reusableBuffer, 0, reusableBuffer.Length)) > 0)
                 {
                     blockHashes.Add(ToLowerHex(blockHash.ComputeHash(reusableBuffer, 0, bytesRead)));

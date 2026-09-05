@@ -1,5 +1,3 @@
-import type { FormEvent } from 'react';
-
 import { numericValue } from './format-number';
 import { type ControlInternalProps, SliderReadout } from './shared';
 
@@ -8,8 +6,6 @@ export const SliderControl = ({ cheat, value, disabled, onChange }: ControlInter
     const max = cheat.args.max ?? 100;
     const step = cheat.args.step ?? 1;
     const currentValue = numericValue(value, min);
-    const handleInput = (event: FormEvent<HTMLInputElement>) =>
-        onChange(Number(event.currentTarget.value));
 
     return (
         <div className="w-full">
@@ -21,7 +17,7 @@ export const SliderControl = ({ cheat, value, disabled, onChange }: ControlInter
                 postfix={cheat.args.postfix ?? ''}
                 step={step}
                 value={currentValue}
-                onInput={handleInput}
+                onChange={onChange}
             />
         </div>
     );

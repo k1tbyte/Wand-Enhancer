@@ -8,8 +8,7 @@ using System.Text.RegularExpressions;
 namespace WandEnhancer.Core.Js
 {
     /// <summary>
-    /// Loads injected JavaScript from embedded <c>Patches/*.js</c> files so payloads stay
-    /// lintable source rather than escaped C# string literals.
+    /// Loads injected JavaScript from embedded <c>Patches/*.js</c> files.
     /// </summary>
     internal static class PatchPayload
     {
@@ -21,9 +20,8 @@ namespace WandEnhancer.Core.Js
         private static readonly Regex Placeholder = new Regex(@"\$\{(?<name>\w+)\}");
 
         /// <summary>
-        /// Loads a payload, replacing each <c>${name}</c> placeholder from alternating name/value pairs.
-        /// Substitution is a single pass, so injected bundle text is never rescanned for placeholders.
-        /// Unknown placeholders are left intact for the caller's own regex replacement to resolve.
+        /// Loads a payload, substituting <c>${name}</c> placeholders in a single pass.
+        /// Unknown placeholders are left intact.
         /// </summary>
         public static string Load(string name, params string[] placeholders)
         {

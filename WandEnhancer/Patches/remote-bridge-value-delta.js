@@ -1,1 +1,1 @@
-,this.__wandRemoteBridge?.valueChanged({target:e.name,value:e.value,oldValue:e.oldValue,source:String(e.source??"desktop"),cheatId:e.cheatId})
+this.__wandRemoteBridge?.valueChanged({trainerId:__wandRemoteTrainerId,target:${change}.name,value:${change}.value,oldValue:${change}.oldValue,source:String(${change}.source??"desktop"),cheatId:${change}.cheatId});

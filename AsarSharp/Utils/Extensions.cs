@@ -10,9 +10,7 @@ namespace AsarSharp.Utils
     public static class Extensions
     {
         /// <summary>
-        /// Fills <paramref name="count"/> bytes. Stream.Read may legally return fewer than
-        /// asked for; treating a short read as EOF corrupts header parsing and block hashes.
-        /// Returns the bytes actually read, which is less than count only at end of stream.
+        /// Fills <paramref name="count"/> bytes to prevent short reads from corrupting parsing.
         /// </summary>
         public static int ReadFull(this Stream stream, byte[] buffer, int offset, int count)
         {
@@ -156,10 +154,7 @@ namespace AsarSharp.Utils
         }
 
         /// <summary>
-        /// Overwrites <paramref name="destination"/>, clearing attributes on both ends. CopyFile
-        /// carries the source's ReadOnly flag onto the copy and then refuses to overwrite what it
-        /// produced, failing with "Access to the path is denied" - so one read-only source (an exe
-        /// run straight out of a .zip, say) poisons the destination for every later run.
+        /// Overwrites <paramref name="destination"/>, clearing attributes to prevent ReadOnly errors on subsequent runs.
         /// </summary>
         public static void CopyOver(string source, string destination)
         {
@@ -178,9 +173,7 @@ namespace AsarSharp.Utils
         }
 
         /// <summary>
-        /// "Access to the path is denied" names none of the half-dozen things that cause it, and
-        /// the state is gone by the time anyone reads the report. Attributes were already cleared
-        /// above, which rules the most common cause out before the message is even written.
+        /// Provides detailed diagnostic info for "Access to the path is denied" errors.
         /// </summary>
         private static string DescribeDenial(string destination)
         {
@@ -214,8 +207,7 @@ namespace AsarSharp.Utils
         }
 
         /// <summary>
-        /// Resets a file to Normal: ReadOnly, Hidden and System all block an overwrite. Best
-        /// effort - a file that denies even this reports it properly through the write that follows.
+        /// Resets a file to Normal to prevent overwrite failures. Best effort.
         /// </summary>
         public static void ClearAttributes(string path)
         {

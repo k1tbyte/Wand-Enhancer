@@ -5,9 +5,7 @@ using System.Text;
 namespace WandEnhancer.Core
 {
     /// <summary>
-    /// Facts read straight out of another process's PEB. Neither is available through the module
-    /// list or System.Diagnostics: a process the job has only just announced is younger than both,
-    /// and the main process is patched while it is still suspended.
+    /// Facts read straight out of another process's PEB before modules load.
     /// </summary>
     internal static class ProcessInfo
     {
@@ -25,9 +23,7 @@ namespace WandEnhancer.Core
         }
 
         /// <summary>
-        /// Electron's process type, taken from the command line: "renderer", "gpu-process",
-        /// "utility/network.mojom.NetworkService", or "main". A log line that names the type is the
-        /// difference between "pid 16264 died" and "the renderer behind the overlay died".
+        /// Electron's process type, taken from the command line (e.g. "renderer", "main").
         /// </summary>
         /// <returns>Null when the command line is not readable, which a bare pid still survives.</returns>
         public static string GetElectronRole(IntPtr process)
@@ -109,7 +105,8 @@ namespace WandEnhancer.Core
 
         private static bool Read(IntPtr process, IntPtr address, byte[] buffer)
         {
-            return ReadProcessMemory(process, address, buffer, buffer.Length, out int read) && read == buffer.Length;
+            return ReadProcessMemory(process, address, buffer, (UIntPtr)buffer.Length, out UIntPtr read)
+                   && read.ToUInt64() == (ulong)buffer.Length;
         }
 
         #region P/Invoke
@@ -137,7 +134,7 @@ namespace WandEnhancer.Core
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool ReadProcessMemory(
-            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out int lpNumberOfBytesRead);
+            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, UIntPtr dwSize, out UIntPtr lpNumberOfBytesRead);
 
         #endregion
     }

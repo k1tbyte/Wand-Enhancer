@@ -51,7 +51,7 @@ namespace WandEnhancer.View.MainWindow
 
         private void OpenSourceClicked(object sender, MouseButtonEventArgs e)
         {
-            // No browser association, or the shell refuses the URL: not worth killing the app.
+            // Try to open link, do not crash if it fails.
             try
             {
                 System.Diagnostics.Process.Start(Constants.RepositoryUrl);

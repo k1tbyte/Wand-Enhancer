@@ -1,6 +1,7 @@
 param(
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    [switch]$EnableUpdateNotifications
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,8 +60,7 @@ function Invoke-Step {
 }
 
 function Resolve-TargetFrameworkRoot {
-    # Some environments do not register the v4.8 targeting pack for MSBuild to find on its own.
-    # Point at it explicitly when present; skip on CI where default resolution already works.
+    # Some local targeting packs are installed but not registered with MSBuild.
     $root = Join-Path ${env:ProgramFiles(x86)} 'Reference Assemblies\Microsoft\Framework'
     $frameworkList = Join-Path $root '.NETFramework\v4.8\RedistList\FrameworkList.xml'
     if (Test-Path $frameworkList) {
@@ -79,6 +79,9 @@ $buildArgs = @('/m', "/p:Configuration=$Configuration", '/p:Platform=Any CPU')
 if ($targetFrameworkRoot) {
     $buildArgs += "/p:TargetFrameworkRootPath=$targetFrameworkRoot"
 }
+if ($EnableUpdateNotifications) {
+    $buildArgs += '/p:EnableUpdateNotifications=true'
+}
 
 Invoke-Step 'Install web-panel dependencies' {
     & $pnpm --dir $webPanelDir install --frozen-lockfile
@@ -88,9 +91,12 @@ Invoke-Step 'Lint web-panel' {
     & $pnpm --dir $webPanelDir run lint
 }
 
-# Runs type-check (web + bridge), Vite, the bridge bundle, then the dist invariant check.
 Invoke-Step 'Build web-panel' {
     & $pnpm --dir $webPanelDir run build
+}
+
+Invoke-Step 'Test web-panel' {
+    & $pnpm --dir $webPanelDir exec vitest run
 }
 
 Invoke-Step 'Restore NuGet packages' {
@@ -99,6 +105,17 @@ Invoke-Step 'Restore NuGet packages' {
 
 Invoke-Step 'Build solution' {
     & $msbuild $solutionPath @buildArgs /t:Build
+}
+
+$assemblyPath = Join-Path $repoRoot "WandEnhancer\bin\$Configuration\WandEnhancer.exe"
+Invoke-Step 'Test desktop patch state and interop' {
+    & (Join-Path $repoRoot 'scripts\test-desktop.ps1') `
+        -AssemblyPath $assemblyPath `
+        -ExpectUpdateNotifications:$EnableUpdateNotifications
+}
+
+Invoke-Step 'Test structural patch locators' {
+    & (Join-Path $repoRoot 'scripts\test-patch-locators.ps1') -AssemblyPath $assemblyPath
 }
 
 Write-Host ''

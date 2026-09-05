@@ -90,8 +90,7 @@ function installIpcHandlers(
     boundRenderers: Set<WebContentsPort>,
     pendingCommandResponses: Map<string, (response: unknown) => void>,
 ) {
-    // Handlers can only be registered once per channel, so they read the runtime through a
-    // mutable global: a reinstall must retarget them instead of leaving them on the old one.
+    // Retarget runtime handlers through a mutable global because channels only allow one listener.
     globalThis.__wandRemoteBridgeActiveRuntime = activeRuntime;
     if (globalThis.__wandRemoteBridgeIpcInstalled) {
         return;
@@ -156,8 +155,7 @@ function installIpcHandlers(
         if (sender) {
             if (!boundRenderers.has(sender)) {
                 boundRenderers.add(sender);
-                // Without this the set grows for the lifetime of the app: entries are otherwise
-                // only dropped when a later send happens to fail.
+                // Prevent memory leak by removing destroyed senders immediately.
                 sender.once?.('destroyed', () => boundRenderers.delete(sender));
             }
         }

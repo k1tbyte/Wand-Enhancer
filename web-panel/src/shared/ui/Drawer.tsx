@@ -25,7 +25,7 @@ const FOCUSABLE_SELECTOR =
 type DrawerProps = {
     open: boolean;
     side: 'left' | 'right';
-    /** Accessible name for the dialog; an icon-only drawer has no other one. */
+    /** Accessible name. */
     label: string;
     children: ReactNode;
     onClose: () => void;
@@ -35,6 +35,8 @@ export const Drawer = ({ open, side, label, children, onClose }: DrawerProps) =>
     const { _ } = useLingui();
     const panelRef = useRef<HTMLElement | null>(null);
     const restoreFocusRef = useRef<HTMLElement | null>(null);
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
     const sideClassName = DRAWER_SIDE_CLASSES[side];
     const closedClassName = DRAWER_CLOSED_CLASSES[side];
 
@@ -48,7 +50,7 @@ export const Drawer = ({ open, side, label, children, onClose }: DrawerProps) =>
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
-                onClose();
+                onCloseRef.current();
                 return;
             }
             if (event.key === 'Tab') {
@@ -61,7 +63,7 @@ export const Drawer = ({ open, side, label, children, onClose }: DrawerProps) =>
             document.removeEventListener('keydown', handleKeyDown);
             restoreFocusRef.current?.focus?.();
         };
-    }, [open, onClose]);
+    }, [open]);
 
     return (
         <>
@@ -81,7 +83,6 @@ export const Drawer = ({ open, side, label, children, onClose }: DrawerProps) =>
                 aria-modal="true"
                 aria-label={label}
                 aria-hidden={!open}
-                // Nothing inside a closed drawer should be reachable by keyboard.
                 inert={!open ? true : undefined}
                 className={cn(
                     DRAWER_PANEL_CLASS,

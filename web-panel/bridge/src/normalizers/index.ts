@@ -217,8 +217,8 @@ function summarizeInstalledAppsSource(rawSnapshot: unknown): string {
 }
 
 /**
- * Structural, not field-by-field: an explicit field list silently stops detecting
- * whatever it forgets. The apps are already normalized here, so key order is stable.
+ * Structural, not field-by-field, to avoid missing new fields.
+ * Key order is stable because apps are already normalized.
  */
 function installedAppsSignature(snapshot: InstalledAppsPayload): string {
     return JSON.stringify(snapshot.apps);

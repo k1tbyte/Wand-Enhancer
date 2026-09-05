@@ -7,10 +7,8 @@ using AsarSharp.Utils;
 namespace WandEnhancer.Core
 {
     /// <summary>
-    /// Electron's fuse wire: a 32-byte sentinel followed by [version][fuseCount][state per fuse].
-    /// Clearing the ASAR integrity fuse is what lets a patched app.asar load at all - the archive
-    /// no longer hashes to the value baked into the executable, and a process that opens it with
-    /// the fuse still set exits with -36861.
+    /// Electron fuse wire: 32-byte sentinel + [version][fuseCount][state per fuse].
+    /// Clearing the ASAR integrity fuse allows loading a patched app.asar.
     /// </summary>
     internal static class ElectronFuse
     {
@@ -28,10 +26,7 @@ namespace WandEnhancer.Core
             Encoding.ASCII.GetBytes("dL7pKGdnNz796PbbjQWNKmHXBZaB9tsX");
 
         /// <summary>
-        /// Offset of the fuse state from the image base, read once from the file on disk. Every
-        /// process started from that file maps it at the same offset, so the scan is not repeated
-        /// per process - reading 200+ MB out of each one would not fit in the second we have
-        /// before Electron opens the archive.
+        /// Gets fuse state offset from image base. Scanned once from disk.
         /// </summary>
         /// <returns>-1 when the file carries no fuse block.</returns>
         public static long FindStateRva(string exePath)
@@ -45,13 +40,7 @@ namespace WandEnhancer.Core
             }
         }
 
-        /// <summary>
-        /// Clears the fuse in a running process.
-        /// </summary>
-        /// <param name="problem">
-        /// Why it did not happen, phrased for the log. Every failure here reaches a user as
-        /// "Wand opens but nothing works", and a bare false leaves nobody anything to act on.
-        /// </param>
+        /// <summary>Clears the fuse in a running process.</summary>
         public static bool ClearIn(IntPtr process, long stateRva, out string problem)
         {
             problem = null;
@@ -65,15 +54,13 @@ namespace WandEnhancer.Core
             var block = new byte[MatchLength];
             var start = new IntPtr(imageBase.ToInt64() + stateRva - StateFromSentinel);
 
-            if (!ReadProcessMemory(process, start, block, block.Length, out int read) || read != block.Length)
+            if (!ReadProcessMemory(process, start, block, (UIntPtr)block.Length, out UIntPtr read) || (ulong)read != (ulong)block.Length)
             {
                 problem = $"its memory could not be read (win32 error {Marshal.GetLastWin32Error()})";
                 return false;
             }
 
-            // The sentinel is checked again inside the process: a Wand update swaps the
-            // executable under a running launcher, and a stale offset would otherwise put a
-            // byte into unrelated memory.
+            // Validate sentinel in process memory to prevent overwriting unrelated memory after an update.
             if (!MatchesSentinel(block, 0) ||
                 block[SentinelLength] != SupportedWireVersion ||
                 block[SentinelLength + 1] < MinFuseCount)
@@ -94,10 +81,10 @@ namespace WandEnhancer.Core
                 return false;
             }
 
-            bool written = WriteProcessMemory(process, target, new[] { StateRemoved }, 1, out _);
+            bool written = WriteProcessMemory(process, target, new[] { StateRemoved }, (UIntPtr)1, out _);
             if (!written)
             {
-                // Taken before the protection is restored, which would overwrite the error.
+                // Preserve the error before restoring memory protection.
                 problem = $"the write was refused (win32 error {Marshal.GetLastWin32Error()})";
             }
 
@@ -203,11 +190,11 @@ namespace WandEnhancer.Core
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool ReadProcessMemory(
-            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out int lpNumberOfBytesRead);
+            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, UIntPtr dwSize, out UIntPtr lpNumberOfBytesRead);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool WriteProcessMemory(
-            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out int lpNumberOfBytesWritten);
+            IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, UIntPtr dwSize, out UIntPtr lpNumberOfBytesWritten);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool VirtualProtectEx(

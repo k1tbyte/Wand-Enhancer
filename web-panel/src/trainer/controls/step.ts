@@ -1,7 +1,4 @@
-/**
- * Rounds to the step's decimal precision. Repeated `value + step` on a fractional
- * step drifts (0.1 + 0.2 -> 0.30000000000000004) and that drift is sent on the wire.
- */
+// Keep floating-point drift out of values sent to Wand.
 export function snapToStep(value: number, step: number): number {
     if (!Number.isFinite(value)) {
         return 0;
@@ -16,5 +13,12 @@ export function decimalPlaces(step: number): number {
         return 0;
     }
 
-    return step.toString().split('.')[1]?.length ?? 0;
+    const [coefficient, exponent = '0'] = step.toString().toLowerCase().split('e');
+    return Math.max(0, (coefficient.split('.')[1]?.length ?? 0) - Number(exponent));
+}
+
+export function clampToStep(value: number, min: number, max: number, step: number): number {
+    const snapped = min + Math.round((value - min) / step) * step;
+    const precision = Math.max(decimalPlaces(min), decimalPlaces(step));
+    return Math.max(min, Math.min(max, Number(snapped.toFixed(precision))));
 }

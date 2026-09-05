@@ -61,8 +61,7 @@ namespace WandEnhancer.Core.Js
         public JsEdit ReplaceBody(string code) => new JsEdit(BodyOpen + 1, BodyClose, code);
 
         /// <summary>
-        /// Rewrites the last top-level <c>return X</c> as <c>return WRAPPER</c>, where the wrapper's
-        /// <c>$0</c> placeholder receives the original expression.
+        /// Rewrites the last top-level <c>return X</c> as <c>return WRAPPER</c> (using <c>$0</c>).
         /// </summary>
         public JsEdit WrapReturn(string wrapper)
         {

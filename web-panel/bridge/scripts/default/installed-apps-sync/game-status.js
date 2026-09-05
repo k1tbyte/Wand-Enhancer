@@ -57,7 +57,7 @@ export function installGameStatusSubscriptions(state) {
         typeof state.trainerService.onTrainerEnded === 'function'
     ) {
         state.trainerService.onTrainerEnded(() => {
-            clearTrainerSnapshot(state, TRAINER_ENDED_EVENT, true);
+            clearTrainerSnapshot(state, TRAINER_ENDED_EVENT);
         });
         state.trainerEndedSubscriptionInstalled = true;
         installed = true;

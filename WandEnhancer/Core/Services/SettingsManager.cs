@@ -7,6 +7,10 @@ namespace WandEnhancer.Core.Services
     public class AppSettings
     {
         public string Language { get; set; }
+
+        public bool CheckUpdates { get; set; } = true;
+
+        public bool CheckPrereleases { get; set; }
     }
     
     public static class SettingsManager
@@ -27,7 +31,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // Unreadable or corrupt settings must not block startup; defaults apply.
+                // Ignore unreadable or corrupt settings.
             }
             return null;
         }
@@ -41,7 +45,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // A read-only install directory must not break the app; the choice is lost, not fatal.
+                // Ignore save errors like read-only directories.
             }
         }
     }

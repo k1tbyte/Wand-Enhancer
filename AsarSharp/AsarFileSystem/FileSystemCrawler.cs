@@ -69,7 +69,7 @@ namespace AsarSharp.AsarFileSystem
                 {
                     if (string.Equals(filename, link, StringComparison.OrdinalIgnoreCase)) continue;
 
-                    // Require a separator after the prefix so "…/foobar" does not match link "…/foo".
+                    // Require a separator after the prefix.
                     if (filename.StartsWith(link + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                     {
                         string rel = Extensions.GetRelativePath(link, fileDir);

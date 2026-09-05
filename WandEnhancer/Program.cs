@@ -34,8 +34,7 @@ namespace WandEnhancer
             application.InitializeComponent();
             var window = new MainWindow();
 
-            // Launch mode has no window at all, so a user whose Wand never opened would have to
-            // be told where launcher.log lives. Put the same lines in front of them instead.
+            // Launch mode is headless, so replay errors into the UI if startup failed.
             if (startupFailed)
                 window.Loaded += (sender, e) => BringToFront(window);
 
@@ -89,13 +88,15 @@ namespace WandEnhancer
             LauncherLog.Write($"Install {config.ExecutablePath} is {(isPatched ? "patched" : "not patched")}.",
                 ELogType.Info);
 
-            // A fresh Wand version drops our patches; re-apply the saved selection automatically.
-            // On failure fall through to the UI so the user sees which patch broke.
+            // Re-apply saved patches automatically on updates. Fall back to UI on failure.
             if (!isPatched && !TryAutoPatch(config, patchConfig))
                 return false;
 
-            // RecordStartupLog, not LauncherLog.Write: whatever the launcher says has to survive
-            // into the window on the failure path below.
+#if ENABLE_UPDATE_NOTIFICATIONS
+            UpdateNotifier.CheckInBackground();
+#endif
+
+            // Use RecordStartupLog so launcher output survives into the UI on failure.
             return FuseLauncher.Launch(config.ExecutablePath, forwardedArgs, RecordStartupLog);
         }
 
@@ -148,10 +149,7 @@ namespace WandEnhancer
         }
 
         /// <summary>
-        /// Which patches the last patch run saved. A report then says what was applied and not
-        /// only which build applied it - two installs on one build behave nothing alike when one
-        /// carries the remote panel and the other does not. Unrecorded when auto-patch is off,
-        /// which is the only case where nothing on disk remembers the selection.
+        /// Describes applied patches for diagnostic logs. Unrecorded if auto-patch is off.
         /// </summary>
         private static string DescribePatches(PatchConfig patchConfig)
         {
@@ -181,8 +179,7 @@ namespace WandEnhancer
             }
         }
 
-        /// <summary>Buffers for the UI and mirrors to disk: auto-patch runs headless, so the
-        /// file is the only copy if the user never opens the window afterwards.</summary>
+        /// <summary>Buffers logs for the UI and mirrors them to disk for headless runs.</summary>
         private static void RecordStartupLog(string message, ELogType type)
         {
             StartupLog.Add(new KeyValuePair<string, ELogType>(message, type));
@@ -190,8 +187,7 @@ namespace WandEnhancer
         }
         
         
-        // Fires on the finalizer thread for a task nobody awaited. Non-fatal since .NET 4.5:
-        // record it and mark it observed rather than killing a patch mid-run.
+        // Handle unawaited task exceptions so they do not crash the application.
         private static void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
         {
             e.SetObserved();

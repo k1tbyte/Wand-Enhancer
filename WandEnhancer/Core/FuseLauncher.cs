@@ -301,8 +301,7 @@ namespace WandEnhancer.Core
         }
 
         /// <summary>
-        /// Only anomalies are reported: on a normal shutdown every process exits with 0, and a
-        /// line each would bury the one death that matters.
+        /// Reports only anomalies (non-zero exits) to avoid burying important failures.
         /// </summary>
         private static void ReportExit(Dictionary<int, IntPtr> tracked, int processId, Action<string, ELogType> log)
         {
@@ -321,8 +320,7 @@ namespace WandEnhancer.Core
         }
 
         /// <summary>
-        /// Identity check before anything heavier: a game started from Wand is in the job as well,
-        /// and is opened for nothing beyond the right the task manager uses to read a path.
+        /// Identity check before anything heavier, verifying the executable path matches.
         /// </summary>
         private static bool IsImage(int processId, string exePath)
         {

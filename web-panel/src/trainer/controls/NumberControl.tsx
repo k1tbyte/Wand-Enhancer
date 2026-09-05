@@ -18,7 +18,9 @@ export const NumberControl = ({ cheat, value, disabled, onChange }: ControlInter
     const handleInput = (event: FormEvent<HTMLInputElement>) => {
         const raw = event.currentTarget.value;
         setDraft(raw);
-        onChange(stripNumberGrouping(raw));
+        // Half-typed values like "-" parse to NaN; wait for a finite number.
+        const parsed = stripNumberGrouping(raw);
+        if (parsed && Number.isFinite(Number(parsed))) onChange(parsed);
     };
 
     const commit = (next: number) => {

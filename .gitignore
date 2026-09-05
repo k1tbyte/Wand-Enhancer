@@ -134,6 +134,7 @@ dist
 ./WandEnhancer/bin/
 ./AsarSharp/obj/
 ./AsarSharp/bin/
+**/..out/
 .idea
 packages
 */bin/

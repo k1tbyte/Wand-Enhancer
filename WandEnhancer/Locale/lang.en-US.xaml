@@ -16,12 +16,29 @@
     <s:String x:Key="mw_star_hint">Put a star if you found this helpful ;)</s:String>
     <s:String x:Key="mw_copy_logs">Copy logs to clipboard</s:String>
     <s:String x:Key="mw_export_logs">Export logs to file</s:String>
+    <s:String x:Key="mw_update_badge">New version available</s:String>
     <!--#endregion -->
 
     <!--#region Settings -->
     <s:String x:Key="settings_title">Settings</s:String>
     <s:String x:Key="settings_language">Language</s:String>
+    <s:String x:Key="settings_check_updates">Check for updates on startup</s:String>
+    <s:String x:Key="settings_check_prereleases">Also notify about pre-releases</s:String>
     <s:String x:Key="settings_save">Save</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_popup_title">Update available</s:String>
+    <s:String x:Key="up_warning">WandEnhancer never updates itself. Build the new version in your fork, or open the release page.</s:String>
+    <s:String x:Key="up_current_version">Current:</s:String>
+    <s:String x:Key="up_latest_version">Latest:</s:String>
+    <s:String x:Key="up_release_notes">Release notes</s:String>
+    <s:String x:Key="up_show_more">Show full changelog</s:String>
+    <s:String x:Key="up_show_less">Show release notes</s:String>
+    <s:String x:Key="up_loading_changelog">Loading...</s:String>
+    <s:String x:Key="up_changelog_failed">Could not load the full changelog.</s:String>
+    <s:String x:Key="up_release_notes_unavailable">No release notes were published.</s:String>
+    <s:String x:Key="up_open_release">Open release page</s:String>
     <!--#endregion -->
 
     <!--#region EnhanceVectorsPopup -->

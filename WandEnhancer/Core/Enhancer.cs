@@ -18,6 +18,7 @@ namespace WandEnhancer.Core
         private const string AppAsarUnpackedDirectoryName = "app.asar.unpacked";
         private const string AppAsarBackupFileName = "app.asar.backup";
         private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
+        private const string IncompletePatchMarkerFileName = ".incomplete-patch";
         private const string ProxyDllFileName = "version.dll";
         private const string StubBackupSuffix = ".stub";
         private const string WebPanelDirectoryName = "web-panel";
@@ -62,12 +63,15 @@ namespace WandEnhancer.Core
             _unpackedBackupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedBackupDirectoryName);
         }
 
-        /// <summary>
-        /// Both halves of the backup must exist. Accepting either one on its own reported a
-        /// half-written backup as patched, which blocked patching while <see cref="Restore"/>
-        /// refused to run - leaving the user with no way forward.
-        /// </summary>
+        /// <summary>Checks if both backups exist and incomplete marker is absent.</summary>
         public static bool IsPatched(string rootDirectory)
+        {
+            var resources = Path.Combine(rootDirectory, ResourcesDirectoryName);
+            return HasBackup(rootDirectory)
+                   && !File.Exists(Path.Combine(resources, IncompletePatchMarkerFileName));
+        }
+
+        public static bool HasBackup(string rootDirectory)
         {
             var resources = Path.Combine(rootDirectory, ResourcesDirectoryName);
             return File.Exists(Path.Combine(resources, AppAsarBackupFileName))
@@ -345,8 +349,7 @@ namespace WandEnhancer.Core
             string stubBackup = stubPath + StubBackupSuffix;
             string self = Assembly.GetExecutingAssembly().Location;
 
-            // Auto-patch runs from inside the deployed launcher: it cannot overwrite its own
-            // running image, and does not need to - it is already in place.
+            // Auto-patch runs from deployed launcher; no need to overwrite self.
             if (string.Equals(self, stubPath, StringComparison.OrdinalIgnoreCase))
             {
                 return;
@@ -398,10 +401,13 @@ namespace WandEnhancer.Core
         public void Patch()
         {
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
+            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
+            File.WriteAllText(markerPath, string.Empty);
+
             if (!File.Exists(_backupPath))
             {
                 _logger("[ENHANCER] Creating backup...", ELogType.Info);
-                AsarSharp.Utils.Extensions.CopyOver(_asarPath, _backupPath);
+                CreateBackupFile(_asarPath, _backupPath);
             }
             else
             {
@@ -412,7 +418,7 @@ namespace WandEnhancer.Core
             if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
             {
                 _logger("[ENHANCER] Creating backup of app.asar.unpacked...", ELogType.Info);
-                AsarSharp.Utils.Extensions.CopyDirectory(_unpackedPath, _unpackedBackupPath);
+                CreateBackupDirectory(_unpackedPath, _unpackedBackupPath);
             }
             else if (Directory.Exists(_unpackedBackupPath))
             {
@@ -434,9 +440,7 @@ namespace WandEnhancer.Core
                 throw new Exception("app.asar not found");
             }
 
-            // Everything past this point mutates the installation. A half-applied patch does
-            // not boot - the fuse is only cleared by the deployed launcher, so a patched
-            // app.asar without it dies with -36861 - so failure has to put the files back.
+            // Never leave a patched archive behind without its launcher.
             try
             {
                 ExtractSources();
@@ -444,6 +448,17 @@ namespace WandEnhancer.Core
                 InjectRemotePanelFiles();
                 PackSources();
                 DeployLauncher();
+
+                if (_config.AutoApplyAfterUpdate)
+                {
+                    SaveAutoPatchConfig();
+                }
+                else
+                {
+                    DeleteAutoPatchConfig();
+                }
+
+                File.Delete(markerPath);
             }
             catch
             {
@@ -451,18 +466,68 @@ namespace WandEnhancer.Core
                 throw;
             }
 
-            // enhancer.json only exists to drive auto-patch. Without it the launcher still
-            // runs Wand (fuse patch only), so drop it when the user opts out.
-            if (_config.AutoApplyAfterUpdate)
+            _logger("[ENHANCER] Done!", ELogType.Success);
+        }
+
+        private static void CreateBackupFile(string source, string destination)
+        {
+            string stagingPath = destination + ".building";
+            if (File.Exists(stagingPath))
             {
-                SaveAutoPatchConfig();
-            }
-            else
-            {
-                DeleteAutoPatchConfig();
+                File.Delete(stagingPath);
             }
 
-            _logger("[ENHANCER] Done!", ELogType.Success);
+            try
+            {
+                AsarSharp.Utils.Extensions.CopyOver(source, stagingPath);
+                File.Move(stagingPath, destination);
+            }
+            catch
+            {
+                if (File.Exists(stagingPath))
+                {
+                    try
+                    {
+                        AsarSharp.Utils.Extensions.ClearAttributes(stagingPath);
+                        File.Delete(stagingPath);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                    }
+                }
+
+                throw;
+            }
+        }
+
+        private static void CreateBackupDirectory(string source, string destination)
+        {
+            string stagingPath = destination + ".building";
+            if (Directory.Exists(stagingPath))
+            {
+                Directory.Delete(stagingPath, true);
+            }
+
+            try
+            {
+                AsarSharp.Utils.Extensions.CopyDirectory(source, stagingPath);
+                Directory.Move(stagingPath, destination);
+            }
+            catch
+            {
+                if (Directory.Exists(stagingPath))
+                {
+                    try
+                    {
+                        Directory.Delete(stagingPath, true);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                    }
+                }
+
+                throw;
+            }
         }
 
         private void ExtractSources()
@@ -493,10 +558,7 @@ namespace WandEnhancer.Core
             }
         }
 
-        /// <summary>
-        /// Best-effort restore after a failed patch. Never throws: the caller is already
-        /// propagating the real failure and it must not be replaced by a cleanup error.
-        /// </summary>
+        /// <summary>Best-effort restore after failed patch. Does not throw.</summary>
         private void RollbackQuietly()
         {
             try
@@ -569,6 +631,12 @@ namespace WandEnhancer.Core
                 {
                     File.Delete(path);
                 }
+            }
+
+            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
+            if (File.Exists(markerPath))
+            {
+                File.Delete(markerPath);
             }
 
             File.Delete(_backupPath);

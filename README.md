@@ -15,7 +15,7 @@ There are no official videos showing how to install or use this tool. Scammers a
 
 ## 👾 What does it access?
 
-The .NET patcher modifies files in the selected local Wand installation and does not contact an update or telemetry service. Wand itself remains an online application, build tools restore declared dependencies, and the optional Remote Web Panel deliberately starts a LAN HTTP/WebSocket server and uses Wand API/CDN data. Review the source and build the executable from your own fork; unsigned patching tools can trigger generic antivirus heuristics.
+The default .NET patcher modifies files in the selected local Wand installation and contains no update-checking or telemetry network code. Wand itself remains an online application, build tools restore declared dependencies, and the optional Remote Web Panel deliberately starts a LAN HTTP/WebSocket server and uses Wand API/CDN data. An explicit build-time option can include GitHub release notifications; that variant sends a GitHub API request with your IP and a User-Agent when Wand starts, but sends no Wand or account data and never downloads updates. Review the source and build the executable from your own fork; unsigned patching tools can trigger generic antivirus heuristics.
 
 ## 💫 What features are improved?
 
@@ -47,9 +47,17 @@ This repository does not publish official compiled binaries. Build your own exec
 2. Use **Sync fork** before each build so your fork contains the latest fixes.
 3. Open your fork, go to the **Actions** tab, and enable workflows if GitHub asks you to.
 4. Select the **Build executable** workflow.
-5. Click **Run workflow**, keep the default branch, and start the run.
+5. Click **Run workflow** and start the run. Leave **Include GitHub release checks when Wand starts** off for a fully offline patcher, or enable it to compile in new-version notifications.
 6. Wait for the workflow to finish, open the completed run, and download the artifact.
 7. Extract the artifact zip and run `WandEnhancer.exe` to apply local client modifications.
+
+### Testing a release candidate
+
+- `master` is the stable source. Select a `feature/rc_*` branch in your fork's **Run workflow** branch selector only when the maintainer explicitly asks for candidate testing. Ensure that branch contains the upstream commit you intend to test; syncing `master` does not update a separate RC branch.
+- You do **not** need to open a pull request to this repository to build your fork.
+- Record the workflow's source commit SHA, not just `2.0.0.0`: the RC tag, RC branch and a local build may contain different fixes.
+- For startup failures, attach `launcher.log` and, if relevant, `launcher.prev.log` from the Wand installation root. They include the build commit and applied patches. Remove personal paths or other private information before sharing.
+- Include the exact Wand version and stable/beta channel, selected patches, and whether the failure happened on a fresh install, an update, or Restore. Do not attach executables, account tokens or storage dumps.
 
 *Here how you do it:*
 
@@ -112,7 +120,9 @@ Building from source on Windows requires a local development environment.
 2. Install the requirements above and make sure `pnpm` and `MSBuild` are available.
 3. Run `build.cmd` from Command Prompt or PowerShell.
 
-The build script installs the web panel dependencies, type-checks and lints the panel, builds the frontend and bridge, restores NuGet packages, and builds the WPF solution.
+The build script installs dependencies, lints and type-checks the panel, builds production assets, runs web tests, builds WPF, and checks desktop patch state and structural JavaScript patches. Tests use temporary fixtures, not your Wand installation.
+
+Update notifications are excluded by default. To compile them in locally, run `build.cmd -EnableUpdateNotifications`. When compiled in, the check runs on Wand's launch (on by default, toggle in Settings), shows a native Windows notification for a newer release, and opens the release notes when clicked (the release page when only the launcher is running). It never downloads or installs an update.
 
 ---
 
@@ -127,9 +137,9 @@ The build script installs the web panel dependencies, type-checks and lints the 
 - **Can I use a binary built by someone else?**
   - You can, but you should treat it as untrusted. This repository cannot verify or support third-party builds.
 - **Does this send data anywhere?**
-  - The .NET patching step is local. The optional Remote Web Panel listens on your LAN and may request trainer translations/artwork through Wand's existing API/CDN paths; it does not include an updater or project telemetry.
+  - The default .NET patcher is fully offline. The optional Remote Web Panel listens on your LAN and may request trainer translations/artwork through Wand's existing API/CDN paths. If you explicitly compile in update notifications, each Wand launch checks GitHub's public releases API and exposes only the normal request metadata, including your IP and User-Agent. There is no telemetry, download, or automatic update.
 - **How do I learn about a new version without an in-app update check?**
-  - On GitHub choose **Watch → Custom → Releases**, then sync your fork and run **Build executable** when a release is published.
+  - On GitHub choose **Watch → Custom → Releases**, then sync your fork and run **Build executable** when a release is published. You can also opt into compile-time release notifications in the manual workflow.
 
 ---
 ## 🖼️ Screenshots

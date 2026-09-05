@@ -16,7 +16,7 @@ namespace WandEnhancer.Models
 
         public List<string> CustomScriptPaths { get; set; } = new List<string>();
 
-        /// <summary>When set, the patch selection is saved so the launcher re-applies it after a Wand update.</summary>
+        /// <summary>When set, the launcher re-applies the saved patch selection after a Wand update.</summary>
         public bool AutoApplyAfterUpdate { get; set; }
     }
 }

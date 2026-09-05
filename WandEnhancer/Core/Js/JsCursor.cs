@@ -5,10 +5,8 @@ using System.Text.RegularExpressions;
 namespace WandEnhancer.Core.Js
 {
     /// <summary>
-    /// Navigates minified JavaScript by matching delimiters rather than by matching shape.
-    /// Wand renames identifiers on every build but never renames its API endpoints, IPC
-    /// channel names or public method names, so anchoring on those and walking the
-    /// delimiter structure keeps a patch valid across builds.
+    /// Navigates minified JavaScript by matching delimiters. Anchoring on stable API
+    /// and IPC names keeps patches valid across builds.
     /// </summary>
     internal sealed class JsCursor
     {
@@ -19,8 +17,7 @@ namespace WandEnhancer.Core.Js
         private static readonly HashSet<string> BlockKeywords =
             new HashSet<string>(StringComparer.Ordinal) { "if", "for", "while", "switch", "catch", "with", "do", "else" };
 
-        // A slash after one of these is a regex literal, not division. Minifiers emit
-        // `return/re/.test(x)` with no space, so missing these desyncs the whole scan.
+        // A slash after these is a regex literal, not division. Crucial for minified code.
         private static readonly HashSet<string> RegexPrecedingKeywords =
             new HashSet<string>(StringComparer.Ordinal)
             {
@@ -198,8 +195,7 @@ namespace WandEnhancer.Core.Js
         }
 
         /// <summary>
-        /// Index of the opening parenthesis of <c>callee(... "literal" ...)</c>, or -1. Wand reuses the
-        /// same channel names for inbound listeners and outbound sends, so the callee disambiguates.
+        /// Index of the opening parenthesis of <c>callee(... "literal" ...)</c>, or -1.
         /// </summary>
         public int FindCall(string callee, string literal)
         {
@@ -223,8 +219,7 @@ namespace WandEnhancer.Core.Js
             return match.Success ? match.Value.TrimStart('#') : null;
         }
 
-        /// <summary>Identifier ending at <paramref name="end"/>, searched in a bounded window so
-        /// multi-megabyte bundles are not copied on every lookup.</summary>
+        /// <summary>Identifier ending at <paramref name="end"/>, searched in a bounded window.</summary>
         private Match MatchNameEndingAt(int end)
         {
             int windowStart = Math.Max(0, end - NameLookbackChars);

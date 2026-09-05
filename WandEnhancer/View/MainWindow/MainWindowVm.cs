@@ -38,6 +38,7 @@ namespace WandEnhancer.View.MainWindow
 
             Log(LocalizationManager.Format("log_install_found", config, config.ExecutableName), ELogType.Success);
             AlreadyPatched = Enhancer.IsPatched(config.RootDirectory);
+            CanRestore = Enhancer.HasBackup(config.RootDirectory);
             IsPatchEnabled = !AlreadyPatched;
 
             Log(LocalizationManager.Get(AlreadyPatched ? "log_already_patched" : "log_ready"),
@@ -60,9 +61,17 @@ namespace WandEnhancer.View.MainWindow
             set => SetProperty(ref _alreadyPatched, value);
         }
 
+        private bool _canRestore;
+
+        public bool CanRestore
+        {
+            get => _canRestore;
+            set => SetProperty(ref _canRestore, value);
+        }
+
         private bool _isBusy;
 
-        /// <summary>True while a patch or restore runs; both are long file operations.</summary>
+        /// <summary>True while a patch or restore runs.</summary>
         public bool IsBusy
         {
             get => _isBusy;
@@ -75,7 +84,7 @@ namespace WandEnhancer.View.MainWindow
             }
         }
 
-        /// <summary>Bound by buttons that must not be clickable a second time mid-run.</summary>
+        /// <summary>Bound by buttons that must not be clickable mid-run.</summary>
         public bool IsIdle => !_isBusy;
 
         public RelayCommand SetFolderPathCommand { get; }
@@ -105,7 +114,7 @@ namespace WandEnhancer.View.MainWindow
             UseInstall(info);
         }
 
-        // Restore does the same heavy file IO as Patch, so it runs off the UI thread too.
+        // Runs off the UI thread due to heavy file IO.
         private async void OnBackupRestoring(object param)
         {
             if (WeModInfo == null)
@@ -133,6 +142,7 @@ namespace WandEnhancer.View.MainWindow
             if (restored)
             {
                 AlreadyPatched = false;
+                CanRestore = false;
                 IsPatchEnabled = true;
             }
         }
@@ -156,6 +166,7 @@ namespace WandEnhancer.View.MainWindow
                     {
                         new Enhancer(WeModInfo, Log, config).Patch();
                         AlreadyPatched = true;
+                        CanRestore = true;
                     }
                     catch (Exception e)
                     {
@@ -178,8 +189,7 @@ namespace WandEnhancer.View.MainWindow
                 };
                 LogList.Add(entry);
                 _shell.ScrollLogIntoView(entry);
-                // The log commands are disabled while the list is empty, and appending a line
-                // is not user input, so nothing else would re-evaluate CanExecute.
+                // Force CanExecute re-evaluation when appending log entries.
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
             });
         }
@@ -235,7 +245,7 @@ namespace WandEnhancer.View.MainWindow
 
         private bool HasLogs(object param) => LogList.Count > 0;
 
-        /// <summary>The shell could not hand the repository URL to a browser; show it instead.</summary>
+        /// <summary>Displays the repository URL if the browser fails to open.</summary>
         public void ReportRepositoryLinkFailure(string url)
         {
             Log(LocalizationManager.Format("log_open_link_failed", url), ELogType.Warn);
@@ -263,6 +273,63 @@ namespace WandEnhancer.View.MainWindow
                 Log(entry.Key, entry.Value);
             }
             Program.StartupLog.Clear();
+
+#if ENABLE_UPDATE_NOTIFICATIONS
+            ShowUpdateCommand = new RelayCommand(OnShowUpdate);
+            UpdateNotifier.CheckInBackground(OnUpdateFound, OnNotificationClick);
+#endif
         }
+
+#if ENABLE_UPDATE_NOTIFICATIONS
+        private UpdateNotifier.UpdateRelease _availableUpdate;
+        private bool _isUpdateAvailable;
+
+        public bool IsUpdateAvailable
+        {
+            get => _isUpdateAvailable;
+            private set => SetProperty(ref _isUpdateAvailable, value);
+        }
+
+        public RelayCommand ShowUpdateCommand { get; }
+
+        private void OnShowUpdate(object param)
+        {
+            if (_availableUpdate != null)
+                OpenUpdatePopup(_availableUpdate);
+        }
+
+        private void OnUpdateFound(UpdateNotifier.UpdateRelease update)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _availableUpdate = update;
+                IsUpdateAvailable = true;
+            });
+        }
+
+        private void OnNotificationClick(UpdateNotifier.UpdateRelease update)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var window = Application.Current.MainWindow;
+                if (window != null)
+                {
+                    window.Topmost = true;
+                    window.Activate();
+                    window.Topmost = false;
+                }
+
+                OpenUpdatePopup(update);
+            });
+        }
+
+        private void OpenUpdatePopup(UpdateNotifier.UpdateRelease update)
+        {
+            _shell.OpenPopup(
+                new UpdatePopup(Constants.Version.ToString(), update.Version, update.Notes,
+                    update.Url, UpdateNotifier.GetFullChangelogAsync),
+                LocalizationManager.Get("up_popup_title"));
+        }
+#endif
     }
 }

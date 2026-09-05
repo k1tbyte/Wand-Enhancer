@@ -3,9 +3,7 @@ using System.Windows;
 namespace WandEnhancer.View.MainWindow
 {
     /// <summary>
-    /// What the view model needs from the shell window. Exists so the view model does not
-    /// hold the concrete window or reach through a static Instance, which made every command
-    /// untestable and crashed whenever the singleton was not set yet.
+    /// Abstract shell window for the view model. Keeps commands testable.
     /// </summary>
     public interface IShellView
     {
@@ -14,7 +12,7 @@ namespace WandEnhancer.View.MainWindow
         void ScrollLogIntoView(LogEntry entry);
     }
 
-    /// <summary>Modal file/folder pickers, kept behind a seam so commands stay headless-testable.</summary>
+    /// <summary>Modal file/folder pickers, isolated for testability.</summary>
     public interface IFileDialogs
     {
         /// <summary>Chosen folder, or null when cancelled.</summary>

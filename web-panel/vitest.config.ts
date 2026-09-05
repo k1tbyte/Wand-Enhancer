@@ -10,9 +10,9 @@ export default mergeConfig(
             restoreMocks: true,
             alias: {
                 'react-dom/test-utils': 'preact/test-utils',
+                'use-sync-external-store/shim': 'preact/compat',
             },
-            // Inline @lingui/react so its bare `react` import resolves to preact/compat
-            // via the alias above instead of pulling in a second (real) React copy.
+            // Keep Lingui's React imports on the same Preact instance as the tests.
             server: { deps: { inline: [/@lingui\/react/] } },
         },
     }),

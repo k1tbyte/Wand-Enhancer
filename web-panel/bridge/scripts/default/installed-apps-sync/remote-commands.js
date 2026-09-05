@@ -158,7 +158,7 @@ async function executeRemoteStopCommand(state, request) {
 
     try {
         await state.trainerService.endTrainer();
-        clearTrainerSnapshot(state, REMOTE_STOP_EVENT, true);
+        clearTrainerSnapshot(state, REMOTE_STOP_EVENT);
         return buildCommandResponse(request, true);
     } catch (error) {
         state.log('warn', 'Remote trainer stop failed.', formatError(error));

@@ -131,6 +131,17 @@ const CheatTileBase = ({
 
     const stacked = isStackedControl(cheat);
     const showReveal = offset < 0;
+    const pinButton = (
+        <IconButton
+            className={cn(stacked && 'ml-auto', 'border-transparent bg-transparent')}
+            icon={pinned ? 'pin-off' : 'pin'}
+            label={pinned ? _(msg`Unpin ${cheat.name}`) : _(msg`Pin ${cheat.name}`)}
+            active={pinned}
+            size="sm"
+            shrink
+            onClick={onTogglePin}
+        />
+    );
 
     return (
         <div className={cn('relative overflow-hidden', first ? '' : 'border-t border-white/6')}>
@@ -151,7 +162,7 @@ const CheatTileBase = ({
                     <div
                         className={cn(
                             'flex gap-3',
-                            stacked ? 'flex-col items-stretch' : 'items-start justify-between',
+                            stacked ? 'flex-col items-stretch' : 'items-center justify-between',
                         )}
                     >
                         <div className="min-w-0 flex-1">
@@ -166,19 +177,7 @@ const CheatTileBase = ({
                                     />
                                 ) : null}
                                 {/* The swipe gesture is pointer-only; this is the keyboard and screen-reader path. */}
-                                <IconButton
-                                    className="ml-auto border-transparent bg-transparent"
-                                    icon={pinned ? 'pin-off' : 'pin'}
-                                    label={
-                                        pinned
-                                            ? _(msg`Unpin ${cheat.name}`)
-                                            : _(msg`Pin ${cheat.name}`)
-                                    }
-                                    active={pinned}
-                                    size="sm"
-                                    shrink
-                                    onClick={onTogglePin}
-                                />
+                                {stacked ? pinButton : null}
                             </div>
                             {cheat.description ? (
                                 <p className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-(--deck-fg-3)">
@@ -186,13 +185,26 @@ const CheatTileBase = ({
                                 </p>
                             ) : null}
                         </div>
-                        <CheatControl
-                            cheat={cheat}
-                            disabled={disabled}
-                            pending={pending}
-                            value={value}
-                            onChange={onChange}
-                        />
+                        {stacked ? (
+                            <CheatControl
+                                cheat={cheat}
+                                disabled={disabled}
+                                pending={pending}
+                                value={value}
+                                onChange={onChange}
+                            />
+                        ) : (
+                            <div className="flex shrink-0 items-center gap-2">
+                                {pinButton}
+                                <CheatControl
+                                    cheat={cheat}
+                                    disabled={disabled}
+                                    pending={pending}
+                                    value={value}
+                                    onChange={onChange}
+                                />
+                            </div>
+                        )}
                     </div>
                     {cheat.instructions ? (
                         <div className="flex gap-2 rounded-[8px] border border-amber-300/25 bg-amber-400/10 px-2.5 py-2 text-[11.5px] leading-5 text-amber-200">

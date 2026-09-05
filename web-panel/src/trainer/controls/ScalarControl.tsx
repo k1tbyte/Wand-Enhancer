@@ -1,4 +1,4 @@
-import { type FormEvent, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import type { CheatSchema } from '../../../protocol/messages';
 import { resolveOption } from '../model/values';
@@ -14,8 +14,6 @@ export const ScalarControl = ({ cheat, value, disabled, onChange }: ControlInter
     const max = cheat.args.max ?? numericOptions[numericOptions.length - 1] ?? 100;
     const step = cheat.args.step ?? inferStep(numericOptions) ?? 1;
     const currentValue = numericValue(value, min);
-    const handleInput = (event: FormEvent<HTMLInputElement>) =>
-        onChange(Number(event.currentTarget.value));
 
     return (
         <div className="w-full">
@@ -27,7 +25,7 @@ export const ScalarControl = ({ cheat, value, disabled, onChange }: ControlInter
                 postfix={cheat.args.postfix ?? ''}
                 step={step}
                 value={currentValue}
-                onInput={handleInput}
+                onChange={onChange}
             />
             <div className="mt-1 flex justify-between font-mono text-[10px] text-(--deck-fg-4)">
                 <span>

@@ -1,9 +1,11 @@
-import type { FormEvent } from 'react';
+import { useState } from 'react';
 import { cn } from '@/shared/lib/ui';
 import { Icon } from '@/shared/ui/Icon';
 
 import type { CheatSchema } from '../../../protocol/messages';
-import { formatNumber } from './format-number';
+import { formatInputNumber, stripNumberGrouping } from './format-number';
+import { clampToStep, decimalPlaces } from './step';
+import { useSliderGesture } from './use-slider-gesture';
 
 export type ControlInternalProps = {
     cheat: CheatSchema;
@@ -22,7 +24,7 @@ type SliderTrackProps = {
     value: number;
     label: string;
     disabled: boolean;
-    onInput: (event: FormEvent<HTMLInputElement>) => void;
+    onChange: (value: number) => void;
 };
 
 export const SliderTrack = ({
@@ -32,12 +34,13 @@ export const SliderTrack = ({
     value,
     label,
     disabled,
-    onInput,
+    onChange,
 }: SliderTrackProps) => {
     const pct = max === min ? 0 : Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+    const gesture = useSliderGesture(value, min, max, step, disabled, onChange);
 
     return (
-        <div className="relative flex h-5 w-full items-center">
+        <div className="relative flex h-9 w-full items-center touch-pan-y" {...gesture}>
             <div className="pointer-events-none absolute inset-x-0 h-1 overflow-hidden rounded-full bg-white/6">
                 <div
                     className="h-full rounded-full bg-[linear-gradient(90deg,color-mix(in_oklab,var(--deck-accent)_60%,transparent),var(--deck-accent))]"
@@ -52,8 +55,8 @@ export const SliderTrack = ({
                 step={step}
                 value={value}
                 disabled={disabled}
-                className="remote-range w-full"
-                onInput={onInput}
+                className="remote-range pointer-events-none w-full"
+                onInput={(event) => onChange(Number(event.currentTarget.value))}
             />
         </div>
     );
@@ -93,7 +96,7 @@ type SliderReadoutProps = {
     postfix: string;
     label: string;
     disabled: boolean;
-    onInput: (event: FormEvent<HTMLInputElement>) => void;
+    onChange: (value: number) => void;
 };
 
 export const SliderReadout = ({
@@ -104,14 +107,20 @@ export const SliderReadout = ({
     postfix,
     label,
     disabled,
-    onInput,
+    onChange,
 }: SliderReadoutProps) => {
+    const [draft, setDraft] = useState<string | null>(null);
+    const displayPrecision = Math.max(decimalPlaces(min), decimalPlaces(max), decimalPlaces(step));
+    const commit = () => {
+        if (draft === null) return;
+        const raw = stripNumberGrouping(draft);
+        const next = Number(raw);
+        setDraft(null);
+        if (raw && Number.isFinite(next)) onChange(clampToStep(next, min, max, step));
+    };
+
     return (
-        <>
-            <div className="mb-1 flex justify-end font-mono text-[12.5px] tabular-nums text-(--deck-accent)">
-                {formatNumber(value, step)}
-                {postfix}
-            </div>
+        <div className="flex w-full items-center gap-3">
             <SliderTrack
                 disabled={disabled}
                 label={label}
@@ -119,8 +128,32 @@ export const SliderReadout = ({
                 min={min}
                 step={step}
                 value={value}
-                onInput={onInput}
+                onChange={onChange}
             />
-        </>
+            <div className="relative flex h-9 w-24 shrink-0 items-center rounded-lg border border-white/10 bg-white/5 px-2 font-mono text-sm text-(--deck-accent)">
+                <input
+                    type="text"
+                    inputMode="decimal"
+                    aria-label={`${label} value`}
+                    disabled={disabled}
+                    value={draft ?? formatInputNumber(value, displayPrecision)}
+                    className="min-w-0 w-full bg-transparent text-center tabular-nums outline-none disabled:opacity-50"
+                    onInput={(event) => setDraft(event.currentTarget.value)}
+                    onBlur={commit}
+                    onKeyDown={(event) => {
+                        if (event.key === 'Enter') commit();
+                        if (event.key === 'Escape') {
+                            event.stopPropagation();
+                            setDraft(null);
+                        }
+                    }}
+                />
+                {postfix && (
+                    <span className="pointer-events-none absolute right-2 text-[11px] text-(--deck-fg-3)">
+                        {postfix}
+                    </span>
+                )}
+            </div>
+        </div>
     );
 };
