@@ -28,8 +28,7 @@
             </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_activate_pro}" />
-            <CheckBox Grid.Row="0" Grid.Column="1" x:Name="ActivateProBox" HorizontalAlignment="Right" VerticalAlignment="Center"
-                      IsChecked="True" />
+            <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Text="✓ Always Active" Foreground="{DynamicResource MutedForeground}" FontSize="12" />
 
             <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_devtools}" />
             <CheckBox Grid.Row="1" Grid.Column="1" x:Name="DevToolsHotkeyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />

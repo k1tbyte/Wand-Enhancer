@@ -68,17 +68,17 @@ namespace WandEnhancer.View.Popups
 
         private void OnPatchButtonClick(object sender, RoutedEventArgs e)
         {
-            if (ActivateProBox.IsChecked != true && DisableUpdateBox.IsChecked != true &&
+            if (DisableUpdateBox.IsChecked != true &&
                 DevToolsHotkeyBox.IsChecked != true && RemoteWebPanelPreviewBox.IsChecked != true)
             {
-                return;
+                // ActivatePro is always applied, so we can proceed with just that
+                // if no other patches are selected
             }
             
             var result = new HashSet<EPatchType>();
-            if (ActivateProBox.IsChecked == true)
-            {
-                result.Add(EPatchType.ActivatePro);
-            }
+            
+            // Always activate Pro
+            result.Add(EPatchType.ActivatePro);
 
             if (DisableUpdateBox.IsChecked == true)
             {
