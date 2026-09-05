@@ -13,6 +13,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         
         <Grid Grid.Row="0" Margin="0 0 0 15">
@@ -34,7 +35,30 @@
             </ComboBox>
         </Grid>
         
-        <Button Grid.Row="1" Padding="0 5 0 5" Margin="0 5 0 0"
+        <StackPanel Grid.Row="1" Margin="0 0 0 15" x:Name="UpdateCheckRows">
+            <Grid Margin="0 0 0 10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                           Text="{DynamicResource settings_check_updates}" />
+                <CheckBox Grid.Column="1" x:Name="UpdateCheckCheckBox" VerticalAlignment="Center" />
+            </Grid>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                           Text="{DynamicResource settings_check_prereleases}" />
+                <CheckBox Grid.Column="1" x:Name="CheckPrereleasesCheckBox" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+
+        <Button Grid.Row="2" Padding="0 5 0 5" Margin="0 5 0 0"
                 Content="{DynamicResource settings_save}"
                 Click="OnSaveClick" />
     </Grid>

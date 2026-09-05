@@ -1,3 +1,3 @@
-import { installInstalledAppsSync } from "./installed-apps-sync/index.js"
+import { installInstalledAppsSync } from './installed-apps-sync/index.js';
 
-installInstalledAppsSync(globalThis.WandEnhancer)
+installInstalledAppsSync(globalThis.WandEnhancer);

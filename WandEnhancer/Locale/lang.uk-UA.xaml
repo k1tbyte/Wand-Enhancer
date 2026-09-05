@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Шлях до папки</s:String>
     <s:String x:Key="mw_folder_not_found">Папку не знайдено</s:String>
     <s:String x:Key="mw_patch">Застосувати</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Вибрані файли .js пакуються у Wand і завантажуються в рендерері.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Скрипти не вибрано</s:String>
     <s:String x:Key="pv_start">Почати</s:String>
+    <s:String x:Key="pv_auto_apply">Автоматично застосовувати після оновлень</s:String>
     <s:String x:Key="pv_popup_title">Що будемо покращувати?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">Директорію WeMod знайдено в {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod вже пропатчено. Якщо ви хочете пропатчити знову, спершу відновіть резервну копію.</s:String>
+    <s:String x:Key="log_ready">Готово до патчингу.</s:String>
+    <s:String x:Key="log_install_not_found">Директорію WeMod не знайдено.</s:String>
+    <s:String x:Key="log_no_directory">Не вдається виконати. Будь ласка, спочатку вкажіть директорію.</s:String>
+    <s:String x:Key="log_invalid_directory">Вибрана папка {0} не є дійсною директорією WeMod.</s:String>
+    <s:String x:Key="log_restore_failed">Не вдалося відновити резервну копію: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Не вдалося пропатчити: {0}</s:String>
+    <s:String x:Key="log_copied">Логи скопійовано в буфер обміну.</s:String>
+    <s:String x:Key="log_copy_failed">Не вдалося скопіювати логи: {0}</s:String>
+    <s:String x:Key="log_exported">Логи експортовано до {0}.</s:String>
+    <s:String x:Key="log_export_failed">Не вдалося експортувати логи: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Не вдалося відкрити {0} у браузері.</s:String>
+    <s:String x:Key="dialog_pick_install">Виберіть директорію WeMod</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

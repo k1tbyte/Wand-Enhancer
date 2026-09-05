@@ -15,7 +15,6 @@
             <FontFamily x:Key="Inter" >pack://application:,,,/Style/#Inter 18pt 18pt</FontFamily>
             
             <converters:ToVisibilityConverter x:Key="ToVisibilityConverter"/>
-            <converters:ToVisibilityInvertedConverter x:Key="ToVisibilityInvertedConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

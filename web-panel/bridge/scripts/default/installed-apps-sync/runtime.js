@@ -1,324 +1,390 @@
+import { CONTAINER_GRAPH_MAX_DEPTH } from './constants.js';
+
 export function isRecord(value) {
-  return typeof value === "object" && value !== null
+    return typeof value === 'object' && value !== null;
+}
+
+export function formatError(error) {
+    return error?.stack || String(error);
+}
+
+export async function invokeIpc(state, channel, payload, label, level = 'warn') {
+    if (!state.ipcRenderer) {
+        return false;
+    }
+
+    try {
+        await state.ipcRenderer.invoke(channel, payload);
+        return true;
+    } catch (error) {
+        state.log(level, `${label} IPC failed.`, formatError(error));
+        return false;
+    }
+}
+
+export function isDiagnosticsDebugEnabled() {
+    return globalThis.__wandInstalledAppsSyncDebug === true;
+}
+
+let lastPredicateErrorLogAt = 0;
+
+function logContainerGraphPredicateError(error) {
+    if (!isDiagnosticsDebugEnabled()) {
+        return;
+    }
+
+    const now = Date.now();
+    if (now - lastPredicateErrorLogAt < 1000) {
+        return;
+    }
+
+    lastPredicateErrorLogAt = now;
+    console.debug('[wand-installed-apps-sync] container graph predicate threw', formatError(error));
 }
 
 export function getRequire() {
-  return (
-    globalThis.require ||
-    (typeof window !== "undefined" ? window.require : null)
-  )
+    return globalThis.require || (typeof window !== 'undefined' ? window.require : null);
 }
 
 export function safeString(...values) {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) {
-      return value.trim()
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) {
+            return value.trim();
+        }
     }
-  }
 
-  return ""
+    return '';
 }
 
 export function getWebpackRequire() {
-  const chunk = globalThis.webpackChunkWeMod
-  if (!Array.isArray(chunk)) {
-    return null
-  }
+    const chunk = globalThis.webpackChunkWeMod;
+    if (!Array.isArray(chunk)) {
+        return null;
+    }
 
-  if (typeof chunk.__wandWebpackRequire === "function") {
-    return chunk.__wandWebpackRequire
-  }
+    if (typeof chunk.__wandWebpackRequire === 'function') {
+        return chunk.__wandWebpackRequire;
+    }
 
-  let resolvedRequire = null
-  chunk.push([
-    [`wand-enhancer-${Date.now()}`],
-    {},
-    (webpackRequire) => {
-      resolvedRequire = webpackRequire
-    },
-  ])
+    let resolvedRequire = null;
+    chunk.push([
+        [`wand-enhancer-${Date.now()}`],
+        {},
+        (webpackRequire) => {
+            resolvedRequire = webpackRequire;
+        },
+    ]);
 
-  if (typeof resolvedRequire === "function") {
-    chunk.__wandWebpackRequire = resolvedRequire
-  }
+    if (typeof resolvedRequire === 'function') {
+        chunk.__wandWebpackRequire = resolvedRequire;
+    }
 
-  return resolvedRequire
+    return resolvedRequire;
 }
 
 export function getAppRoot() {
-  return (
-    document.getElementById("root") ||
-    document.querySelector("[aurelia-app]") ||
-    document.querySelector("root")
-  )
+    return (
+        document.getElementById('root') ||
+        document.querySelector('[aurelia-app]') ||
+        document.querySelector('root')
+    );
 }
 
 export function hasAppRoot() {
-  return Boolean(getAppRoot())
+    return Boolean(getAppRoot());
+}
+
+let cachedAureliaContainer = null;
+
+function isUsableContainer(container) {
+    return isRecord(container) && typeof container.get === 'function';
 }
 
 export function getAureliaContainer() {
-  const root = getAppRoot()
-  const rootContainer = getContainerFromSubtree(root)
-  if (rootContainer) {
-    return rootContainer
-  }
+    if (isUsableContainer(cachedAureliaContainer)) {
+        return cachedAureliaContainer;
+    }
 
-  const bodyContainer = getContainerFromElement(document.body)
-  if (bodyContainer) {
-    return bodyContainer
-  }
+    const resolved = resolveAureliaContainer();
+    if (resolved) {
+        cachedAureliaContainer = resolved;
+    }
 
-  if (isRecord(globalThis.aurelia) && globalThis.aurelia.container) {
-    return globalThis.aurelia.container
-  }
+    return resolved;
+}
 
-  return null
+function resolveAureliaContainer() {
+    const root = getAppRoot();
+    const rootContainer = getContainerFromSubtree(root);
+    if (rootContainer) {
+        return rootContainer;
+    }
+
+    const bodyContainer = getContainerFromElement(document.body);
+    if (bodyContainer) {
+        return bodyContainer;
+    }
+
+    if (isRecord(globalThis.aurelia) && globalThis.aurelia.container) {
+        return globalThis.aurelia.container;
+    }
+
+    return null;
 }
 
 export function summarizeAureliaSubtree(root) {
-  if (!root) {
-    return "root=null"
-  }
-
-  let elementsWithAu = 0
-  let controllerEntries = 0
-  let namedAuEntries = 0
-
-  function inspectElement(element) {
-    if (!isRecord(element?.au)) {
-      return
+    if (!isDiagnosticsDebugEnabled()) {
+        return '(debug-disabled)';
     }
 
-    elementsWithAu += 1
-
-    if (element.au.controller) {
-      controllerEntries += 1
+    if (!root) {
+        return 'root=null';
     }
 
-    for (const [key, value] of Object.entries(element.au)) {
-      if (key !== "controller" && isRecord(value)) {
-        namedAuEntries += 1
-      }
+    let elementsWithAu = 0;
+    let controllerEntries = 0;
+    let namedAuEntries = 0;
+
+    function inspectElement(element) {
+        if (!isRecord(element?.au)) {
+            return;
+        }
+
+        elementsWithAu += 1;
+
+        if (element.au.controller) {
+            controllerEntries += 1;
+        }
+
+        for (const [key, value] of Object.entries(element.au)) {
+            if (key !== 'controller' && isRecord(value)) {
+                namedAuEntries += 1;
+            }
+        }
     }
-  }
 
-  inspectElement(root)
+    inspectElement(root);
 
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
-  let element = walker.nextNode()
-  while (element) {
-    inspectElement(element)
-    element = walker.nextNode()
-  }
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+    let element = walker.nextNode();
+    while (element) {
+        inspectElement(element);
+        element = walker.nextNode();
+    }
 
-  return `elementsWithAu=${elementsWithAu}, controllerEntries=${controllerEntries}, namedAuEntries=${namedAuEntries}`
+    return `elementsWithAu=${elementsWithAu}, controllerEntries=${controllerEntries}, namedAuEntries=${namedAuEntries}`;
 }
 
 export function findExportedConstructor(webpackRequire, predicate) {
-  const cache = webpackRequire?.c
-  if (!cache || typeof cache !== "object") {
-    return null
-  }
+    const cache = webpackRequire?.c;
+    if (!cache || typeof cache !== 'object') {
+        return null;
+    }
 
-  for (const record of Object.values(cache)) {
-    const exports = record?.exports
-    const candidates = []
+    for (const record of Object.values(cache)) {
+        const exports = record?.exports;
+        const candidates = [];
 
-    if (typeof exports === "function") {
-      candidates.push(exports)
-    } else if (isRecord(exports)) {
-      if (typeof exports.default === "function") {
-        candidates.push(exports.default)
-      }
+        if (typeof exports === 'function') {
+            candidates.push(exports);
+        } else if (isRecord(exports)) {
+            if (typeof exports.default === 'function') {
+                candidates.push(exports.default);
+            }
 
-      for (const value of Object.values(exports)) {
-        if (typeof value === "function") {
-          candidates.push(value)
+            for (const value of Object.values(exports)) {
+                if (typeof value === 'function') {
+                    candidates.push(value);
+                }
+            }
         }
-      }
+
+        for (const candidate of candidates) {
+            if (candidate?.prototype && predicate(candidate.prototype)) {
+                return candidate;
+            }
+        }
     }
 
-    for (const candidate of candidates) {
-      if (candidate?.prototype && predicate(candidate.prototype)) {
-        return candidate
-      }
-    }
-  }
-
-  return null
+    return null;
 }
 
-export function findInstanceInContainerGraph(root, predicate, maxDepth = 4) {
-  if (!root) {
-    return null
-  }
-
-  const seen = new Set()
-  const queue = [{ value: root, depth: 0 }]
-
-  while (queue.length > 0) {
-    const current = queue.shift()
-    const value = current?.value
-    const depth = current?.depth ?? 0
-    if (!value || seen.has(value)) {
-      continue
+export function findInstanceInContainerGraph(
+    root,
+    predicate,
+    maxDepth = CONTAINER_GRAPH_MAX_DEPTH,
+) {
+    if (!root) {
+        return null;
     }
 
-    seen.add(value)
+    const seen = new Set();
+    const queue = [{ value: root, depth: 0 }];
 
-    try {
-      if (predicate(value)) {
-        return value
-      }
-    } catch (error) {}
+    while (queue.length > 0) {
+        const current = queue.shift();
+        const value = current?.value;
+        const depth = current?.depth ?? 0;
+        if (!value || seen.has(value)) {
+            continue;
+        }
 
-    if (depth >= maxDepth) {
-      continue
+        seen.add(value);
+
+        try {
+            if (predicate(value)) {
+                return value;
+            }
+        } catch (error) {
+            logContainerGraphPredicateError(error);
+        }
+
+        if (depth >= maxDepth) {
+            continue;
+        }
+
+        enqueueNestedValues(queue, seen, value, depth + 1);
     }
 
-    enqueueNestedValues(queue, seen, value, depth + 1)
-  }
-
-  return null
+    return null;
 }
 
 export function getBasename(location) {
-  if (typeof location !== "string" || !location.trim()) {
-    return ""
-  }
+    if (typeof location !== 'string' || !location.trim()) {
+        return '';
+    }
 
-  const normalized = location.replace(/\\/g, "/").replace(/\/+$/, "")
-  const leaf = normalized.split("/").filter(Boolean).pop()
-  return leaf ? leaf.trim() : ""
+    const normalized = location.replace(/\\/g, '/').replace(/\/+$/, '');
+    const leaf = normalized.split('/').filter(Boolean).pop();
+    return leaf ? leaf.trim() : '';
 }
 
 export function toStringId(value) {
-  if (typeof value === "string" && value.trim()) {
-    return value.trim()
-  }
+    if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+    }
 
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value)
-  }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return String(value);
+    }
 
-  return null
+    return null;
 }
 
 export function normalizeStringList(value) {
-  if (!Array.isArray(value)) {
-    return []
-  }
+    if (!Array.isArray(value)) {
+        return [];
+    }
 
-  return value
-    .filter((entry) => typeof entry === "string" && entry.trim())
-    .map((entry) => entry.trim())
+    return value
+        .filter((entry) => typeof entry === 'string' && entry.trim())
+        .map((entry) => entry.trim());
 }
 
 export function getPreferredLocale() {
-  return safeString(
-    document.documentElement?.lang,
-    Array.isArray(globalThis.navigator?.languages)
-      ? globalThis.navigator.languages.find(
-          (entry) => typeof entry === "string" && entry.trim()
-        )
-      : "",
-    globalThis.navigator?.language,
-    "en-US"
-  )
+    return safeString(
+        document.documentElement?.lang,
+        Array.isArray(globalThis.navigator?.languages)
+            ? globalThis.navigator.languages.find(
+                  (entry) => typeof entry === 'string' && entry.trim(),
+              )
+            : '',
+        globalThis.navigator?.language,
+        'en-US',
+    );
 }
 
 function getContainerFromAu(au) {
-  if (!isRecord(au)) {
-    return null
-  }
-
-  if (au.container) {
-    return au.container
-  }
-
-  const directControllerContainer =
-    au.controller?.container || au.controller?.viewModel?.container
-  if (directControllerContainer) {
-    return directControllerContainer
-  }
-
-  for (const value of Object.values(au)) {
-    if (!isRecord(value)) {
-      continue
+    if (!isRecord(au)) {
+        return null;
     }
 
-    const container =
-      value.container ||
-      value.controller?.container ||
-      value.viewModel?.container ||
-      value.controller?.viewModel?.container
-    if (container) {
-      return container
+    if (au.container) {
+        return au.container;
     }
-  }
 
-  return null
+    const directControllerContainer =
+        au.controller?.container || au.controller?.viewModel?.container;
+    if (directControllerContainer) {
+        return directControllerContainer;
+    }
+
+    for (const value of Object.values(au)) {
+        if (!isRecord(value)) {
+            continue;
+        }
+
+        const container =
+            value.container ||
+            value.controller?.container ||
+            value.viewModel?.container ||
+            value.controller?.viewModel?.container;
+        if (container) {
+            return container;
+        }
+    }
+
+    return null;
 }
 
 function getContainerFromElement(element) {
-  if (!element) {
-    return null
-  }
+    if (!element) {
+        return null;
+    }
 
-  if (element.__aurelia__?.container) {
-    return element.__aurelia__.container
-  }
+    if (element.__aurelia__?.container) {
+        return element.__aurelia__.container;
+    }
 
-  return getContainerFromAu(element.au)
+    return getContainerFromAu(element.au);
 }
 
 function getContainerFromSubtree(root) {
-  if (!root) {
-    return null
-  }
-
-  const rootContainer = getContainerFromElement(root)
-  if (rootContainer) {
-    return rootContainer
-  }
-
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT)
-  let element = walker.nextNode()
-  while (element) {
-    const container = getContainerFromElement(element)
-    if (container) {
-      return container
+    if (!root) {
+        return null;
     }
 
-    element = walker.nextNode()
-  }
+    const rootContainer = getContainerFromElement(root);
+    if (rootContainer) {
+        return rootContainer;
+    }
 
-  return null
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+    let element = walker.nextNode();
+    while (element) {
+        const container = getContainerFromElement(element);
+        if (container) {
+            return container;
+        }
+
+        element = walker.nextNode();
+    }
+
+    return null;
 }
 
 function enqueueNestedValues(queue, seen, value, depth) {
-  if (value instanceof Map) {
-    enqueueIterable(queue, seen, value.values(), depth)
-    return
-  }
+    if (value instanceof Map) {
+        enqueueIterable(queue, seen, value.values(), depth);
+        return;
+    }
 
-  if (value instanceof Set || Array.isArray(value)) {
-    enqueueIterable(queue, seen, value.values(), depth)
-    return
-  }
+    if (value instanceof Set || Array.isArray(value)) {
+        enqueueIterable(queue, seen, value.values(), depth);
+        return;
+    }
 
-  if (!isRecord(value) && typeof value !== "function") {
-    return
-  }
+    if (!isRecord(value) && typeof value !== 'function') {
+        return;
+    }
 
-  enqueueIterable(queue, seen, Object.values(value), depth)
+    enqueueIterable(queue, seen, Object.values(value), depth);
 }
 
 function enqueueIterable(queue, seen, values, depth) {
-  for (const entry of values) {
-    if ((isRecord(entry) || typeof entry === "function") && !seen.has(entry)) {
-      queue.push({ value: entry, depth })
+    for (const entry of values) {
+        if ((isRecord(entry) || typeof entry === 'function') && !seen.has(entry)) {
+            queue.push({ value: entry, depth });
+        }
     }
-  }
 }

@@ -12,8 +12,6 @@ namespace AsarSharp.AsarFileSystem
     public static class Disk
     {
         private const int StreamBufferSize = 1024 * 1024;
-        private static readonly ConcurrentDictionary<string, Filesystem> _filesystemCache =
-            new ConcurrentDictionary<string, Filesystem>(StringComparer.OrdinalIgnoreCase);
 
         public class ArchiveHeader
         {
@@ -25,7 +23,6 @@ namespace AsarSharp.AsarFileSystem
         public class FilesystemFilesAndLinks
         {
             public List<BasicFileInfo> Files { get; set; } = new List<BasicFileInfo>();
-            public List<BasicFileInfo> Links { get; set; } = new List<BasicFileInfo>();
         }
 
         public class BasicFileInfo
@@ -42,14 +39,14 @@ namespace AsarSharp.AsarFileSystem
                        65536, FileOptions.SequentialScan))
             {
                 byte[] sizeBuf = new byte[8];
-                if (fs.Read(sizeBuf, 0, 8) != 8)
+                if (fs.ReadFull(sizeBuf, 0, 8) != 8)
                     throw new Exception("Unable to read header size");
 
                 var sizePickle = Pickle.CreateFromBuffer(sizeBuf);
                 var size = sizePickle.CreateIterator().ReadUInt32();
 
                 var headerBuf = new byte[size];
-                if (fs.Read(headerBuf, 0, (int)size) != size)
+                if (fs.ReadFull(headerBuf, 0, (int)size) != size)
                     throw new Exception("Unable to read header");
 
                 var headerPickle = Pickle.CreateFromBuffer(headerBuf);
@@ -65,62 +62,27 @@ namespace AsarSharp.AsarFileSystem
             }
         }
 
+        /// <summary>
+        /// Reads the header fresh every time to avoid stale offsets during repacking.
+        /// </summary>
         public static Filesystem ReadFilesystemSync(string archivePath)
         {
-            return _filesystemCache.GetOrAdd(archivePath, key =>
-            {
-                var header = ReadArchiveHeaderSync(key);
-                var filesystem = new Filesystem(key);
-                filesystem.SetHeader(header.Header, header.HeaderSize);
-                return filesystem;
-            });
-        }
-
-        public static byte[] ReadFileSync(Filesystem filesystem, string filename, FilesystemEntry info)
-        {
-            if (!info.IsFile || !info.Size.HasValue)
-                throw new ArgumentException("Entry is not a file", nameof(info));
-
-            long size = info.Size.Value;
-            byte[] buffer = new byte[size];
-
-            if (size <= 0) return buffer;
-
-            if (info.Unpacked == true)
-            {
-                string filePath = Path.Combine($"{filesystem.GetRootPath()}.unpacked", filename);
-                return File.ReadAllBytes(filePath);
-            }
-
-            using (var fs = new FileStream(filesystem.GetRootPath(), FileMode.Open, FileAccess.Read,
-                       FileShare.Read, 65536, FileOptions.RandomAccess))
-            {
-                long offset = 8 + filesystem.GetHeaderSize() + long.Parse(info.Offset);
-                fs.Position = offset;
-                int bytesRead = fs.Read(buffer, 0, (int)size);
-                if (bytesRead != size)
-                    throw new Exception($"Failed to read entire file, got {bytesRead} bytes instead of {size}");
-            }
-
-            return buffer;
+            var header = ReadArchiveHeaderSync(archivePath);
+            var filesystem = new Filesystem(archivePath);
+            filesystem.SetHeader(header.Header, header.HeaderSize);
+            return filesystem;
         }
 
         #endregion
 
-        public static bool UncacheFilesystem(string archivePath)
-        {
-            return _filesystemCache.TryRemove(archivePath, out _);
-        }
-
-        public static void UncacheAll()
-        {
-            _filesystemCache.Clear();
-        }
-
         public static void CopyFile(string dest, string rootPath, string filename)
         {
-            if (dest == null || rootPath == null || filename == null)
-                throw new ArgumentNullException();
+            if (dest == null)
+                throw new ArgumentNullException(nameof(dest));
+            if (rootPath == null)
+                throw new ArgumentNullException(nameof(rootPath));
+            if (filename == null)
+                throw new ArgumentNullException(nameof(filename));
 
             string normalizedDestRoot = Path.GetFullPath(dest)
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -165,7 +127,55 @@ namespace AsarSharp.AsarFileSystem
             var buf = new byte[StreamBufferSize];
             var blockBuf = new byte[4 * 1024 * 1024]; // shared across all files — avoids 4MB alloc per file
 
-            using (var fs = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
+            // Build beside the target and swap at the end to prevent corruption on failure.
+            string tempPath = dest + ".building";
+            try
+            {
+                WriteArchive(tempPath, dest, fileSystem, lists, serializerSettings,
+                    headerPickle, sizePickle, sizePickleSize, buf, blockBuf);
+                ReplaceFile(tempPath, dest);
+            }
+            catch
+            {
+                TryDelete(tempPath);
+                throw;
+            }
+        }
+
+        private static void ReplaceFile(string tempPath, string dest)
+        {
+            if (!File.Exists(dest))
+            {
+                File.Move(tempPath, dest);
+                return;
+            }
+
+            // Clear attributes to prevent swap failure on read-only/hidden files.
+            Extensions.ClearAttributes(dest);
+            // Atomic swap.
+            File.Replace(tempPath, dest, null, true);
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                // Ignore cleanup errors.
+            }
+        }
+
+        private static void WriteArchive(string archivePath, string dest, Filesystem fileSystem,
+            FilesystemFilesAndLinks lists, JsonSerializerSettings serializerSettings,
+            Pickle headerPickle, Pickle sizePickle, int sizePickleSize, byte[] buf, byte[] blockBuf)
+        {
+            using (var fs = new FileStream(archivePath, FileMode.Create, FileAccess.Write, FileShare.None, StreamBufferSize, FileOptions.SequentialScan))
             {
                 sizePickle.WriteTo(fs);
                 headerPickle.WriteTo(fs);
@@ -192,6 +202,15 @@ namespace AsarSharp.AsarFileSystem
                 var patchedSizePickle = Pickle.CreateEmpty();
                 patchedSizePickle.WriteUInt32((uint)patchedPickle.GetTotalSize());
 
+                // Check if file size changed between crawl and write to prevent corruption.
+                if (patchedPickle.GetTotalSize() != headerPickle.GetTotalSize() ||
+                    patchedSizePickle.GetTotalSize() != sizePickleSize)
+                {
+                    throw new InvalidOperationException(
+                        "ASAR header changed size while packing (a source file was modified mid-build). " +
+                        "Aborting rather than writing a corrupt archive.");
+                }
+
                 fs.Position = 0;
                 patchedSizePickle.WriteTo(fs);
                 patchedPickle.WriteTo(fs);
@@ -209,11 +228,19 @@ namespace AsarSharp.AsarFileSystem
             using (var hasher = new IntegrityHelper.StreamingHasher(estimatedBlocks, blockBuf))
             using (var src = new FileStream(srcPath, FileMode.Open, FileAccess.Read, FileShare.Read, StreamBufferSize, FileOptions.SequentialScan))
             {
+                long totalRead = 0;
                 int read;
                 while ((read = src.Read(buf, 0, buf.Length)) > 0)
                 {
+                    totalRead += read;
                     hasher.Append(buf, 0, read);
                     dest?.Write(buf, 0, read);
+                }
+
+                if (totalRead != fileSize)
+                {
+                    throw new IOException(
+                        $"{srcPath}: file size changed while packing (expected {fileSize}, read {totalRead})");
                 }
 
                 if (node != null)

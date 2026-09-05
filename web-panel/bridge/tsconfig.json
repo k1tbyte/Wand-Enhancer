@@ -1,11 +1,15 @@
 {
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "lib": ["ES2022"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "noImplicitAny": false,
-    "types": ["node"]
-  },
-  "include": ["src"]
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "lib": ["ES2022"],
+        // Bundled by esbuild (bridge/build.mjs), not resolved by Node's ESM loader, so
+        // type-check under the same model the bundler uses.
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        // The injected renderer scripts are plain .js by design; tests import them directly.
+        "allowJs": true,
+        "checkJs": false,
+        "types": ["node"]
+    },
+    "include": ["src"]
 }

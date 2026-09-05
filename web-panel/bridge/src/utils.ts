@@ -1,12 +1,14 @@
-function isRecord(value) {
+import type { UnknownRecord } from './types';
+
+export function isRecord(value: unknown): value is UnknownRecord {
     return typeof value === 'object' && value !== null;
 }
 
-function safeString(value, fallback = '') {
+export function safeString(value: unknown, fallback = '') {
     return typeof value === 'string' && value.length ? value : fallback;
 }
 
-function firstString(...values) {
+export function firstString(...values: unknown[]) {
     for (const value of values) {
         if (typeof value !== 'string') {
             continue;
@@ -21,7 +23,7 @@ function firstString(...values) {
     return '';
 }
 
-function cloneValue(value) {
+export function cloneValue(value: unknown): unknown {
     if (Array.isArray(value)) {
         return value.map(cloneValue);
     }
@@ -30,7 +32,7 @@ function cloneValue(value) {
         return value;
     }
 
-    const result = {};
+    const result: UnknownRecord = {};
     for (const [key, entry] of Object.entries(value)) {
         result[key] = cloneValue(entry);
     }
@@ -38,11 +40,11 @@ function cloneValue(value) {
     return result;
 }
 
-function isValidPort(value) {
-    return Number.isFinite(value) && value > 0 && value < 65536;
+export function isValidPort(value: unknown) {
+    return Number.isFinite(value) && (value as number) > 0 && (value as number) < 65536;
 }
 
-function toStringId(value) {
+export function toStringId(value: unknown) {
     if (typeof value === 'string' && value.trim()) {
         return value.trim();
     }
@@ -53,12 +55,3 @@ function toStringId(value) {
 
     return null;
 }
-
-module.exports = {
-    cloneValue,
-    firstString,
-    isRecord,
-    isValidPort,
-    safeString,
-    toStringId,
-};

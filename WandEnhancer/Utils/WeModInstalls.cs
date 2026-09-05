@@ -7,13 +7,14 @@ using WandEnhancer.Models;
 
 namespace WandEnhancer.Utils
 {
-    public static class Extensions
+    public static class WeModInstalls
     {
+        public const string JavaScriptFileExtension = ".js";
+
         public static WeModConfig CheckWeModPath(string versionRoot)
         {
             try
             {
-                
                 foreach (var name in Constants.WeModBrandNames)
                 {
                     var exeName = $"{name}.exe";
@@ -29,9 +30,9 @@ namespace WandEnhancer.Utils
                     }
                 }
             }
-            catch
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException)
             {
-                // ignored
+                // An unreadable or malformed candidate directory is not this install.
             }
 
             return null;
@@ -113,16 +114,10 @@ namespace WandEnhancer.Utils
             return null;
         }
         
-        public static string Base64Decode(string base64EncodedData) 
+        public static bool IsJavaScriptFile(string path)
         {
-            var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
-            return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
-        }
-        
-        public static string Base64Encode(string plainText) 
-        {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            return System.Convert.ToBase64String(plainTextBytes);
+            return File.Exists(path)
+                   && string.Equals(Path.GetExtension(path), JavaScriptFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public static WeModConfig FindLatestWeMod(string root)

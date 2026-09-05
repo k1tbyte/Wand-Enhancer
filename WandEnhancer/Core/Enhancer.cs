@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,6 +18,9 @@ namespace WandEnhancer.Core
         private const string AppAsarUnpackedDirectoryName = "app.asar.unpacked";
         private const string AppAsarBackupFileName = "app.asar.backup";
         private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
+        private const string IncompletePatchMarkerFileName = ".incomplete-patch";
+        private const string ProxyDllFileName = "version.dll";
+        private const string StubBackupSuffix = ".stub";
         private const string WebPanelDirectoryName = "web-panel";
         private const string WebPanelDistDirectoryName = "dist";
         private const string LocalCustomScriptsDirectoryName = "renderer-scripts";
@@ -28,7 +31,6 @@ namespace WandEnhancer.Core
         private const string AppBundleFilePrefix = "app-";
         private const string AppBundleFileSuffix = ".bundle.js";
         private const string IndexBundleFileName = "index.js";
-        private const string JavaScriptFileExtension = ".js";
         private const string JavaScriptFileSearchPattern = "*.js";
         private const string DuplicateScriptSuffix = ".custom";
         private const int FirstDuplicateScriptIndex = 1;
@@ -36,92 +38,49 @@ namespace WandEnhancer.Core
         private readonly WeModConfig _weModConfig;
         private readonly Action<string, ELogType> _logger;
         private readonly PatchConfig _config;
+        private readonly JavaScriptPatchApplier _jsPatchApplier;
         private readonly string _asarPath;
         private readonly string _backupPath;
         private readonly string _unpackedPath;
         private readonly string _unpackedBackupPath;
+
+        /// <summary>For <see cref="Restore"/>, which needs the install paths but no patch selection.</summary>
+        public Enhancer(WeModConfig weModConfig, Action<string, ELogType> logger)
+            : this(weModConfig, logger, null)
+        {
+        }
 
         public Enhancer(WeModConfig weModConfig, Action<string, ELogType> logger, PatchConfig config)
         {
             _weModConfig = weModConfig;
             _logger = logger;
             _config = config;
+            _jsPatchApplier = new JavaScriptPatchApplier(logger);
 
             _asarPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarFileName);
             _unpackedPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedDirectoryName);
             _backupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarBackupFileName);
             _unpackedBackupPath = Path.Combine(weModConfig.RootDirectory, ResourcesDirectoryName, AppAsarUnpackedBackupDirectoryName);
         }
-        
-        private string ApplyJsPatch(string fileName, string js, EnhancerConfig.PatchEntry patch, EPatchType patchType, out bool patchApplied)
+
+        /// <summary>Checks if both backups exist and incomplete marker is absent.</summary>
+        public static bool IsPatched(string rootDirectory)
         {
-            patchApplied = false;
+            var resources = Path.Combine(rootDirectory, ResourcesDirectoryName);
+            return HasBackup(rootDirectory)
+                   && !File.Exists(Path.Combine(resources, IncompletePatchMarkerFileName));
+        }
 
-            if (patch.Applied)
-            {
-                return js;
-            }
-
-            if (!CanSearchPatchInFile(fileName, patch) || !ContainsSearchHint(js, patch.SearchHints))
-            {
-                return js;
-            }
-            
-            var match = patch.Target.Match(js);
-            if (!match.Success)
-            {
-                return js;
-            }
-            
-            var prefix = $"[ENHANCER] [{patchType} -> {patch.Name}]";
-            
-            if(patch.SingleMatch && match.NextMatch().Success)
-            {
-                throw new Exception(
-                    $"{prefix} Patch failed. Multiple target functions found. Looks like the version is not supported");
-            }
-
-            string patchSource = patch.PatchFactory != null
-                ? patch.PatchFactory(match)
-                : patch.Patch;
-
-            if (patch.Resolver != null)
-            {
-                string resolvedField = patch.Resolver.Handler(match.Value);
-                if (string.IsNullOrEmpty(resolvedField))
-                {
-                    throw new Exception($"{prefix} Resolver failed to find field name");
-                }
-                
-                patchSource = patchSource.Replace(patch.Resolver.Placeholder, resolvedField);
-            }
-            
-            _logger($"{prefix} Found target function in: " + Path.GetFileName(fileName), ELogType.Info);
-
-            string newJs;
-            if (patch.PatchFactory != null)
-            {
-                newJs = patch.SingleMatch
-                    ? patch.Target.Replace(js, _ => patchSource, 1)
-                    : patch.Target.Replace(js, _ => patchSource);
-            }
-            else
-            {
-                newJs = patch.SingleMatch
-                    ? patch.Target.Replace(js, patchSource, 1)
-                    : patch.Target.Replace(js, patchSource);
-            }
-
-            _logger($"{prefix} Patch applied", ELogType.Success);
-            patch.Applied = true;
-            patchApplied = true;
-            
-            return newJs;
+        public static bool HasBackup(string rootDirectory)
+        {
+            var resources = Path.Combine(rootDirectory, ResourcesDirectoryName);
+            return File.Exists(Path.Combine(resources, AppAsarBackupFileName))
+                   && Directory.Exists(Path.Combine(resources, AppAsarUnpackedBackupDirectoryName));
         }
 
         private void PatchAsar()
         {
-            var items = Directory.EnumerateFiles(_unpackedPath, $"*{JavaScriptFileExtension}", SearchOption.TopDirectoryOnly)
+            var items = Directory.EnumerateFiles(_unpackedPath, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly)
                 .Where(IsCandidateBundleFile)
                 .ToList();
 
@@ -129,7 +88,7 @@ namespace WandEnhancer.Core
             {
                 throw new Exception("[ENHANCER] No app bundle found");
             }
-            
+
             var remainingPatches = new HashSet<EPatchType>(_config.PatchTypes);
             var enhancerConfig = EnhancerConfig.GetInstance();
 
@@ -144,20 +103,22 @@ namespace WandEnhancer.Core
                 {
                     continue;
                 }
-                
+
                 string data = File.ReadAllText(item);
                 bool fileChanged = false;
-                
+
                 foreach (var entry in remainingPatches.ToList())
                 {
                     var entries = enhancerConfig[entry];
                     foreach (var patchEntry in entries)
                     {
                         bool patchApplied;
-                        data = ApplyJsPatch(item, data, patchEntry, entry, out patchApplied);
+                        data = _jsPatchApplier.Apply(item, data, patchEntry, entry, out patchApplied);
                         fileChanged = fileChanged || patchApplied;
                     }
 
+                    // Optional patches stay in the scan until every file has been checked, because
+                    // their capability may still show up in a bundle we have not read yet.
                     if (entries.All(x => x.Applied))
                     {
                         remainingPatches.Remove(entry);
@@ -169,11 +130,27 @@ namespace WandEnhancer.Core
                     File.WriteAllText(item, data);
                 }
             }
-            
-            if(remainingPatches.Count > 0)
+
+            ReportUnappliedPatches(remainingPatches, enhancerConfig);
+        }
+
+        private void ReportUnappliedPatches(IEnumerable<EPatchType> remainingPatches, Dictionary<EPatchType, EnhancerConfig.PatchEntry[]> enhancerConfig)
+        {
+            var unapplied = remainingPatches
+                .SelectMany(patchType => enhancerConfig[patchType]
+                    .Where(patch => !patch.Applied)
+                    .Select(patch => new { Label = JavaScriptPatchApplier.FormatLabel(patchType, patch), Patch = patch }))
+                .ToList();
+
+            foreach (var skipped in unapplied.Where(entry => entry.Patch.IsResolved))
             {
-                var failedPatches = string.Join(", ", remainingPatches.Select(p => p.ToString()));
-                throw new Exception($"[ENHANCER] Failed to apply patches: {failedPatches}. The version may not be supported.");
+                _logger($"[ENHANCER] [{skipped.Label}] Capability not present, skipping", ELogType.Info);
+            }
+
+            var failed = unapplied.Where(entry => !entry.Patch.IsResolved).Select(entry => entry.Label).ToList();
+            if (failed.Count > 0)
+            {
+                throw new Exception($"[ENHANCER] Failed to apply patches: {string.Join(", ", failed)}. The version may not be supported.");
             }
         }
 
@@ -187,44 +164,9 @@ namespace WandEnhancer.Core
 
         private static bool CouldFileContainRemainingPatch(string filePath, IEnumerable<EPatchType> remainingPatches, Dictionary<EPatchType, EnhancerConfig.PatchEntry[]> enhancerConfig)
         {
-            foreach (var patchType in remainingPatches)
-            {
-                foreach (var patchEntry in enhancerConfig[patchType])
-                {
-                    if (patchEntry.Applied)
-                    {
-                        continue;
-                    }
-
-                    if (CanSearchPatchInFile(filePath, patchEntry))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        private static bool CanSearchPatchInFile(string filePath, EnhancerConfig.PatchEntry patch)
-        {
-            if (patch.CandidateFileNames == null || patch.CandidateFileNames.Length == 0)
-            {
-                return true;
-            }
-
-            string fileName = Path.GetFileName(filePath);
-            return patch.CandidateFileNames.Any(candidate => fileName.Equals(candidate, StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static bool ContainsSearchHint(string source, string[] searchHints)
-        {
-            if (searchHints == null || searchHints.Length == 0)
-            {
-                return true;
-            }
-
-            return searchHints.Any(searchHint => source.IndexOf(searchHint, StringComparison.Ordinal) >= 0);
+            return remainingPatches
+                .SelectMany(patchType => enhancerConfig[patchType])
+                .Any(patchEntry => !patchEntry.Applied && JavaScriptPatchApplier.CanSearchFile(filePath, patchEntry));
         }
 
         private static string FindWorkspacePath(params string[] segments)
@@ -244,25 +186,6 @@ namespace WandEnhancer.Core
             throw new FileNotFoundException($"Required workspace artifact not found: {Path.Combine(segments)}");
         }
 
-        internal static void CopyDirectory(string sourceDir, string destinationDir)
-        {
-            Directory.CreateDirectory(destinationDir);
-
-            foreach (var directory in Directory.GetDirectories(sourceDir, "*", SearchOption.AllDirectories))
-            {
-                var relativePath = directory.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                Directory.CreateDirectory(Path.Combine(destinationDir, relativePath));
-            }
-
-            foreach (var file in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
-            {
-                var relativePath = file.Substring(sourceDir.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                var destinationPath = Path.Combine(destinationDir, relativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath) ?? destinationDir);
-                File.Copy(file, destinationPath, true);
-            }
-        }
-
         private static int CopyJavaScriptFiles(string sourceDir, string destinationDir)
         {
             if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
@@ -270,16 +193,9 @@ namespace WandEnhancer.Core
                 return 0;
             }
 
-            Directory.CreateDirectory(destinationDir);
-
-            int copied = 0;
-            foreach (var file in Directory.GetFiles(sourceDir, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly))
-            {
-                File.Copy(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
-                copied++;
-            }
-
-            return copied;
+            return CopySelectedJavaScriptFiles(
+                Directory.GetFiles(sourceDir, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly),
+                destinationDir);
         }
 
         private static string GetAvailableScriptPath(string destinationDir, string fileName)
@@ -363,18 +279,13 @@ namespace WandEnhancer.Core
             Directory.CreateDirectory(destinationDir);
 
             int copied = 0;
-            foreach (var file in files.Where(IsJavaScriptFile).Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (var file in files.Where(WeModInstalls.IsJavaScriptFile).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                File.Copy(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
+                AsarSharp.Utils.Extensions.CopyOver(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
                 copied++;
             }
 
             return copied;
-        }
-
-        private static bool IsJavaScriptFile(string file)
-        {
-            return File.Exists(file) && string.Equals(Path.GetExtension(file), JavaScriptFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         private void InjectRemotePanelFiles()
@@ -396,7 +307,7 @@ namespace WandEnhancer.Core
 
             if (CopyEmbeddedDirectory(EmbeddedRemotePanelDistPrefix, targetRoot) == 0)
             {
-                CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), targetRoot);
+                AsarSharp.Utils.Extensions.CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), targetRoot);
             }
 
             if (!File.Exists(targetBridgePath))
@@ -418,40 +329,96 @@ namespace WandEnhancer.Core
             _logger($"[ENHANCER] Injected remote panel assets and renderer scripts into app.asar (default: {defaultScriptCount}, selected: {selectedScriptCount}, local: {localScriptCount})", ELogType.Info);
         }
 
-        private void AttachProxyDll()
+        private string SquirrelRoot
         {
-            var assembly = Assembly.GetExecutingAssembly();
-            var dll = assembly.GetManifestResourceStream(Constants.ProxyDllResouceName);
-            if (dll == null)
+            get
             {
-                throw new Exception("[ENHANCER] Proxy DLL resource not found");
+                string root = Directory.GetParent(_weModConfig.RootDirectory)?.FullName;
+                if (string.IsNullOrEmpty(root))
+                {
+                    throw new Exception("[ENHANCER] Cannot determine Squirrel root directory");
+                }
+
+                return root;
             }
-            var destPath = Path.Combine(_weModConfig.RootDirectory, "version.dll");
-            using (var fileStream = File.Create(destPath))
+        }
+
+        private void DeployLauncher()
+        {
+            string stubPath = Path.Combine(SquirrelRoot, _weModConfig.ExecutableName);
+            string stubBackup = stubPath + StubBackupSuffix;
+            string self = Assembly.GetExecutingAssembly().Location;
+
+            // Auto-patch runs from deployed launcher; no need to overwrite self.
+            if (string.Equals(self, stubPath, StringComparison.OrdinalIgnoreCase))
             {
-                dll.CopyTo(fileStream);
+                return;
             }
-            _logger("[ENHANCER] Proxy DLL attached", ELogType.Info);
+
+            if (File.Exists(stubPath) && !File.Exists(stubBackup))
+            {
+                AsarSharp.Utils.Extensions.CopyOver(stubPath, stubBackup);
+            }
+
+            AsarSharp.Utils.Extensions.CopyOver(self, stubPath);
+            _logger("[ENHANCER] Launcher deployed to root directory", ELogType.Info);
+        }
+
+        private void SaveAutoPatchConfig()
+        {
+            string path = Path.Combine(SquirrelRoot, Constants.AutoPatchConfigFileName);
+            File.WriteAllText(path, Newtonsoft.Json.JsonConvert.SerializeObject(_config, Newtonsoft.Json.Formatting.Indented));
+        }
+
+        private void DeleteAutoPatchConfig()
+        {
+            string path = Path.Combine(SquirrelRoot, Constants.AutoPatchConfigFileName);
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+
+        /// <summary>Reads the patch selection saved next to the launcher, or null when absent or unreadable.</summary>
+        public static PatchConfig LoadAutoPatchConfig(string launcherDirectory)
+        {
+            try
+            {
+                string path = Path.Combine(launcherDirectory, Constants.AutoPatchConfigFileName);
+                if (!File.Exists(path))
+                {
+                    return null;
+                }
+
+                return Newtonsoft.Json.JsonConvert.DeserializeObject<PatchConfig>(File.ReadAllText(path));
+            }
+            catch (Exception e) when (e is IOException || e is Newtonsoft.Json.JsonException || e is UnauthorizedAccessException)
+            {
+                return null;
+            }
         }
 
         public void Patch()
         {
-            Common.TryKillProcess(_weModConfig.BrandName);
+            ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
+            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
+            File.WriteAllText(markerPath, string.Empty);
+
             if (!File.Exists(_backupPath))
             {
                 _logger("[ENHANCER] Creating backup...", ELogType.Info);
-                File.Copy(_asarPath, _backupPath);
+                CreateBackupFile(_asarPath, _backupPath);
             }
             else
             {
                 _logger("[ENHANCER] Backup found, restoring pristine app.asar before patching...", ELogType.Info);
-                File.Copy(_backupPath, _asarPath, true);
+                AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
             }
 
             if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
             {
                 _logger("[ENHANCER] Creating backup of app.asar.unpacked...", ELogType.Info);
-                CopyDirectory(_unpackedPath, _unpackedBackupPath);
+                CreateBackupDirectory(_unpackedPath, _unpackedBackupPath);
             }
             else if (Directory.Exists(_unpackedBackupPath))
             {
@@ -461,18 +428,110 @@ namespace WandEnhancer.Core
                     Directory.Delete(_unpackedPath, true);
                 }
 
-                CopyDirectory(_unpackedBackupPath, _unpackedPath);
+                AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, _unpackedPath);
             }
             else if (!Directory.Exists(_unpackedPath))
             {
                 throw new Exception("[ENHANCER] app.asar.unpacked is missing and no backup exists. Restore the original Wand installation files or reinstall Wand, then patch again.");
             }
 
-            if(!File.Exists(_asarPath))
+            if (!File.Exists(_asarPath))
             {
                 throw new Exception("app.asar not found");
             }
 
+            // Never leave a patched archive behind without its launcher.
+            try
+            {
+                ExtractSources();
+                PatchAsar();
+                InjectRemotePanelFiles();
+                PackSources();
+                DeployLauncher();
+
+                if (_config.AutoApplyAfterUpdate)
+                {
+                    SaveAutoPatchConfig();
+                }
+                else
+                {
+                    DeleteAutoPatchConfig();
+                }
+
+                File.Delete(markerPath);
+            }
+            catch
+            {
+                RollbackQuietly();
+                throw;
+            }
+
+            _logger("[ENHANCER] Done!", ELogType.Success);
+        }
+
+        private static void CreateBackupFile(string source, string destination)
+        {
+            string stagingPath = destination + ".building";
+            if (File.Exists(stagingPath))
+            {
+                File.Delete(stagingPath);
+            }
+
+            try
+            {
+                AsarSharp.Utils.Extensions.CopyOver(source, stagingPath);
+                File.Move(stagingPath, destination);
+            }
+            catch
+            {
+                if (File.Exists(stagingPath))
+                {
+                    try
+                    {
+                        AsarSharp.Utils.Extensions.ClearAttributes(stagingPath);
+                        File.Delete(stagingPath);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                    }
+                }
+
+                throw;
+            }
+        }
+
+        private static void CreateBackupDirectory(string source, string destination)
+        {
+            string stagingPath = destination + ".building";
+            if (Directory.Exists(stagingPath))
+            {
+                Directory.Delete(stagingPath, true);
+            }
+
+            try
+            {
+                AsarSharp.Utils.Extensions.CopyDirectory(source, stagingPath);
+                Directory.Move(stagingPath, destination);
+            }
+            catch
+            {
+                if (Directory.Exists(stagingPath))
+                {
+                    try
+                    {
+                        Directory.Delete(stagingPath, true);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                    }
+                }
+
+                throw;
+            }
+        }
+
+        private void ExtractSources()
+        {
             try
             {
                 _logger("[ENHANCER] Extracting app.asar...", ELogType.Info);
@@ -480,12 +539,12 @@ namespace WandEnhancer.Core
             }
             catch (Exception e)
             {
-                throw new Exception($"[ENHANCER] Failed to unpack app.asar: {e.Message}");
+                throw new Exception($"[ENHANCER] Failed to unpack app.asar: {e.Message}", e);
             }
-            
-            PatchAsar();
-            InjectRemotePanelFiles();
+        }
 
+        private void PackSources()
+        {
             try
             {
                 new AsarCreator(_unpackedPath, _asarPath, new CreateOptions
@@ -495,12 +554,94 @@ namespace WandEnhancer.Core
             }
             catch (Exception e)
             {
-                throw new Exception($"[ENHANCER] Failed to pack app.asar: {e.Message}");
+                throw new Exception($"[ENHANCER] Failed to pack app.asar: {e.Message}", e);
             }
-            
-            AttachProxyDll();
-            
-            _logger("[ENHANCER] Done!", ELogType.Success);
+        }
+
+        /// <summary>Best-effort restore after failed patch. Does not throw.</summary>
+        private void RollbackQuietly()
+        {
+            try
+            {
+                if (File.Exists(_backupPath))
+                {
+                    AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
+                }
+
+                if (Directory.Exists(_unpackedBackupPath))
+                {
+                    if (Directory.Exists(_unpackedPath))
+                    {
+                        Directory.Delete(_unpackedPath, true);
+                    }
+
+                    AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, _unpackedPath);
+                }
+
+                _logger("[ENHANCER] Patch failed - the original Wand files were restored.", ELogType.Warn);
+            }
+            catch (Exception e)
+            {
+                _logger($"[ENHANCER] Patch failed and the rollback did not finish: {e.Message}. " +
+                        "Use Restore before launching Wand.", ELogType.Error);
+            }
+        }
+
+        public void Restore()
+        {
+            if (!File.Exists(_backupPath) || !Directory.Exists(_unpackedBackupPath))
+            {
+                throw new Exception("[ENHANCER] Backup is incomplete. Restore the original Wand installation files or reinstall Wand.");
+            }
+
+            ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
+            AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
+
+            if (Directory.Exists(_unpackedPath))
+            {
+                Directory.Delete(_unpackedPath, true);
+            }
+
+            AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, _unpackedPath);
+
+            // Clean up legacy proxy DLL
+            var proxyDllPath = Path.Combine(_weModConfig.RootDirectory, ProxyDllFileName);
+            if (File.Exists(proxyDllPath))
+            {
+                File.Delete(proxyDllPath);
+            }
+
+            // Restore original Squirrel stub and drop the auto-patch config
+            string squirrelRoot = SquirrelRoot;
+            string stubPath = Path.Combine(squirrelRoot, _weModConfig.ExecutableName);
+            string stubBackup = stubPath + StubBackupSuffix;
+            if (File.Exists(stubBackup))
+            {
+                AsarSharp.Utils.Extensions.CopyOver(stubBackup, stubPath);
+                File.Delete(stubBackup);
+            }
+
+            foreach (var leftover in new[]
+                     {
+                         Constants.AutoPatchConfigFileName, LauncherLog.FileName, LauncherLog.PreviousFileName
+                     })
+            {
+                string path = Path.Combine(squirrelRoot, leftover);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+
+            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
+            if (File.Exists(markerPath))
+            {
+                File.Delete(markerPath);
+            }
+
+            File.Delete(_backupPath);
+            Directory.Delete(_unpackedBackupPath, true);
+            _logger("[ENHANCER] Backup restored successfully.", ELogType.Success);
         }
     }
 }
