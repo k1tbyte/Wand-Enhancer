@@ -7,7 +7,6 @@
     <!--#endregion -->
 
     <!--#region MainWindow -->
-    <s:String x:Key="mw_title">WandEnhancer</s:String>
     <s:String x:Key="mw_folder_path">Ścieżka folderu</s:String>
     <s:String x:Key="mw_folder_not_found">Folder nie znaleziony</s:String>
     <s:String x:Key="mw_patch">Zastosuj</s:String>
@@ -35,7 +34,25 @@
     <s:String x:Key="pv_custom_scripts_hint">Wybrane pliki .js są pakowane do Wand i ładowane w rendererze.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Nie wybrano skryptów</s:String>
     <s:String x:Key="pv_start">Rozpocznij</s:String>
+    <s:String x:Key="pv_auto_apply">Zastosuj automatycznie po aktualizacji</s:String>
     <s:String x:Key="pv_popup_title">Co będziemy ulepszać?</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">Katalog WeMod znaleziony w {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod został już zaktualizowany. Jeśli chcesz zaktualizować ponownie, najpierw przywróć kopię zapasową.</s:String>
+    <s:String x:Key="log_ready">Gotowy do aktualizacji (patchowania).</s:String>
+    <s:String x:Key="log_install_not_found">Nie znaleziono katalogu WeMod.</s:String>
+    <s:String x:Key="log_no_directory">Nie można tego zrobić. Proszę najpierw określić katalog.</s:String>
+    <s:String x:Key="log_invalid_directory">Wybrany folder {0} nie jest prawidłowym katalogiem WeMod.</s:String>
+    <s:String x:Key="log_restore_failed">Nie udało się przywrócić kopii zapasowej: {0}</s:String>
+    <s:String x:Key="log_patch_failed">Nie udało się zaktualizować: {0}</s:String>
+    <s:String x:Key="log_copied">Logi skopiowane do schowka.</s:String>
+    <s:String x:Key="log_copy_failed">Nie udało się skopiować logów: {0}</s:String>
+    <s:String x:Key="log_exported">Logi wyeksportowane do {0}.</s:String>
+    <s:String x:Key="log_export_failed">Nie udało się wyeksportować logów: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">Nie można otworzyć {0} w przeglądarce.</s:String>
+    <s:String x:Key="dialog_pick_install">Wybierz katalog WeMod</s:String>
     <!--#endregion -->
 
 </ResourceDictionary>

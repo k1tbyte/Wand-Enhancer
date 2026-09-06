@@ -22,7 +22,7 @@ jobs:
 
       - uses: pnpm/action-setup@v5
         with:
-          version: 10
+          version: 10.17.0
 
       - uses: actions/setup-node@v5
         with:
@@ -50,3 +50,6 @@ jobs:
           body_path: release-notes.md
           files: CHANGELOG.md
           fail_on_unmatched_files: true
+          # RC tags must not replace the latest stable release.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') }}

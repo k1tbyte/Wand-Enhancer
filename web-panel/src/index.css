@@ -29,15 +29,15 @@
 }
 
 :root {
-    --deck-bg: #07080B;
+    --deck-bg: #07080b;
     --deck-surface-0: rgba(20, 23, 31, 0.88);
     --deck-surface-1: rgba(28, 32, 42, 0.85);
     --deck-line: rgba(255, 255, 255, 0.06);
-    --deck-line-2: rgba(255, 255, 255, 0.10);
-    --deck-fg: #F2F4F8;
-    --deck-fg-2: #B6BCCB;
-    --deck-fg-3: #7F8699;
-    --deck-fg-4: #535A6B;
+    --deck-line-2: rgba(255, 255, 255, 0.1);
+    --deck-fg: #f2f4f8;
+    --deck-fg-2: #b6bccb;
+    --deck-fg-3: #7f8699;
+    --deck-fg-4: #535a6b;
     --deck-accent: #00ffd5;
     --background: oklch(0.122 0.022 255);
     --foreground: oklch(0.968 0.016 96);
@@ -114,13 +114,17 @@
     .remote-glass-header {
         background: linear-gradient(180deg, rgba(18, 20, 27, 0.72), rgba(10, 12, 17, 0.48));
         border-color: rgba(255, 255, 255, 0.08);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 34px rgba(0, 0, 0, 0.22);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 14px 34px rgba(0, 0, 0, 0.22);
         backdrop-filter: blur(24px) saturate(160%);
     }
 
     .remote-glass-drawer {
-        background: linear-gradient(180deg, rgba(17, 19, 26, 0.70), rgba(10, 12, 17, 0.52));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 30px 80px rgba(0, 0, 0, 0.46);
+        background: linear-gradient(180deg, rgba(17, 19, 26, 0.7), rgba(10, 12, 17, 0.52));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 30px 80px rgba(0, 0, 0, 0.46);
         backdrop-filter: blur(38px) saturate(165%);
     }
 
@@ -131,8 +135,10 @@
     }
 
     .remote-drawer-panel {
-        background: linear-gradient(180deg, rgba(17, 19, 26, 0.90), rgba(10, 12, 17, 0.82));
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 30px 80px rgba(0, 0, 0, 0.46);
+        background: linear-gradient(180deg, rgba(17, 19, 26, 0.9), rgba(10, 12, 17, 0.82));
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 30px 80px rgba(0, 0, 0, 0.46);
         -webkit-backdrop-filter: blur(22px) saturate(155%);
         backdrop-filter: blur(22px) saturate(155%);
         transform: translateZ(0);
@@ -156,7 +162,9 @@
 
         .remote-drawer-panel {
             background: linear-gradient(180deg, rgba(17, 19, 26, 0.97), rgba(10, 12, 17, 0.95));
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 18px 48px rgba(0, 0, 0, 0.40);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.055),
+                0 18px 48px rgba(0, 0, 0, 0.4);
             -webkit-backdrop-filter: none;
             backdrop-filter: none;
         }
@@ -179,15 +187,16 @@
     }
 
     .remote-glass-control {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.070), rgba(255, 255, 255, 0.036));
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.036));
         border-color: rgba(255, 255, 255, 0.105);
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 8px 24px rgba(0, 0, 0, 0.12);
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.055),
+            0 8px 24px rgba(0, 0, 0, 0.12);
         backdrop-filter: blur(18px) saturate(150%);
     }
 }
 
 @keyframes breathe {
-
     0%,
     100% {
         opacity: 1;

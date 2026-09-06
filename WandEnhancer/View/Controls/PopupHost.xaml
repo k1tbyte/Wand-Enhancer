@@ -38,7 +38,7 @@
             </Button>
             
             <StackPanel Grid.Row="0" x:Name="TitleContainer" Orientation="Horizontal">
-                <TextBlock x:Name="Title" Text="This is title" Foreground="{DynamicResource Foreground}"
+                <TextBlock x:Name="Title" Foreground="{DynamicResource Foreground}"
                            HorizontalAlignment="Left" FontWeight="Bold" FontSize="16" 
                            VerticalAlignment="Bottom"/>
             </StackPanel>

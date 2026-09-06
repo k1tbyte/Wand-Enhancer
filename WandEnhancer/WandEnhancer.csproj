@@ -39,12 +39,9 @@
     </PropertyGroup>
     <PropertyGroup>
         <StartupObject>WandEnhancer.Program</StartupObject>
-        <CMakeSourceDir>..\tools\asar-fuses-bypass</CMakeSourceDir>
-      <NativeBuildRoot>..\.tmp\cmake</NativeBuildRoot>
-      <NativeBuildConfiguration Condition="'$(Configuration)' == 'Debug'">Debug</NativeBuildConfiguration>
-      <NativeBuildConfiguration Condition="'$(NativeBuildConfiguration)' == ''">Release</NativeBuildConfiguration>
-        <CMakeBuildDir>$(NativeBuildRoot)\asar-fuses-bypass</CMakeBuildDir>
-        <ProxyDllPath>$(CMakeBuildDir)\$(NativeBuildConfiguration)\version.dll</ProxyDllPath>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(EnableUpdateNotifications)' == 'true'">
+        <DefineConstants>$(DefineConstants);ENABLE_UPDATE_NOTIFICATIONS</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -53,6 +50,7 @@
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
+        <Reference Include="System.Drawing" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Reference Include="System.Windows.Forms" />
         <Reference Include="System.Xml" />
         <Reference Include="System.Xaml">
@@ -72,24 +70,34 @@
         <Compile Include="Converters\ToVisibilityConverter.cs" />
         <Compile Include="Core\Enhancer.cs" />
         <Compile Include="Core\EnhancerConfig.cs" />
+        <Compile Include="Core\ElectronFuse.cs" />
+    <Compile Include="Core\ProcessInfo.cs" />
+        <Compile Include="Core\FuseLauncher.cs" />
+        <Compile Include="Core\LauncherLog.cs" />
+        <Compile Include="Core\UpdateNotifier.cs" Condition="'$(EnableUpdateNotifications)' == 'true'" />
+        <Compile Include="View\Popups\UpdatePopup.xaml.cs" Condition="'$(EnableUpdateNotifications)' == 'true'">
+          <DependentUpon>UpdatePopup.xaml</DependentUpon>
+        </Compile>
+        <Compile Include="Core\JavaScriptPatchApplier.cs" />
+        <Compile Include="Core\Js\JsCursor.cs" />
+        <Compile Include="Core\Js\JsFunction.cs" />
+        <Compile Include="Core\Js\PatchPayload.cs" />
         <Compile Include="Core\Services\LocalizationManager.cs" />
         <Compile Include="Core\Services\SettingsManager.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
-        <Compile Include="Models\Signature.cs" />
         <Compile Include="Program.cs" />
-        <Compile Include="ReactiveUICore\AsyncRelayCommand.cs" />
         <Compile Include="ReactiveUICore\ObservableObject.cs" />
         <Compile Include="ReactiveUICore\RelayCommand.cs" />
-        <Compile Include="Utils\Common.cs" />
-        <Compile Include="Utils\Extensions.cs" />
-        <Compile Include="Utils\Win32\Shortcut.cs" />
-        <Compile Include="View\Controls\InfoItem.xaml.cs">
-          <DependentUpon>InfoItem.xaml</DependentUpon>
+        <Compile Include="Utils\ProcessTerminator.cs" />
+        <Compile Include="Utils\WeModInstalls.cs" />
+        <Compile Include="View\Controls\PopupHost.xaml.cs">
+          <DependentUpon>PopupHost.xaml</DependentUpon>
         </Compile>
-        <Compile Include="View\Controls\PopupHost.xaml.cs" />
         <Compile Include="View\MainWindow\Logs.cs" />
         <Compile Include="View\MainWindow\MainWindow.xaml.cs" />
+        <Compile Include="View\MainWindow\IShellView.cs" />
+        <Compile Include="View\MainWindow\WindowsFileDialogs.cs" />
         <Compile Include="View\MainWindow\MainWindowVm.cs" />
         <Compile Include="View\Popups\PatchVectorsPopup.xaml.cs">
           <DependentUpon>PatchVectorsPopup.xaml</DependentUpon>
@@ -116,10 +124,10 @@
         <Page Include="Style\ColorScheme.xaml" />
         <Page Include="Style\Icons.xaml" />
         <Page Include="Style\Styles.xaml" />
-        <Page Include="View\Controls\InfoItem.xaml" />
         <Page Include="View\Controls\PopupHost.xaml" />
         <Page Include="View\MainWindow\MainWindow.xaml" />
         <Page Include="View\Popups\PatchVectorsPopup.xaml" />
+        <Page Include="View\Popups\UpdatePopup.xaml" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Page Include="View\Popups\SettingsPopup.xaml" />
     </ItemGroup>
     <ItemGroup>
@@ -153,13 +161,13 @@
       </ProjectReference>
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource Include="$(ProxyDllPath)">
-            <LogicalName>proxydll</LogicalName>
-        </EmbeddedResource>
-    </ItemGroup>
-    <ItemGroup>
       <EmbeddedResource Include="..\web-panel\dist\**\*.*" Condition="Exists('..\web-panel\dist\index.html')">
         <LogicalName>remote-panel/dist/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+    <ItemGroup>
+      <EmbeddedResource Include="Patches\*.js">
+        <LogicalName>patches/%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
     
@@ -171,12 +179,28 @@
       <Error Condition="!Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.2.0.41\build\ILRepack.props'))" />
     </Target>
 
-    <Target Name="ValidateNativeArtifacts" BeforeTargets="BeforeBuild">
-        <Error Text="Proxy DLL not found: $(ProxyDllPath)"
-               Condition="!Exists('$(ProxyDllPath)')" />
+    <!-- Which commit a binary was built from. AssemblyVersion is pinned to the release tag, so
+         every candidate for one version reports the same number, and everyone builds their own
+         binary. Empty when there is no git to ask, which Constants reports as unofficial. -->
+    <Target Name="StampBuild" BeforeTargets="CoreCompile">
+        <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; describe --always --dirty --match=nothing 2&gt;nul"
+              ConsoleToMSBuild="true" ContinueOnError="true"
+              StandardOutputImportance="low" IgnoreStandardErrorWarningFormat="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="BuildStamp" />
+            <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
+        </Exec>
 
-        <Message Text="Embedding Proxy DLL as resource from $(ProxyDllPath)"
-                 Importance="high" />
+        <PropertyGroup>
+            <BuildStamp Condition="'$(GitExitCode)' != '0'"></BuildStamp>
+            <BuildStampFile>$(IntermediateOutputPath)BuildStamp.cs</BuildStampFile>
+        </PropertyGroup>
+
+        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+                          Lines="namespace WandEnhancer { internal static class BuildStamp { public const string Value = &quot;$(BuildStamp)&quot;%3B } }" />
+
+        <ItemGroup>
+            <Compile Include="$(BuildStampFile)" />
+        </ItemGroup>
     </Target>
 
     <Target Name="ILRepack" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
