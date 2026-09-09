@@ -53,6 +53,10 @@
     <s:String x:Key="pv_start">Start</s:String>
     <s:String x:Key="pv_auto_apply">Auto-apply after updates</s:String>
     <s:String x:Key="pv_popup_title">What are we gonna enhance?</s:String>
+    <s:String x:Key="pv_patch_method">Patch method</s:String>
+    <s:String x:Key="pv_strategy_static">Static (recommended)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised (runtime)</s:String>
+    <s:String x:Key="pv_strategy_hint">Static edits Wand on disk, which breaks its digital signature. Supervised patches in memory at every launch - it can trip antivirus and may not work in every setup.</s:String>
     <!--#endregion -->
 
     <!--#region Runtime log -->

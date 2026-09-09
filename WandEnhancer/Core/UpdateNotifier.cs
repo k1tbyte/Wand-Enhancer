@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using WandEnhancer.Core.Services;
-using WandEnhancer.View.MainWindow;
 
 namespace WandEnhancer.Core
 {

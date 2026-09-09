@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">Keine Skripte ausgewählt</s:String>
     <s:String x:Key="pv_start">Starten</s:String>
     <s:String x:Key="pv_auto_apply">Nach Updates automatisch anwenden</s:String>
+    <s:String x:Key="pv_patch_method">Patch-Methode</s:String>
+    <s:String x:Key="pv_strategy_static">Static (empfohlen)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static bearbeitet Wand auf der Festplatte und bricht damit die digitale Signatur. Supervised patcht bei jedem Start im Arbeitsspeicher - kann Antivirensoftware auslösen und funktioniert nicht in jeder Umgebung.</s:String>
     <s:String x:Key="pv_popup_title">Was werden wir verbessern?</s:String>
     <!--#endregion -->
 

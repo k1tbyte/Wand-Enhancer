@@ -11,7 +11,34 @@
              Foreground="{DynamicResource MutedForeground}"
              FontWeight="Medium"
              FontSize="13">
-    <Grid MinWidth="430">
+    <StackPanel MinWidth="430">
+        <Grid Margin="0 0 5 8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                       Foreground="{DynamicResource Foreground}"
+                       Text="{DynamicResource pv_patch_method}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <ComboBox x:Name="StrategyComboBox" Width="190">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DisplayName}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="&#x24D8;" FontSize="15" Margin="8 0 0 0" VerticalAlignment="Center"
+                           Cursor="Help" Foreground="{DynamicResource MutedForeground}">
+                    <TextBlock.ToolTip>
+                        <ToolTip>
+                            <TextBlock MaxWidth="320" TextWrapping="Wrap" Text="{DynamicResource pv_strategy_hint}" />
+                        </ToolTip>
+                    </TextBlock.ToolTip>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+
         <Grid Visibility="Visible" Margin="0 0 5 0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="27" />
@@ -41,8 +68,7 @@
             <CheckBox Grid.Row="3" Grid.Column="1" x:Name="RemoteWebPanelPreviewBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
             <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_auto_apply}" />
-            <CheckBox Grid.Row="4" Grid.Column="1" x:Name="AutoApplyBox" HorizontalAlignment="Right" VerticalAlignment="Center"
-                      IsChecked="True" />
+            <CheckBox Grid.Row="4" Grid.Column="1" x:Name="AutoApplyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
             <Border Grid.Row="5" Grid.ColumnSpan="2" Margin="0 14 0 0" Padding="10"
                     BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="4"
@@ -99,6 +125,6 @@
             <Button Grid.Row="6" Grid.ColumnSpan="2" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
                     Click="OnPatchButtonClick" />
         </Grid>
-    </Grid>
+    </StackPanel>
 
 </UserControl>

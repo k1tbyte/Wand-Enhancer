@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">スクリプトが選択されていません</s:String>
     <s:String x:Key="pv_start">開始</s:String>
     <s:String x:Key="pv_auto_apply">更新後に自動適用</s:String>
+    <s:String x:Key="pv_patch_method">パッチ方式</s:String>
+    <s:String x:Key="pv_strategy_static">Static (推奨)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static はディスク上の Wand を書き換えるため、デジタル署名が壊れます。Supervised は起動のたびにメモリ上でパッチを適用します - ウイルス対策ソフトが反応することがあり、環境によっては動作しない場合があります。</s:String>
     <s:String x:Key="pv_popup_title">何を改善しますか？</s:String>
     <!--#endregion -->
 

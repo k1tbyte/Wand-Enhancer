@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">Aucun script sélectionné</s:String>
     <s:String x:Key="pv_start">Démarrer</s:String>
     <s:String x:Key="pv_auto_apply">Appliquer automatiquement après les mises à jour</s:String>
+    <s:String x:Key="pv_patch_method">Méthode de patch</s:String>
+    <s:String x:Key="pv_strategy_static">Static (recommandé)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static modifie Wand sur le disque, ce qui casse sa signature numérique. Supervised applique le patch en mémoire à chaque lancement - il peut déclencher l'antivirus et ne pas fonctionner dans toutes les configurations.</s:String>
     <s:String x:Key="pv_popup_title">Qu'allons-nous modifier ?</s:String>
     <!--#endregion -->
 

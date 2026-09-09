@@ -1,25 +1,44 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace WandEnhancer.Core
+namespace WandEnhancer.Core.Patching.Strategies.Supervised
 {
-    /// <summary>
-    /// Facts read straight out of another process's PEB before modules load.
-    /// </summary>
     internal static class ProcessInfo
     {
         /// <summary>
         /// The kernel writes the image base before the first instruction runs, so this is the one
         /// reading that works on a process that young.
         /// </summary>
+        /// <param name="problem">
+        /// Why the base is missing, worded for the log. "Not there yet" and "not allowed to look"
+        /// look identical from the caller and mean opposite things - the first is worth another
+        /// try in a millisecond, the second will never succeed, and antivirus handle filtering is
+        /// the usual source of the second.
+        /// </param>
         /// <returns>Zero while the process has no PEB yet.</returns>
-        public static IntPtr GetImageBase(IntPtr process)
+        public static IntPtr GetImageBase(IntPtr process, out string problem)
         {
-            IntPtr peb = GetPeb(process);
-            return peb == IntPtr.Zero
-                ? IntPtr.Zero
-                : ReadPointer(process, new IntPtr(peb.ToInt64() + ImageBaseOffset));
+            IntPtr peb = GetPeb(process, out int status);
+            if (peb == IntPtr.Zero)
+            {
+                problem = status == 0
+                    ? "it has no PEB yet"
+                    : $"its PEB address could not be queried (NTSTATUS 0x{status:X8})";
+                return IntPtr.Zero;
+            }
+
+            IntPtr imageBase = ReadPointer(process, new IntPtr(peb.ToInt64() + ImageBaseOffset), out int error);
+            if (imageBase == IntPtr.Zero)
+            {
+                problem = error == 0
+                    ? "it has no image base yet"
+                    : $"its PEB could not be read ({Win32Error.Describe(error)})";
+                return IntPtr.Zero;
+            }
+
+            problem = null;
+            return imageBase;
         }
 
         /// <summary>
@@ -46,10 +65,10 @@ namespace WandEnhancer.Core
 
         private static string GetCommandLine(IntPtr process)
         {
-            IntPtr peb = GetPeb(process);
+            IntPtr peb = GetPeb(process, out _);
             IntPtr parameters = peb == IntPtr.Zero
                 ? IntPtr.Zero
-                : ReadPointer(process, new IntPtr(peb.ToInt64() + ProcessParametersOffset));
+                : ReadPointer(process, new IntPtr(peb.ToInt64() + ProcessParametersOffset), out _);
             if (parameters == IntPtr.Zero)
             {
                 return null;
@@ -88,19 +107,26 @@ namespace WandEnhancer.Core
             return end < 0 ? commandLine.Substring(start) : commandLine.Substring(start, end - start);
         }
 
-        private static IntPtr GetPeb(IntPtr process)
+        private static IntPtr GetPeb(IntPtr process, out int status)
         {
             var info = new PROCESS_BASIC_INFORMATION();
-            return NtQueryInformationProcess(process, ProcessBasicInformation, ref info,
-                Marshal.SizeOf(info), out _) == 0
-                ? info.PebBaseAddress
-                : IntPtr.Zero;
+            status = NtQueryInformationProcess(process, ProcessBasicInformation, ref info,
+                Marshal.SizeOf(info), out _);
+            return status == 0 ? info.PebBaseAddress : IntPtr.Zero;
         }
 
-        private static IntPtr ReadPointer(IntPtr process, IntPtr address)
+        /// <param name="error">Zero when the read worked and the pointer itself was null.</param>
+        private static IntPtr ReadPointer(IntPtr process, IntPtr address, out int error)
         {
             var buffer = new byte[IntPtr.Size];
-            return Read(process, address, buffer) ? new IntPtr(BitConverter.ToInt64(buffer, 0)) : IntPtr.Zero;
+            if (!Read(process, address, buffer))
+            {
+                error = Marshal.GetLastWin32Error();
+                return IntPtr.Zero;
+            }
+
+            error = 0;
+            return new IntPtr(BitConverter.ToInt64(buffer, 0));
         }
 
         private static bool Read(IntPtr process, IntPtr address, byte[] buffer)

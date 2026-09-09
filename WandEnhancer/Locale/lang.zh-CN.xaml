@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">未选择脚本</s:String>
     <s:String x:Key="pv_start">开始</s:String>
     <s:String x:Key="pv_auto_apply">更新后自动应用</s:String>
+    <s:String x:Key="pv_patch_method">补丁方式</s:String>
+    <s:String x:Key="pv_strategy_static">Static (推荐)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static 会修改磁盘上的 Wand，从而破坏其数字签名。Supervised 在每次启动时于内存中打补丁 - 可能触发杀毒软件，并且在某些环境下可能无法运行。</s:String>
     <s:String x:Key="pv_popup_title">我们要增强什么？</s:String>
     <!--#endregion -->
 

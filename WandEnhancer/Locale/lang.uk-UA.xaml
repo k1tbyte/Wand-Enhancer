@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">Скрипти не вибрано</s:String>
     <s:String x:Key="pv_start">Почати</s:String>
     <s:String x:Key="pv_auto_apply">Автоматично застосовувати після оновлень</s:String>
+    <s:String x:Key="pv_patch_method">Метод патчу</s:String>
+    <s:String x:Key="pv_strategy_static">Static (рекомендовано)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static змінює файли Wand на диску та ламає цифровий підпис. Supervised патчить у пам'яті під час кожного запуску - може спрацьовувати антивірус і працює не всюди.</s:String>
     <s:String x:Key="pv_popup_title">Що будемо покращувати?</s:String>
     <!--#endregion -->
 

@@ -35,6 +35,10 @@
     <s:String x:Key="pv_no_custom_scripts">Nie wybrano skryptów</s:String>
     <s:String x:Key="pv_start">Rozpocznij</s:String>
     <s:String x:Key="pv_auto_apply">Zastosuj automatycznie po aktualizacji</s:String>
+    <s:String x:Key="pv_patch_method">Metoda łatki</s:String>
+    <s:String x:Key="pv_strategy_static">Static (zalecane)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static modyfikuje Wand na dysku, co łamie jego podpis cyfrowy. Supervised łata w pamięci przy każdym uruchomieniu - może wywołać program antywirusowy i może nie działać w każdej konfiguracji.</s:String>
     <s:String x:Key="pv_popup_title">Co będziemy ulepszać?</s:String>
     <!--#endregion -->
 

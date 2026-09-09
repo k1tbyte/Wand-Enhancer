@@ -1,12 +1,7 @@
-﻿namespace WandEnhancer.View.MainWindow
+using WandEnhancer.Core;
+
+namespace WandEnhancer.View.MainWindow
 {
-    public enum ELogType
-    {
-        Info,
-        Warn,
-        Error,
-        Success
-    }
     public class LogEntry
     {
         public ELogType LogType { get; set; }

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using WandEnhancer.View.MainWindow;
 
 namespace WandEnhancer.Core
 {

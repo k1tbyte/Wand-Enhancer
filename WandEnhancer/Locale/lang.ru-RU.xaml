@@ -36,6 +36,10 @@
     <s:String x:Key="pv_start">Начать</s:String>
     <s:String x:Key="pv_auto_apply">Авто-патч после обновлений</s:String>
     <s:String x:Key="pv_popup_title">Что будем улучшать?</s:String>
+    <s:String x:Key="pv_patch_method">Метод патча</s:String>
+    <s:String x:Key="pv_strategy_static">Static (рекомендуется)</s:String>
+    <s:String x:Key="pv_strategy_supervised">Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">Static правит файлы Wand на диске и ломает цифровую подпись. Supervised патчит в памяти при каждом запуске - может срабатывать антивирус и работает не у всех.</s:String>
     <!--#endregion -->
 
     <!--#region Runtime log -->

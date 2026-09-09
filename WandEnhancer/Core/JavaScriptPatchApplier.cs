@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using WandEnhancer.Core.Js;
 using WandEnhancer.Models;
-using WandEnhancer.View.MainWindow;
 
 namespace WandEnhancer.Core
 {

@@ -47,6 +47,12 @@
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
           <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
         </Reference>
+        <Reference Include="System.Collections.Immutable">
+          <HintPath>..\packages\System.Collections.Immutable.1.5.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
+        </Reference>
+        <Reference Include="System.Reflection.Metadata">
+          <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
+        </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
@@ -68,12 +74,27 @@
         <Compile Include="Constants.cs" />
         <Compile Include="Converters\BaseBooleanConverter.cs" />
         <Compile Include="Converters\ToVisibilityConverter.cs" />
+        <Compile Include="Core\ELogType.cs" />
         <Compile Include="Core\Enhancer.cs" />
         <Compile Include="Core\EnhancerConfig.cs" />
-        <Compile Include="Core\ElectronFuse.cs" />
-    <Compile Include="Core\ProcessInfo.cs" />
-        <Compile Include="Core\FuseLauncher.cs" />
         <Compile Include="Core\LauncherLog.cs" />
+        <Compile Include="Core\Win32Error.cs" />
+        <Compile Include="Core\Patching\Shared\PeImage.cs" />
+        <Compile Include="Core\Patching\Shared\ElectronFuseWire.cs" />
+        <Compile Include="Core\Patching\Shared\DiskFusePatch.cs" />
+        <Compile Include="Core\Patching\Shared\IconTransplant.cs" />
+        <Compile Include="Core\Patching\Shared\LauncherDeployment.cs" />
+        <Compile Include="Core\Patching\Content\AsarContentPatcher.cs" />
+        <Compile Include="Core\Patching\Content\RemotePanelInjector.cs" />
+        <Compile Include="Core\Patching\Strategies\IPatchStrategy.cs" />
+        <Compile Include="Core\Patching\Strategies\StrategyFactory.cs" />
+        <Compile Include="Core\Patching\Strategies\Supervised\IFuseApplicator.cs" />
+        <Compile Include="Core\Patching\Strategies\Supervised\MemoryFuseApplicator.cs" />
+        <Compile Include="Core\Patching\Strategies\Supervised\ProcessInfo.cs" />
+        <Compile Include="Core\Patching\Strategies\Supervised\SupervisedStrategy.cs" />
+        <Compile Include="Core\Patching\Strategies\Static\DotNetImage.cs" />
+        <Compile Include="Core\Patching\Strategies\Static\AuxTrustNeutralizer.cs" />
+        <Compile Include="Core\Patching\Strategies\Static\StaticStrategy.cs" />
         <Compile Include="Core\UpdateNotifier.cs" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Compile Include="View\Popups\UpdatePopup.xaml.cs" Condition="'$(EnableUpdateNotifications)' == 'true'">
           <DependentUpon>UpdatePopup.xaml</DependentUpon>

@@ -1,29 +1,33 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using WandEnhancer.View.MainWindow;
+using System.Threading;
+using WandEnhancer.Core.Patching.Shared;
 
-namespace WandEnhancer.Core
+namespace WandEnhancer.Core.Patching.Strategies.Supervised
 {
-    /// <summary>
-    /// Starts Wand and keeps the ASAR integrity fuse cleared in every process Electron spawns,
-    /// for as long as Wand runs. Covering only the startup burst is not enough: the renderer
-    /// behind the in-game overlay is created when a game launches, and exits with -36861 the
-    /// moment it opens the patched archive, leaving the overlay dead while Wand itself looks
-    /// healthy.
-    /// Wand is put in a job object, which every descendant joins on its own, and the kernel
-    /// posts each new process to a completion port. A debugger would report the same events, but
-    /// it is inherited too - by a game started from Wand included - and games treat a debug port
-    /// as tampering. Nothing here is attached to the game beyond reading its image path.
-    /// </summary>
-    internal static class FuseLauncher
+    internal sealed class SupervisedStrategy : IPatchStrategy
     {
         private const int AsarIntegrityExitCode = -36861;
         private const int ClearWindowMs = 1000;
         private const uint RetryIntervalMs = 4;
 
-        /// <summary>A process whose fuse is not cleared yet, and why it is not.</summary>
+        /// <summary>Time threshold to distinguish single-instance handover from user session.</summary>
+        private const int HandoffWindowMs = 3000;
+        private const string WatchEventName = @"Local\WandEnhancer.Watching";
+
+        private static readonly string OwnImagePath = Assembly.GetExecutingAssembly().Location;
+
+        private readonly IFuseApplicator _fuse = new MemoryFuseApplicator();
+
+        public bool RequiresLauncherAlways => true;
+
+        public void ApplyEnablement(PatchContext context){}
+
         private sealed class PendingClear
         {
             public int ProcessId;
@@ -33,27 +37,49 @@ namespace WandEnhancer.Core
             public string Role;
         }
 
-        /// <returns>False when the session ended badly enough to be worth showing the user.</returns>
-        public static bool Launch(string exePath, string args, Action<string, ELogType> log = null)
+        public bool Launch(PatchContext context, string args)
         {
-            long stateRva = ElectronFuse.FindStateRva(exePath);
+            // Raised early to prevent a second launcher reading a stale 'not watching' state
+            using (Watch(out bool watchedElsewhere))
+            {
+                return Run(context.Install.ExecutablePath, args, watchedElsewhere, context.Log);
+            }
+        }
+
+        private bool Run(string exePath, string args, bool watchedElsewhere, Action<string, ELogType> log)
+        {
+            long stateRva;
+            try
+            {
+                stateRva = ElectronFuseWire.FindStateRva(exePath);
+            }
+            catch (Exception e) when (e is System.IO.IOException || e is UnauthorizedAccessException)
+            {
+                // Patched Wand exiting with -36861 is useless, so fail early.
+                log?.Invoke($"Could not read {exePath}: {e.Message}", ELogType.Error);
+                return false;
+            }
 
             var startupInfo = new STARTUPINFO { cb = Marshal.SizeOf<STARTUPINFO>() };
             var commandLine = new StringBuilder(
                 string.IsNullOrEmpty(args) ? $"\"{exePath}\"" : $"\"{exePath}\" {args}");
 
-            // Suspended, so the fuse is cleared and the job is attached before Wand runs its
-            // first instruction. Every child is then born inside the job.
+            // Start suspended to clear fuse and attach job before first instruction.
             if (!CreateProcessW(null, commandLine, IntPtr.Zero, IntPtr.Zero, false, CREATE_SUSPENDED,
                     IntPtr.Zero, System.IO.Path.GetDirectoryName(exePath), ref startupInfo, out var info))
             {
-                log?.Invoke($"Could not start Wand (win32 error {Marshal.GetLastWin32Error()}).", ELogType.Error);
+                int error = Marshal.GetLastWin32Error();
+                log?.Invoke($"Could not start Wand ({Win32Error.Describe(error)})." + (error == ERROR_ELEVATION_REQUIRED
+                    ? " Wand is marked \"Run as administrator\", which stops it from being started this way. " +
+                      "Clear that box in the properties of Wand.exe and start it again."
+                    : ""), ELogType.Error);
                 return false;
             }
 
             IntPtr job = IntPtr.Zero;
             IntPtr port = IntPtr.Zero;
             bool resumed = false;
+            int startedAt = Environment.TickCount;
 
             try
             {
@@ -66,8 +92,10 @@ namespace WandEnhancer.Core
                     return false;
                 }
 
-                // No retry for this one: it is suspended, so nothing about it can still be forming.
-                bool mainCleared = ElectronFuse.ClearIn(info.hProcess, stateRva, out string problem);
+                // Main process is suspended; no retry needed.
+                IntPtr imageBase = ProcessInfo.GetImageBase(info.hProcess, out string problem);
+                bool mainCleared = imageBase != IntPtr.Zero &&
+                                   _fuse.ClearIn(info.hProcess, stateRva, imageBase, out problem);
                 log?.Invoke(mainCleared
                         ? $"pid {info.dwProcessId} started - fuse cleared."
                         : $"Fuse not cleared in pid {info.dwProcessId}: {problem}. " +
@@ -76,7 +104,7 @@ namespace WandEnhancer.Core
 
                 if (!TryTrackChildren(info.hProcess, out job, out port))
                 {
-                    log?.Invoke($"Could not watch Wand for new processes (win32 error {Marshal.GetLastWin32Error()}). " +
+                    log?.Invoke($"Could not watch Wand for new processes ({Win32Error.Describe(Marshal.GetLastWin32Error())}). " +
                                 "Wand will run, but the in-game overlay will not.", ELogType.Error);
                     return false;
                 }
@@ -84,7 +112,8 @@ namespace WandEnhancer.Core
                 ResumeThread(info.hThread);
                 resumed = true;
 
-                ClearFuseInNewProcesses(port, exePath, stateRva, info.dwProcessId, mainCleared, log);
+                ClearFuseInNewProcesses(port, exePath, stateRva, imageBase,
+                    info.dwProcessId, mainCleared, log);
 
                 if (!GetExitCodeProcess(info.hProcess, out int exitCode))
                 {
@@ -94,7 +123,8 @@ namespace WandEnhancer.Core
 
                 log?.Invoke($"Wand exited with code {DescribeCode(exitCode)}.",
                     exitCode == 0 ? ELogType.Info : ELogType.Error);
-                return exitCode == 0;
+
+                return exitCode == 0 && !IsHandoff(exePath, watchedElsewhere, startedAt, log);
             }
             finally
             {
@@ -117,10 +147,85 @@ namespace WandEnhancer.Core
             }
         }
 
-        /// <summary>
-        /// No limits are set on the job: it exists only to be told about new processes. That also
-        /// keeps KILL_ON_JOB_CLOSE off, so Wand outlives the launcher rather than dying with it.
-        /// </summary>
+        /// <summary>Detects single-instance handover (secondary instance exits 0 immediately) which leaves unpatched processes with a black window</summary>
+        private static bool IsHandoff(string exePath, bool watchedElsewhere, int startedAt,
+            Action<string, ELogType> log)
+        {
+            if (watchedElsewhere || Environment.TickCount - startedAt >= HandoffWindowMs ||
+                !AnotherInstanceAlive(exePath))
+            {
+                return false;
+            }
+
+            log?.Invoke("Wand quit right after starting: another Wand was already running and took " +
+                        "this launch over. Nothing is clearing the fuse in that instance, which is " +
+                        "why its window stays black. End every Wand task in Task Manager, then start " +
+                        "Wand again.", ELogType.Error);
+            return true;
+        }
+
+        private static bool AnotherInstanceAlive(string exePath)
+        {
+            Process[] processes;
+            try
+            {
+                processes = Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(exePath));
+            }
+            catch (Exception e) when (e is InvalidOperationException || e is Win32Exception)
+            {
+                return false;
+            }
+
+            try
+            {
+                int self;
+                int session;
+                using (var current = Process.GetCurrentProcess())
+                {
+                    self = current.Id;
+                    session = current.SessionId;
+                }
+
+                foreach (var process in processes)
+                {
+                    // Match session (single-instance lock and signal are session-local); launcher is excluded because no signal is held.
+                    if (process.Id != self && process.SessionId == session && IsWand(process.Id, exePath))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
+        /// <summary>Signals atomically that a launcher is watching process in this session.</summary>
+        private static IDisposable Watch(out bool watchedElsewhere)
+        {
+            try
+            {
+                var handle = new EventWaitHandle(false, EventResetMode.ManualReset, WatchEventName,
+                    out bool createdNew);
+                watchedElsewhere = !createdNew;
+                return handle;
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is System.IO.IOException ||
+                                      e is WaitHandleCannotBeOpenedException)
+            {
+                // Signal loss only costs handoff diagnosis.
+                watchedElsewhere = true;
+                return null;
+            }
+        }
+
+        /// <summary>Tracks new processes via limitless job object (avoids KILL_ON_JOB_CLOSE)</summary>
         private static bool TryTrackChildren(IntPtr process, out IntPtr job, out IntPtr port)
         {
             port = IntPtr.Zero;
@@ -143,8 +248,8 @@ namespace WandEnhancer.Core
         }
 
         /// <summary>Blocks until the last process in the job is gone.</summary>
-        private static void ClearFuseInNewProcesses(IntPtr port, string exePath, long stateRva,
-            int mainProcessId, bool mainCleared, Action<string, ELogType> log)
+        private void ClearFuseInNewProcesses(IntPtr port, string exePath, long stateRva,
+            IntPtr imageBase, int mainProcessId, bool mainCleared, Action<string, ELogType> log)
         {
             var tracked = new Dictionary<int, IntPtr>();
             var pending = new List<PendingClear>();
@@ -155,7 +260,7 @@ namespace WandEnhancer.Core
             {
                 while (true)
                 {
-                    // Waiting forever is only right while nothing is due for a retry.
+                    // Wait indefinitely only if no retries are pending.
                     if (!GetQueuedCompletionStatus(port, out uint message, out _, out IntPtr value,
                             pending.Count == 0 ? INFINITE : RetryIntervalMs))
                     {
@@ -164,7 +269,7 @@ namespace WandEnhancer.Core
                             break;
                         }
 
-                        // Nothing arrived, and the other outputs are undefined after a timeout.
+                        // Reset outputs after timeout.
                         message = JOB_OBJECT_MSG_NONE;
                         value = IntPtr.Zero;
                     }
@@ -184,10 +289,9 @@ namespace WandEnhancer.Core
 
                         ReportExit(tracked, processId, log);
                     }
-                    // The main process is announced here too, having been patched while it was
-                    // still suspended, and a game started from Wand joins the job like any child.
+                    // Handle new processes (including the already-patched main process and launched games).
                     else if (message == JOB_OBJECT_MSG_NEW_PROCESS && processId != mainProcessId &&
-                             IsImage(processId, exePath))
+                             IsWand(processId, exePath))
                     {
                         var entry = new PendingClear
                         {
@@ -195,13 +299,13 @@ namespace WandEnhancer.Core
                             Deadline = Environment.TickCount + ClearWindowMs
                         };
 
-                        if (!TryClear(entry, stateRva, tracked, log, ref cleared))
+                        if (!TryClear(entry, stateRva, imageBase, tracked, log, ref cleared))
                         {
                             pending.Add(entry);
                         }
                     }
 
-                    RetryPending(pending, stateRva, tracked, log, ref cleared, ref missed);
+                    RetryPending(pending, stateRva, imageBase, tracked, log, ref cleared, ref missed);
                 }
             }
             finally
@@ -216,18 +320,13 @@ namespace WandEnhancer.Core
                 missed == 0 ? ELogType.Info : ELogType.Warn);
         }
 
-        /// <summary>
-        /// A process the job announces can be younger than its own PEB, and on a slow machine it
-        /// still is by the time the first write is attempted. Electron opens the archive a few
-        /// hundred milliseconds in, and that gap is the budget being spent here.
-        /// </summary>
-        private static void RetryPending(List<PendingClear> pending, long stateRva,
+        private void RetryPending(List<PendingClear> pending, long stateRva, IntPtr imageBase,
             Dictionary<int, IntPtr> tracked, Action<string, ELogType> log, ref int cleared, ref int missed)
         {
             for (int i = pending.Count - 1; i >= 0; i--)
             {
                 var entry = pending[i];
-                if (TryClear(entry, stateRva, tracked, log, ref cleared))
+                if (TryClear(entry, stateRva, imageBase, tracked, log, ref cleared))
                 {
                     pending.RemoveAt(i);
                 }
@@ -241,31 +340,29 @@ namespace WandEnhancer.Core
             }
         }
 
-        private static bool TryClear(PendingClear entry, long stateRva, Dictionary<int, IntPtr> tracked,
-            Action<string, ELogType> log, ref int cleared)
+        private bool TryClear(PendingClear entry, long stateRva, IntPtr imageBase,
+            Dictionary<int, IntPtr> tracked, Action<string, ELogType> log, ref int cleared)
         {
             if (entry.Process == IntPtr.Zero)
             {
-                // The handle is kept open: it is what makes the exit code readable later, and it
-                // also stops Windows handing the pid to someone else in the meantime.
+                // Keep handle open to read exit code and prevent PID reuse.
                 entry.Process = OpenProcess(ProcessAccess, false, entry.ProcessId);
                 if (entry.Process == IntPtr.Zero)
                 {
-                    entry.Problem = $"it could not be opened (win32 error {Marshal.GetLastWin32Error()})";
+                    entry.Problem = $"it could not be opened ({Win32Error.Describe(Marshal.GetLastWin32Error())})";
                     return false;
                 }
 
                 tracked[entry.ProcessId] = entry.Process;
             }
 
-            // Read while the process is alive: the one worth naming in the log is the one that
-            // dies, and by then its command line is gone with it.
+            // Cache role while process is alive for logging if it dies.
             if (entry.Role == null)
             {
                 entry.Role = ProcessInfo.GetElectronRole(entry.Process);
             }
 
-            if (!ElectronFuse.ClearIn(entry.Process, stateRva, out string problem))
+            if (!_fuse.ClearIn(entry.Process, stateRva, imageBase, out string problem))
             {
                 entry.Problem = problem;
                 return false;
@@ -291,18 +388,12 @@ namespace WandEnhancer.Core
             return true;
         }
 
-        /// <summary>
-        /// The pid alone says nothing; the Electron role is what turns a line into a diagnosis,
-        /// since the overlay lives in a renderer.
-        /// </summary>
         private static string Describe(PendingClear entry)
         {
             return entry.Role == null ? entry.ProcessId.ToString() : $"{entry.ProcessId} ({entry.Role})";
         }
 
-        /// <summary>
-        /// Reports only anomalies (non-zero exits) to avoid burying important failures.
-        /// </summary>
+        /// <summary>Reports only non-zero exits to highlight failures</summary>
         private static void ReportExit(Dictionary<int, IntPtr> tracked, int processId, Action<string, ELogType> log)
         {
             if (!tracked.TryGetValue(processId, out IntPtr process))
@@ -319,28 +410,52 @@ namespace WandEnhancer.Core
             CloseHandle(process);
         }
 
-        /// <summary>
-        /// Identity check before anything heavier, verifying the executable path matches.
-        /// </summary>
-        private static bool IsImage(int processId, string exePath)
+        /// <summary>Matches process name to Wand while excluding launcher itself (avoids short paths/junctions).</summary>
+        /// <returns>False if gone, access denied, or mismatch.</returns>
+        private static bool IsWand(int processId, string exePath)
+        {
+            string path = ImagePathOf(processId);
+            return path != null &&
+                   string.Equals(System.IO.Path.GetFileName(path), System.IO.Path.GetFileName(exePath),
+                       StringComparison.OrdinalIgnoreCase) &&
+                   !string.Equals(path, OwnImagePath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <returns>Null if gone or access denied.</returns>
+        private static string ImagePathOf(int processId)
         {
             IntPtr process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
             if (process == IntPtr.Zero)
             {
-                return false;
+                return null;
             }
 
             try
             {
-                var path = new StringBuilder(MaxPathLength);
-                int length = path.Capacity;
-                return QueryFullProcessImageName(process, 0, path, ref length) &&
-                       string.Equals(path.ToString(), exePath, StringComparison.OrdinalIgnoreCase);
+                string path = QueryImageName(process, MaxPathLength, out int error);
+                // Retry with long buffer for MAX_PATH to prevent unrecognized children exiting with -36861.
+                return path == null && error == ERROR_INSUFFICIENT_BUFFER
+                    ? QueryImageName(process, LongPathLength, out _)
+                    : path;
             }
             finally
             {
                 CloseHandle(process);
             }
+        }
+
+        private static string QueryImageName(IntPtr process, int capacity, out int error)
+        {
+            var path = new StringBuilder(capacity);
+            int length = path.Capacity;
+            if (QueryFullProcessImageName(process, 0, path, ref length))
+            {
+                error = 0;
+                return path.ToString();
+            }
+
+            error = Marshal.GetLastWin32Error();
+            return null;
         }
 
         private static string DescribeCode(int code)
@@ -350,7 +465,7 @@ namespace WandEnhancer.Core
                 case 0: return "0";
                 case AsarIntegrityExitCode:
                     return $"{code} (ASAR integrity check failed - the fuse was not cleared in time)";
-                // Chromium breaks into a debugger that is not there when it hits a fatal error.
+                // Chromium triggers missing debugger on fatal error.
                 case unchecked((int)0x80000003): return $"0x{code:X8} (Wand aborted itself during startup)";
                 case unchecked((int)0xC0000005): return $"0x{code:X8} (access violation)";
                 case unchecked((int)0xC0000135): return $"0x{code:X8} (a required DLL is missing)";
@@ -363,9 +478,14 @@ namespace WandEnhancer.Core
         #region P/Invoke
 
         private const uint CREATE_SUSPENDED = 0x4;
-        private const uint ProcessAccess = 0x0008 | 0x0010 | 0x0020 | 0x0400;
+        private const int ERROR_ELEVATION_REQUIRED = 740;
+        private const int ERROR_INSUFFICIENT_BUFFER = 122;
         private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+        // VM_OPERATION | VM_READ | VM_WRITE plus limited query (hardened processes may deny full query).
+        private const uint ProcessAccess = 0x0008 | 0x0010 | 0x0020 | PROCESS_QUERY_LIMITED_INFORMATION;
         private const int MaxPathLength = 260;
+        private const int LongPathLength = 32767;
         private const int JobObjectAssociateCompletionPortInformation = 7;
         private const int WAIT_TIMEOUT = 258;
         private const uint JOB_OBJECT_MSG_NONE = 0;

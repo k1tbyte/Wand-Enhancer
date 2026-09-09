@@ -14,10 +14,11 @@ function Assert-Equal($Actual, $Expected, [string]$Message) {
     if ($Actual -ne $Expected) { throw "$Message (expected $Expected, got $Actual)" }
 }
 
-foreach ($typeName in 'ElectronFuse', 'ProcessInfo') {
-    $type = $assembly.GetType("WandEnhancer.Core.$typeName", $true)
+$supervisedNamespace = 'WandEnhancer.Core.Patching.Strategies.Supervised'
+foreach ($typeName in 'MemoryFuseApplicator', 'ProcessInfo') {
+    $type = $assembly.GetType("$supervisedNamespace.$typeName", $true)
     $methods = @($type.GetMethods($privateStatic) | Where-Object { $_.Name -in 'ReadProcessMemory', 'WriteProcessMemory' })
-    $expectedMethodCount = if ($typeName -eq 'ElectronFuse') { 2 } else { 1 }
+    $expectedMethodCount = if ($typeName -eq 'MemoryFuseApplicator') { 2 } else { 1 }
     Assert-Equal $methods.Count $expectedMethodCount "$typeName native memory methods"
     foreach ($method in $methods) {
         $parameters = $method.GetParameters()
@@ -81,7 +82,7 @@ try {
     $config.RootDirectory = $install
     $config.ExecutableName = 'FixtureClient.exe'
     $config.BrandName = 'wand-test-' + [guid]::NewGuid().ToString('N')
-    $logType = $assembly.GetType('WandEnhancer.View.MainWindow.ELogType', $true)
+    $logType = $assembly.GetType('WandEnhancer.Core.ELogType', $true)
     $loggerType = [Action``2].MakeGenericType([string], $logType)
     $logger = { param($message, $level) } -as $loggerType
     $enhancer = [Activator]::CreateInstance($enhancerType, @($config, $logger))
