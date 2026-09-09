@@ -3,6 +3,31 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.1.0.0] - 2026-09-09
+
+### Features
+
+- **New fixed static patch method, now the default.** It applies the patch on disk, which is more stable for most users than the runtime approach - so it is the default now. A *Patch method* selector at the top of the patch dialog switches between it and the in-memory *Supervised* method, with an info note on the trade-off.
+- The deployed launcher now wears Wand's own icon, so replaced shortcuts look unchanged.
+
+### Improvements
+
+- *Auto-apply after updates* is off by default.
+
+## [2.0.0.1] - 2026-09-07
+
+### Fixes
+
+- Fixed Wand opening to a black window that only Task Manager could close, and every further click on the shortcut landing in the same place. Electron runs one Wand at a time, so each new launch was handed straight to the instance already holding that window - an instance no launcher is watching, whose windows can never come back. The launcher now recognises the handover and says what to close. #214 #272 #276 #286
+- Fixed the patch missing processes the launcher is not allowed to look inside. Windows gives an executable one address for as long as the machine is up, so the launcher now takes that address from the process it starts itself instead of asking each new child for it at the moment the child is most guarded. Antivirus software that filters access to a running process was enough to leave one renderer unpatched, and an unpatched renderer is the black window. #214 #283
+- Fixed Wand installed in a path longer than 260 characters having its processes ignored and left to fail the integrity check.
+
+### Improvements
+
+- A process the patch could not reach now says what stopped it: that the process was still being created, or that reading it was refused, and which error said so - in the words Windows itself uses, not a bare number to look up. Those were one message before and they call for opposite answers: the first is a moment's wait, the second is something on the machine standing in the way. #283
+- Wand marked *Run as administrator* is now reported as exactly that, instead of a bare Windows error number.
+- "No Wand install found" now reaches the window that opens because of it.
+
 ## [2.0.0.0] - 2026-09-05
 
 ### Important
