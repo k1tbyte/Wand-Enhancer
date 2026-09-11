@@ -1,8 +1,8 @@
 (() => {
-  if (document.documentElement.dataset.wandEnhancerCustomScript === 'loaded') {
-    return;
-  }
+    if (document.documentElement.dataset.wandEnhancerCustomScript === 'loaded') {
+        return;
+    }
 
-  document.documentElement.dataset.wandEnhancerCustomScript = 'loaded';
-  console.info('[Wand Enhancer] Custom renderer script loaded');
+    document.documentElement.dataset.wandEnhancerCustomScript = 'loaded';
+    console.info('[Wand Enhancer] Custom renderer script loaded');
 })();

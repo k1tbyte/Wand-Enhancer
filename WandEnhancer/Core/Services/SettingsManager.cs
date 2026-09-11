@@ -7,6 +7,10 @@ namespace WandEnhancer.Core.Services
     public class AppSettings
     {
         public string Language { get; set; }
+
+        public bool CheckUpdates { get; set; } = true;
+
+        public bool CheckPrereleases { get; set; }
     }
     
     public static class SettingsManager
@@ -27,8 +31,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // Settings loading is non-critical - silently fall back to defaults
-                // This can fail due to file permissions, corrupted JSON, etc.
+                // Ignore unreadable or corrupt settings.
             }
             return null;
         }
@@ -42,8 +45,7 @@ namespace WandEnhancer.Core.Services
             }
             catch (Exception)
             {
-                // Settings saving is non-critical - silently ignore errors
-                // This can fail due to file permissions or read-only directories
+                // Ignore save errors like read-only directories.
             }
         }
     }

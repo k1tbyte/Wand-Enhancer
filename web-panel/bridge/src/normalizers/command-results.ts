@@ -1,27 +1,43 @@
+import type { RemoteCommandAction, RemoteCommandResultPayload } from '../../../protocol/messages';
+import type { UnknownRecord } from '../types';
+
 const { isRecord, safeString, toStringId } = require('../utils');
 
-function normalizeRemoteCommandAction(value) {
-    return value === 'launch' || value === 'stop' ? value : null;
+function normalizeRemoteCommandAction(value: unknown): RemoteCommandAction | null {
+    return value === 'launch' || value === 'stop' ? (value as RemoteCommandAction) : null;
 }
 
-function normalizeRemoteCommandResult(rawResult, fallback) {
-    const action = normalizeRemoteCommandAction(isRecord(rawResult) ? rawResult.action : null) || fallback.action;
-    const gameId = isRecord(rawResult) ? toStringId(rawResult.gameId) || fallback.gameId || null : fallback.gameId || null;
-    const titleId = isRecord(rawResult) ? toStringId(rawResult.titleId) || fallback.titleId || null : fallback.titleId || null;
-    const ok = rawResult === true || Boolean(isRecord(rawResult) && rawResult.ok === true);
+function normalizeRemoteCommandResult(
+    rawResult: unknown,
+    fallback: { action: RemoteCommandAction; gameId?: string | null; titleId?: string | null },
+): RemoteCommandResultPayload {
+    const raw = isRecord(rawResult) ? (rawResult as UnknownRecord) : null;
+    const action = normalizeRemoteCommandAction(raw ? raw.action : null) || fallback.action;
+    const gameId = raw
+        ? toStringId(raw.gameId) || fallback.gameId || null
+        : fallback.gameId || null;
+    const titleId = raw
+        ? toStringId(raw.titleId) || fallback.titleId || null
+        : fallback.titleId || null;
+    const ok = rawResult === true || Boolean(raw && raw.ok === true);
     const payload = { ok, action, gameId, titleId };
     if (ok) return payload;
-    if (!isRecord(rawResult) || !isRecord(rawResult.error)) {
+
+    const errorRaw = raw && isRecord(raw.error) ? (raw.error as UnknownRecord) : null;
+    if (!errorRaw) {
         return {
             ...payload,
-            error: { code: 'command_rejected', message: 'The renderer rejected the remote command.' },
+            error: {
+                code: 'command_rejected',
+                message: 'The renderer rejected the remote command.',
+            },
         };
     }
     return {
         ...payload,
         error: {
-            code: safeString(rawResult.error.code, 'command_rejected'),
-            message: safeString(rawResult.error.message, 'The renderer rejected the remote command.'),
+            code: safeString(errorRaw.code, 'command_rejected'),
+            message: safeString(errorRaw.message, 'The renderer rejected the remote command.'),
         },
     };
 }

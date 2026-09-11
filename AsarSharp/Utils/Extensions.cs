@@ -1,12 +1,34 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 
 namespace AsarSharp.Utils
 {
-    internal static class Extensions
+    public static class Extensions
     {
+        /// <summary>
+        /// Fills <paramref name="count"/> bytes to prevent short reads from corrupting parsing.
+        /// </summary>
+        public static int ReadFull(this Stream stream, byte[] buffer, int offset, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int read = stream.Read(buffer, offset + total, count - total);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                total += read;
+            }
+
+            return total;
+        }
+
         /// <summary>
         /// Compute path relative to <paramref name="relativeTo"/>.
         /// Fast common-case (path is inside relativeTo): plain prefix-strip.
@@ -131,6 +153,77 @@ namespace AsarSharp.Utils
             return result;
         }
 
+        /// <summary>
+        /// Overwrites <paramref name="destination"/>, clearing attributes to prevent ReadOnly errors on subsequent runs.
+        /// </summary>
+        public static void CopyOver(string source, string destination)
+        {
+            ClearAttributes(destination);
+
+            try
+            {
+                File.Copy(source, destination, true);
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                throw new UnauthorizedAccessException($"{e.Message} {DescribeDenial(destination)}", e);
+            }
+
+            ClearAttributes(destination);
+        }
+
+        /// <summary>
+        /// Provides detailed diagnostic info for "Access to the path is denied" errors.
+        /// </summary>
+        private static string DescribeDenial(string destination)
+        {
+            if (Directory.Exists(destination))
+            {
+                return "The destination is a directory, not a file.";
+            }
+
+            if (!File.Exists(destination))
+            {
+                return "The destination does not exist, so the containing folder is refusing new files.";
+            }
+
+            return $"Attributes {File.GetAttributes(destination)}, owner {DescribeOwner(destination)}, " +
+                   $"running as {Environment.UserName}. A read-only flag, antivirus, folder " +
+                   "permissions or a delete still pending on the file are the usual causes.";
+        }
+
+        private static string DescribeOwner(string path)
+        {
+            try
+            {
+                return File.GetAccessControl(path).GetOwner(typeof(NTAccount)).Value;
+            }
+            catch (Exception e) when (e is IdentityNotMappedException || e is UnauthorizedAccessException ||
+                                      e is InvalidOperationException || e is PrivilegeNotHeldException ||
+                                      e is PlatformNotSupportedException)
+            {
+                return "unreadable";
+            }
+        }
+
+        /// <summary>
+        /// Resets a file to Normal to prevent overwrite failures. Best effort.
+        /// </summary>
+        public static void ClearAttributes(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.SetAttributes(path, FileAttributes.Normal);
+                }
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException || e is IOException)
+            {
+                // Swallowed so the caller's own failure is the one that surfaces.
+            }
+        }
+
         public static void CopyDirectory(string sourceDir, string destinationDir)
         {
             Directory.CreateDirectory(destinationDir);
@@ -138,7 +231,7 @@ namespace AsarSharp.Utils
             foreach (var file in Directory.GetFiles(sourceDir))
             {
                 var destFile = Path.Combine(destinationDir, Path.GetFileName(file));
-                File.Copy(file, destFile, true);
+                CopyOver(file, destFile);
             }
 
             foreach (var dir in Directory.GetDirectories(sourceDir))
@@ -170,19 +263,7 @@ namespace AsarSharp.Utils
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 return;
 
-            var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "chmod",
-                    Arguments = $"{permission} \"{filePath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            process.WaitForExit();
+            RunTool("chmod", $"{permission} \"{filePath}\"");
         }
 
 
@@ -190,32 +271,41 @@ namespace AsarSharp.Utils
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                NativeMethods.CreateSymbolicLink(linkPath, linkTarget,
+                bool success = NativeMethods.CreateSymbolicLink(linkPath, linkTarget,
                     Directory.Exists(linkTarget)
                         ? NativeMethods.SymLinkFlag.Directory
                         : NativeMethods.SymLinkFlag.File);
+                if (!success)
+                    throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
                 return;
             }
 
-            var process = new System.Diagnostics.Process
-            {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "ln",
-                    Arguments = $"-s \"{linkTarget}\" \"{linkPath}\"",
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            process.WaitForExit();
+            RunTool("ln", $"-s \"{linkTarget}\" \"{linkPath}\"");
         }
-
 
         public static bool IsWindowsPlatform()
         {
-            return Environment.OSVersion.Platform == PlatformID.Win32NT;
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        }
+
+        private static void RunTool(string fileName, string arguments)
+        {
+            using (var process = new System.Diagnostics.Process
+                   {
+                       StartInfo = new System.Diagnostics.ProcessStartInfo
+                       {
+                           FileName = fileName,
+                           Arguments = arguments,
+                           UseShellExecute = false,
+                           CreateNoWindow = true
+                       }
+                   })
+            {
+                process.Start();
+                process.WaitForExit();
+                if (process.ExitCode != 0)
+                    throw new InvalidOperationException($"Tool {fileName} failed with exit code {process.ExitCode}.");
+            }
         }
     }
 }

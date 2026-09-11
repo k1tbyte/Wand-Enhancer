@@ -1,4 +1,44 @@
+# Auto-detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Web panel & source files
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.po text eol=lf
+
+# Windows scripts / C# solutions
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=lf
+*.cs text eol=crlf
+*.sln text eol=crlf
+*.csproj text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.dll binary
+*.exe binary
+*.zip binary
+
+# GitHub Linguist
 # The web panel is the bundled frontend shipped inside the C# patcher.
 # Mark it as vendored so GitHub Linguist keeps it out of the repository's
-# language statistics — the project is a C# app, not a TypeScript one.
+# language statistics - the project is a C# app, not a TypeScript one.
 web-panel/** linguist-vendored

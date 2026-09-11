@@ -1,18 +1,16 @@
-import {
-  getWebpackRequire,
-} from "./installed-apps-sync/runtime.js"
-import { resolveQrRenderer as findWandQrRenderer } from "./remote-popup-cleanup/qr-renderer.js"
+import { getWebpackRequire } from './installed-apps-sync/runtime.js';
+import { resolveQrRenderer as findWandQrRenderer } from './remote-popup-cleanup/qr-renderer.js';
 
-;(function installRemotePopupCleanup(WandEnhancer) {
-  if (globalThis.__wandRemotePopupCleanupInstalled) {
-    return
-  }
+(function installRemotePopupCleanup(WandEnhancer) {
+    if (globalThis.__wandRemotePopupCleanupInstalled) {
+        return;
+    }
 
-  globalThis.__wandRemotePopupCleanupInstalled = true
+    globalThis.__wandRemotePopupCleanupInstalled = true;
 
-  const style = document.createElement("style")
-  style.id = "wand-remote-popup-cleanup-style"
-  style.textContent = `
+    const style = document.createElement('style');
+    style.id = 'wand-remote-popup-cleanup-style';
+    style.textContent = `
     article.pro-onboarding-card--remote {
       display: none !important;
     }
@@ -73,84 +71,83 @@ import { resolveQrRenderer as findWandQrRenderer } from "./remote-popup-cleanup/
       border-radius: 12px !important;
       transform: none !important;
     }
-  `
-  let qrRenderer = null
-  let refreshScheduled = false
+  `;
+    let qrRenderer = null;
+    let refreshScheduled = false;
 
-  const installStyle = () => {
-    if (!document.getElementById(style.id)) {
-      document.head.appendChild(style)
-    }
-  }
+    const installStyle = () => {
+        if (!document.getElementById(style.id)) {
+            document.head.appendChild(style);
+        }
+    };
 
-  const getRemoteUrl = () =>
-    globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl
+    const getRemoteUrl = () => globalThis.__wandRemoteBridgeUrl || WandEnhancer?.remoteUrl;
 
-  const resolveQrRenderer = () => {
-    if (qrRenderer) {
-      return qrRenderer
-    }
+    const resolveQrRenderer = () => {
+        if (qrRenderer) {
+            return qrRenderer;
+        }
 
-    qrRenderer = findWandQrRenderer(getWebpackRequire())
-    return qrRenderer
-  }
+        qrRenderer = findWandQrRenderer(getWebpackRequire());
+        return qrRenderer;
+    };
 
-  const updateLinks = (remoteUrl) => {
-    if (!remoteUrl) {
-      return
-    }
+    const updateLinks = (remoteUrl) => {
+        if (!remoteUrl) {
+            return;
+        }
 
-    for (const anchor of document.querySelectorAll("remote-tooltip a[href]")) {
-      anchor.setAttribute("href", remoteUrl)
-      anchor.textContent = remoteUrl.replace(/\/$/, "")
-    }
-  }
+        for (const anchor of document.querySelectorAll('remote-tooltip a[href]')) {
+            anchor.setAttribute('href', remoteUrl);
+            anchor.textContent = remoteUrl.replace(/\/$/, '');
+        }
+    };
 
-  const updateQrCodes = async (remoteUrl) => {
-    const renderQr = remoteUrl && resolveQrRenderer()
-    if (!renderQr) {
-      return
-    }
+    const updateQrCodes = async (remoteUrl) => {
+        const renderQr = remoteUrl && resolveQrRenderer();
+        if (!renderQr) {
+            return;
+        }
 
-    for (const canvas of document.querySelectorAll("remote-qr-code canvas")) {
-      if (canvas.dataset.wandRemoteUrl === remoteUrl) {
-        continue
-      }
+        for (const canvas of document.querySelectorAll('remote-qr-code canvas')) {
+            if (canvas.dataset.wandRemoteUrl === remoteUrl) {
+                continue;
+            }
 
-      try {
-        await renderQr(canvas, remoteUrl)
-        canvas.dataset.wandRemoteUrl = remoteUrl
-      } catch (error) {
-        WandEnhancer?.log("Failed to render local remote QR code", error)
-      }
-    }
-  }
+            try {
+                await renderQr(canvas, remoteUrl);
+                canvas.dataset.wandRemoteUrl = remoteUrl;
+            } catch (error) {
+                WandEnhancer?.log('Failed to render local remote QR code', error);
+            }
+        }
+    };
 
-  const refresh = () => {
-    const remoteUrl = getRemoteUrl()
-    installStyle()
-    updateLinks(remoteUrl)
-    void updateQrCodes(remoteUrl)
-  }
+    const refresh = () => {
+        const remoteUrl = getRemoteUrl();
+        installStyle();
+        updateLinks(remoteUrl);
+        void updateQrCodes(remoteUrl);
+    };
 
-  const scheduleRefresh = () => {
-    if (refreshScheduled) {
-      return
-    }
+    const scheduleRefresh = () => {
+        if (refreshScheduled) {
+            return;
+        }
 
-    refreshScheduled = true
-    setTimeout(() => {
-      refreshScheduled = false
-      refresh()
-    }, 0)
-  }
+        refreshScheduled = true;
+        setTimeout(() => {
+            refreshScheduled = false;
+            refresh();
+        }, 0);
+    };
 
-  refresh()
+    refresh();
 
-  const observer = new MutationObserver(scheduleRefresh)
+    const observer = new MutationObserver(scheduleRefresh);
 
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  })
-})(globalThis.WandEnhancer)
+    observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+    });
+})(globalThis.WandEnhancer);
