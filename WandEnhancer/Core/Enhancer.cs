@@ -104,6 +104,7 @@ namespace WandEnhancer.Core
         public void Patch()
         {
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
+            ProcessTerminator.TryKillProcess($"{_weModConfig.BrandName}AuxiliaryService");
             string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
             File.WriteAllText(markerPath, string.Empty);
 
@@ -308,6 +309,7 @@ namespace WandEnhancer.Core
             }
 
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
+            ProcessTerminator.TryKillProcess($"{_weModConfig.BrandName}AuxiliaryService");
             AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
 
             if (Directory.Exists(_unpackedPath))
