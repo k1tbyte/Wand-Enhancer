@@ -1,0 +1,65 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <s:String x:Key="language_display_name">বাংলা</s:String>
+
+    <s:String x:Key="mw_folder_path">ফোল্ডারের পথ</s:String>
+    <s:String x:Key="mw_folder_not_found">ফোল্ডার পাওয়া যায়নি</s:String>
+    <s:String x:Key="mw_patch">উন্নত করুন</s:String>
+    <s:String x:Key="mw_restore">পুনরুদ্ধার করুন</s:String>
+    <s:String x:Key="mw_source_code">সোর্স কোড</s:String>
+    <s:String x:Key="mw_made_by">k1tbyte-এর ❤️ দিয়ে তৈরি</s:String>
+    <s:String x:Key="mw_star_hint">সহায়ক মনে হলে একটি স্টার দিন ;)</s:String>
+    <s:String x:Key="mw_copy_logs">লগ ক্লিপবোর্ডে কপি করুন</s:String>
+    <s:String x:Key="mw_export_logs">লগ ফাইলে রপ্তানি করুন</s:String>
+    <s:String x:Key="mw_update_badge">নতুন সংস্করণ উপলব্ধ</s:String>
+
+    <s:String x:Key="settings_title">সেটিংস</s:String>
+    <s:String x:Key="settings_language">ভাষা</s:String>
+    <s:String x:Key="settings_check_updates">শুরুতে আপডেট পরীক্ষা করুন</s:String>
+    <s:String x:Key="settings_check_prereleases">প্রি-রিলিজ সম্পর্কেও জানান</s:String>
+    <s:String x:Key="settings_save">সংরক্ষণ করুন</s:String>
+
+    <s:String x:Key="up_popup_title">আপডেট উপলব্ধ</s:String>
+    <s:String x:Key="up_warning">WandEnhancer নিজে থেকে আপডেট হয় না। আপনার ফোর্কে নতুন সংস্করণ তৈরি করুন অথবা রিলিজ পৃষ্ঠা খুলুন।</s:String>
+    <s:String x:Key="up_current_version">বর্তমান:</s:String>
+    <s:String x:Key="up_latest_version">সর্বশেষ:</s:String>
+    <s:String x:Key="up_release_notes">রিলিজ নোট</s:String>
+    <s:String x:Key="up_show_more">সম্পূর্ণ পরিবর্তনের তালিকা দেখান</s:String>
+    <s:String x:Key="up_show_less">রিলিজ নোট দেখান</s:String>
+    <s:String x:Key="up_loading_changelog">লোড হচ্ছে...</s:String>
+    <s:String x:Key="up_changelog_failed">সম্পূর্ণ পরিবর্তনের তালিকা লোড করা যায়নি।</s:String>
+    <s:String x:Key="up_release_notes_unavailable">কোনও রিলিজ নোট প্রকাশিত হয়নি।</s:String>
+    <s:String x:Key="up_open_release">রিলিজ পৃষ্ঠা খুলুন</s:String>
+
+    <s:String x:Key="pv_activate_pro">WeMod Pro সক্রিয় করুন</s:String>
+    <s:String x:Key="pv_devtools">F12-এ DevTools</s:String>
+    <s:String x:Key="pv_disable_updates">আপডেট বন্ধ করুন</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">রিমোট অ্যাক্সেস চালু করুন (বিটা)</s:String>
+    <s:String x:Key="pv_custom_scripts">কাস্টম স্ক্রিপ্ট</s:String>
+    <s:String x:Key="pv_add_js_scripts">.js যোগ করুন</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">নির্বাচিত .js ফাইলগুলো Wand-এ প্যাক করে renderer-এ লোড করা হবে।</s:String>
+    <s:String x:Key="pv_no_custom_scripts">কোনও স্ক্রিপ্ট নির্বাচিত নেই</s:String>
+    <s:String x:Key="pv_start">শুরু করুন</s:String>
+    <s:String x:Key="pv_auto_apply">আপডেটের পর স্বয়ংক্রিয়ভাবে প্রয়োগ করুন</s:String>
+    <s:String x:Key="pv_popup_title">আমরা কী উন্নত করব?</s:String>
+    <s:String x:Key="pv_patch_method">প্যাচ পদ্ধতি</s:String>
+    <s:String x:Key="pv_strategy_static">স্ট্যাটিক (প্রস্তাবিত)</s:String>
+    <s:String x:Key="pv_strategy_supervised">সুপারভাইজড (রানটাইম)</s:String>
+
+    <s:String x:Key="log_install_found">WeMod ডিরেক্টরি পাওয়া গেছে: {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">WeMod ইতিমধ্যে প্যাচ করা হয়েছে। আবার প্যাচ করতে আগে ব্যাকআপ পুনরুদ্ধার করুন।</s:String>
+    <s:String x:Key="log_ready">প্যাচ করার জন্য প্রস্তুত।</s:String>
+    <s:String x:Key="log_install_not_found">WeMod ডিরেক্টরি পাওয়া যায়নি।</s:String>
+    <s:String x:Key="log_no_directory">এটি করা যাচ্ছে না। আগে ডিরেক্টরি নির্দিষ্ট করুন।</s:String>
+    <s:String x:Key="log_invalid_directory">নির্বাচিত ফোল্ডার {0} বৈধ WeMod ডিরেক্টরি নয়।</s:String>
+    <s:String x:Key="log_restore_failed">ব্যাকআপ পুনরুদ্ধার ব্যর্থ: {0}</s:String>
+    <s:String x:Key="log_patch_failed">প্যাচ ব্যর্থ: {0}</s:String>
+    <s:String x:Key="log_copied">লগ ক্লিপবোর্ডে কপি হয়েছে।</s:String>
+    <s:String x:Key="log_copy_failed">লগ কপি ব্যর্থ: {0}</s:String>
+    <s:String x:Key="log_exported">লগ এখানে রপ্তানি হয়েছে: {0}</s:String>
+    <s:String x:Key="log_export_failed">লগ রপ্তানি ব্যর্থ: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">ব্রাউজারে {0} খোলা যায়নি।</s:String>
+    <s:String x:Key="dialog_pick_install">WeMod ডিরেক্টরি নির্বাচন করুন</s:String>
+</ResourceDictionary>
