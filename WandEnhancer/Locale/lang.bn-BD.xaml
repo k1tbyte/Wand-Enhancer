@@ -4,7 +4,7 @@
 
     <s:String x:Key="language_display_name">বাংলা</s:String>
 
-    <s:String x:Key="mw_folder_path">ফোল্ডারের পথ</s:String>
+    <s:String x:Key="mw_folder_path">ফোল্ডারের অবস্থান</s:String>
     <s:String x:Key="mw_folder_not_found">ফোল্ডার পাওয়া যায়নি</s:String>
     <s:String x:Key="mw_patch">উন্নত করুন</s:String>
     <s:String x:Key="mw_restore">পুনরুদ্ধার করুন</s:String>
@@ -48,12 +48,12 @@
     <s:String x:Key="pv_strategy_static">স্ট্যাটিক (প্রস্তাবিত)</s:String>
     <s:String x:Key="pv_strategy_supervised">সুপারভাইজড (রানটাইম)</s:String>
 
-    <s:String x:Key="log_install_found">WeMod ডিরেক্টরি পাওয়া গেছে: {0} ({1})</s:String>
-    <s:String x:Key="log_already_patched">WeMod ইতিমধ্যে প্যাচ করা হয়েছে। আবার প্যাচ করতে আগে ব্যাকআপ পুনরুদ্ধার করুন।</s:String>
+    <s:String x:Key="log_install_found">Wand ডিরেক্টরি পাওয়া গেছে: {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">Wand ইতিমধ্যে প্যাচ করা হয়েছে। আবার প্যাচ করতে আগে ব্যাকআপ পুনরুদ্ধার করুন।</s:String>
     <s:String x:Key="log_ready">প্যাচ করার জন্য প্রস্তুত।</s:String>
-    <s:String x:Key="log_install_not_found">WeMod ডিরেক্টরি পাওয়া যায়নি।</s:String>
+    <s:String x:Key="log_install_not_found">Wand ডিরেক্টরি পাওয়া যায়নি।</s:String>
     <s:String x:Key="log_no_directory">এটি করা যাচ্ছে না। আগে ডিরেক্টরি নির্দিষ্ট করুন।</s:String>
-    <s:String x:Key="log_invalid_directory">নির্বাচিত ফোল্ডার {0} বৈধ WeMod ডিরেক্টরি নয়।</s:String>
+    <s:String x:Key="log_invalid_directory">নির্বাচিত ফোল্ডার {0} বৈধ Wand এর অবস্থান নয়।</s:String>
     <s:String x:Key="log_restore_failed">ব্যাকআপ পুনরুদ্ধার ব্যর্থ: {0}</s:String>
     <s:String x:Key="log_patch_failed">প্যাচ ব্যর্থ: {0}</s:String>
     <s:String x:Key="log_copied">লগ ক্লিপবোর্ডে কপি হয়েছে।</s:String>
@@ -61,5 +61,5 @@
     <s:String x:Key="log_exported">লগ এখানে রপ্তানি হয়েছে: {0}</s:String>
     <s:String x:Key="log_export_failed">লগ রপ্তানি ব্যর্থ: {0}</s:String>
     <s:String x:Key="log_open_link_failed">ব্রাউজারে {0} খোলা যায়নি।</s:String>
-    <s:String x:Key="dialog_pick_install">WeMod ডিরেক্টরি নির্বাচন করুন</s:String>
+    <s:String x:Key="dialog_pick_install">Wand এর অবস্থান নির্বাচন করুন</s:String>
 </ResourceDictionary>
