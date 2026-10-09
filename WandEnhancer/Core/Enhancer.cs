@@ -155,16 +155,31 @@ namespace WandEnhancer.Core
                 PackSources();
                 _strategy.ApplyEnablement(new PatchContext(_weModConfig, _logger, _unpackedPath));
 
-                // Supervised needs its launcher at every start; static only to re-apply on update.
-                if (_strategy.RequiresLauncherAlways || _config.AutoApplyAfterUpdate)
+                // Supervised needs to intercept every start; static never does.
+                if (_strategy.RequiresLauncherAlways)
                 {
                     LauncherDeployment.Deploy(_weModConfig, _logger);
-                    SaveAutoPatchConfig();
                 }
                 else
                 {
                     LauncherDeployment.Restore(_weModConfig);
+                }
+
+                // Independent of the strategy: catching an update needs to run the moment Squirrel
+                // writes a new version folder, not on next launch. Squirrel rewrites the root
+                // execution stub as part of applying the update itself, so by the time the user
+                // next starts Wand - through either strategy's own launcher interception - that
+                // rewrite has already erased it. UpdateWatcherService runs independently of launch
+                // timing entirely.
+                if (_config.AutoApplyAfterUpdate)
+                {
+                    SaveAutoPatchConfig();
+                    Services.WatcherAutostart.EnsureRunning(_weModConfig, _logger);
+                }
+                else
+                {
                     DeleteAutoPatchConfig();
+                    Services.WatcherAutostart.Stop(_weModConfig);
                 }
 
                 File.Delete(markerPath);

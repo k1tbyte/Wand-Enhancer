@@ -106,6 +106,8 @@
         <Compile Include="Core\Js\PatchPayload.cs" />
         <Compile Include="Core\Services\LocalizationManager.cs" />
         <Compile Include="Core\Services\SettingsManager.cs" />
+        <Compile Include="Core\Services\UpdateWatcherService.cs" />
+        <Compile Include="Core\Services\WatcherAutostart.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Program.cs" />
