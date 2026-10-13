@@ -26,7 +26,10 @@ namespace WandEnhancer.Core.Patching.Strategies.Supervised
 
         public bool RequiresLauncherAlways => true;
 
-        public void ApplyEnablement(PatchContext context){}
+        public void ApplyEnablement(PatchContext context)
+        {
+            AuxiliaryCompatibility.Apply(context, false);
+        }
 
         private sealed class PendingClear
         {
