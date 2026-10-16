@@ -39,6 +39,47 @@ export function savePresets(storageKey: string, presets: RemotePreset[]): boolea
     return saveJson(storageKey, presets, (value) => Array.isArray(value) && value.length === 0);
 }
 
+export function exportPresetsJson(storageKey: string): string {
+    const presets = loadPresets(storageKey);
+    return JSON.stringify(presets, null, 2);
+}
+
+export function importPresetsJson(
+    storageKey: string,
+    jsonString: string,
+): { count: number; presets: RemotePreset[] } {
+    try {
+        const parsed = JSON.parse(jsonString);
+        if (!Array.isArray(parsed)) {
+            return { count: 0, presets: loadPresets(storageKey) };
+        }
+
+        const validPresets = parsed
+            .map(normalizePreset)
+            .filter((preset): preset is RemotePreset => Boolean(preset));
+
+        if (validPresets.length === 0) {
+            return { count: 0, presets: loadPresets(storageKey) };
+        }
+
+        const existing = loadPresets(storageKey);
+        const existingIds = new Set(existing.map((item) => item.id));
+        const merged = [...existing];
+
+        for (const preset of validPresets) {
+            if (!existingIds.has(preset.id)) {
+                merged.push(preset);
+                existingIds.add(preset.id);
+            }
+        }
+
+        savePresets(storageKey, merged);
+        return { count: validPresets.length, presets: merged };
+    } catch {
+        return { count: 0, presets: loadPresets(storageKey) };
+    }
+}
+
 export function createPreset(name: string, values: Record<string, unknown>): RemotePreset {
     return {
         id: createPresetId(),

@@ -69,6 +69,27 @@ describe('production bridge runtime', () => {
         }
     });
 
+    it('generates and includes a session token in advertised URLs', async () => {
+        const bridge = require('../../dist/bridge.cjs');
+        const port = await getFreePort();
+        const runtime = bridge.createBridgeRuntime({ host: '127.0.0.1', port, maxPort: port });
+
+        try {
+            await waitUntil(() => runtime.listening);
+            expect(typeof runtime.sessionToken).toBe('string');
+            expect(runtime.sessionToken.length).toBeGreaterThan(0);
+            expect(runtime.remoteUrl).toContain(`token=${runtime.sessionToken}`);
+            for (const url of runtime.advertisedUrls) {
+                expect(url).toContain(`token=${runtime.sessionToken}`);
+            }
+
+            const messages = await connectAndCollect(port, 2, `?token=${runtime.sessionToken}`);
+            expect(messages[0].type).toBe('hello_ack');
+        } finally {
+            runtime.close();
+        }
+    });
+
     it('closes an oversized WebSocket frame without buffering its payload', async () => {
         const bridge = require('../../dist/bridge.cjs');
         const port = await getFreePort();
@@ -119,10 +140,10 @@ async function getFreePort(): Promise<number> {
     });
 }
 
-async function connectAndCollect(port: number, count: number): Promise<any[]> {
+async function connectAndCollect(port: number, count: number, query = ''): Promise<any[]> {
     return await new Promise((resolve, reject) => {
         const messages: any[] = [];
-        const socket = new NodeWebSocket(`ws://127.0.0.1:${port}/remote/ws`);
+        const socket = new NodeWebSocket(`ws://127.0.0.1:${port}/remote/ws${query}`);
         socket.once('error', reject);
         socket.once('open', () =>
             socket.send(

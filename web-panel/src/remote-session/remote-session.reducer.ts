@@ -18,6 +18,7 @@ export type PendingWrite = {
     requestId: string;
     value: unknown;
     previousConfirmedValue: unknown;
+    startedAt?: number;
 };
 
 export type RemoteSessionState = {
@@ -30,6 +31,7 @@ export type RemoteSessionState = {
     confirmedValues: Record<string, unknown>;
     pendingWrites: Record<string, PendingWrite>;
     lastError: string | null;
+    latencyMs: number | null;
 };
 
 export type RemoteSessionAction =
@@ -65,6 +67,7 @@ export function createInitialRemoteSessionState(): RemoteSessionState {
         confirmedValues: {},
         pendingWrites: {},
         lastError: null,
+        latencyMs: null,
     };
 }
 
@@ -91,6 +94,7 @@ export function remoteSessionReducer(
                 connectionStatus: EConnectionStatus.Reconnecting,
                 pendingWrites: {},
                 lastError: action.message,
+                latencyMs: null,
             };
         case 'disconnected':
             return {
@@ -102,6 +106,7 @@ export function remoteSessionReducer(
                 confirmedValues: {},
                 pendingWrites: {},
                 lastError: null,
+                latencyMs: null,
             };
         case 'trainerMeta':
             return { ...state, trainerMeta: action.payload, pendingWrites: {} };
@@ -128,6 +133,7 @@ export function remoteSessionReducer(
                         requestId: action.requestId,
                         value: action.value,
                         previousConfirmedValue: state.confirmedValues[action.target],
+                        startedAt: Date.now(),
                     },
                 },
             };
@@ -183,12 +189,15 @@ function applyWriteResult(
 
     const pendingWrites = { ...state.pendingWrites };
     delete pendingWrites[action.target];
+    const latency =
+        pending.startedAt != null ? Math.max(0, Date.now() - pending.startedAt) : state.latencyMs;
 
     if (action.ok) {
         return {
             ...state,
             confirmedValues: { ...state.confirmedValues, [action.target]: pending.value },
             pendingWrites,
+            latencyMs: latency,
         };
     }
 
@@ -197,5 +206,6 @@ function applyWriteResult(
         values: { ...state.values, [action.target]: pending.previousConfirmedValue },
         pendingWrites,
         lastError: action.message ?? 'The trainer rejected the requested value.',
+        latencyMs: latency,
     };
 }

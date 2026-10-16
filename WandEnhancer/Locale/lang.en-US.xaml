@@ -24,6 +24,8 @@
     <s:String x:Key="settings_language">Language</s:String>
     <s:String x:Key="settings_check_updates">Check for updates on startup</s:String>
     <s:String x:Key="settings_check_prereleases">Also notify about pre-releases</s:String>
+    <s:String x:Key="settings_configure_firewall">Configure Windows Firewall (Port 3223)</s:String>
+    <s:String x:Key="settings_run_diagnostics">Run System Diagnostics</s:String>
     <s:String x:Key="settings_save">Save</s:String>
     <!--#endregion -->
 

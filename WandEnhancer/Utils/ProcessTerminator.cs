@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace WandEnhancer.Utils
@@ -14,10 +15,21 @@ namespace WandEnhancer.Utils
         {
             // The launcher itself runs as Wand.exe; never target our own process.
             int selfId = Process.GetCurrentProcess().Id;
+            var targets = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "WeMod", "Wand" };
+            if (!string.IsNullOrEmpty(processName))
+            {
+                targets.Add(processName);
+            }
 
             for (int attempt = 0; attempt < KillAttempts; attempt++)
             {
-                var processes = Others(Process.GetProcessesByName(processName), selfId);
+                var processes = targets
+                    .SelectMany(name => Process.GetProcessesByName(name))
+                    .Where(p => p.Id != selfId)
+                    .GroupBy(p => p.Id)
+                    .Select(g => g.First())
+                    .ToArray();
+
                 try
                 {
                     if (processes.Length == 0)
@@ -48,12 +60,18 @@ namespace WandEnhancer.Utils
                 Thread.Sleep(KillRetryDelayMs);
             }
 
-            var survivors = Others(Process.GetProcessesByName(processName), selfId);
+            var survivors = targets
+                .SelectMany(name => Process.GetProcessesByName(name))
+                .Where(p => p.Id != selfId)
+                .GroupBy(p => p.Id)
+                .Select(g => g.First())
+                .ToArray();
+
             try
             {
                 if (survivors.Length > 0)
                 {
-                    throw new InvalidOperationException($"Failed to close {processName}. Close it manually and try again.");
+                    throw new InvalidOperationException($"Failed to close {string.Join(", ", targets)}. Close it manually and try again.");
                 }
             }
             finally

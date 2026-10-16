@@ -3,6 +3,24 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.2.0.0] - 2026-10-08
+
+### Security
+
+- **Ephemeral Session Pairing Token for Remote Panel.** The local bridge now generates an ephemeral session pairing token embedded in the scanned QR code (`?token=...`). Remote WebSocket connections without a valid token are rejected with HTTP 403, preventing unauthorized devices on the local network from hijacking or controlling the active trainer.
+- **Process Termination Hardening.** Reinforced `ProcessTerminator` to detect and safely terminate both `WeMod` and `Wand` process trees across child renderers and GPU helpers while safeguarding the patcher's own process (`selfId`).
+
+### Features
+
+- **Drag-and-Drop Installation Detection.** The WPF desktop client now supports dragging and dropping any WeMod or Wand installation directory or executable (`WeMod.exe` / `Wand.exe`) directly into the window, resolving the active versioned root (`app-*`) and metadata instantly.
+- **Cheat Presets Import & Export (JSON).** Added full export and import support for custom cheat presets in the web panel. Presets are saved with strict JSON schema validation, automatic ID deduplication, and sanitization.
+- **Mobile Touch Haptic Feedback.** Integrated safe tactile vibrations (`navigator.vibrate`) into touch controls (Toggles, Action Buttons, and Steppers) on mobile devices with graceful fallback for unsupported browsers.
+- **Real-Time Round-Trip Latency Tracking.** Remote session state now monitors and computes write acknowledgment latency (`latencyMs`) in milliseconds across trainer commands, providing instant connection fidelity indicators.
+- **Windows Firewall Auto-Configuration.** Added a built-in helper in Settings to automatically configure Windows Firewall inbound TCP traffic rules on port 3223 for the Remote Web Panel with elevated privileges.
+- **Pre-flight System Diagnostics.** Added an environment health checker and one-click diagnostic report exporter in Settings, verifying WeMod installation paths, ASAR permissions, active processes, port availability, and network adapters.
+- **Full Arabic Language Support.** Added comprehensive Arabic translation (العربية) across both the WPF desktop app (`lang.ar-SA.xaml`) and the mobile Remote Web Panel (`messages.po`) with RTL layout support.
+- **Progressive Web App (PWA) Support.** Added web app manifest, custom high-resolution icons, and mobile optimization meta tags, enabling mobile users to install the panel directly to their home screen as a standalone app.
+
 ## [2.1.0.0] - 2026-09-09
 
 ### Features

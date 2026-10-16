@@ -113,6 +113,31 @@ describe('remote session reducer', () => {
         expect(state.values.speed).toBe(1);
         expect(state.pendingWrites.speed).toBeUndefined();
     });
+
+    it('tracks round-trip write latency and resets on disconnect', () => {
+        let state = withConfirmedValue(1);
+        expect(state.latencyMs).toBeNull();
+
+        state = remoteSessionReducer(state, {
+            type: 'writeStarted',
+            target: 'speed',
+            value: 2,
+            requestId: 'req-latency',
+        });
+        expect(state.pendingWrites.speed?.startedAt).toBeDefined();
+
+        state = remoteSessionReducer(state, {
+            type: 'writeResult',
+            target: 'speed',
+            requestId: 'req-latency',
+            ok: true,
+        });
+        expect(typeof state.latencyMs).toBe('number');
+        expect(state.latencyMs).toBeGreaterThanOrEqual(0);
+
+        state = remoteSessionReducer(state, { type: 'disconnected' });
+        expect(state.latencyMs).toBeNull();
+    });
 });
 
 function helloAck(protocolVersion: number): HelloAckMessage {

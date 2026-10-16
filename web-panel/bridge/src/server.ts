@@ -1,3 +1,4 @@
+const crypto = require('node:crypto');
 const http = require('node:http');
 const path = require('node:path');
 
@@ -66,6 +67,11 @@ type ClientMessage = {
 };
 
 function createBridgeServer(options: BridgeOptions = {}) {
+    const sessionToken =
+        options.sessionToken ||
+        (crypto.randomBytes
+            ? crypto.randomBytes(8).toString('hex')
+            : Math.random().toString(36).slice(2, 10));
     const preferredPort = Number(
         options.port || process.env.WAND_REMOTE_PORT || DEFAULT_REMOTE_PORT,
     );
@@ -94,7 +100,7 @@ function createBridgeServer(options: BridgeOptions = {}) {
 
     function setAdvertisedPort(nextPort: number) {
         port = nextPort;
-        advertisedUrls = getAdvertisedUrls(port);
+        advertisedUrls = getAdvertisedUrls(port, sessionToken);
         globalThis.__wandRemoteBridgeUrl =
             advertisedUrls.find((entry: string) => !entry.includes('localhost')) ||
             advertisedUrls[0];
@@ -452,6 +458,15 @@ function createBridgeServer(options: BridgeOptions = {}) {
             return;
         }
 
+        if (sessionToken && !isLoopbackRequest(request)) {
+            const clientToken = url.searchParams.get('token') || request.headers['x-wand-token'];
+            if (clientToken !== sessionToken) {
+                log('warn', `Rejecting unauthorized WebSocket upgrade from ${request.socket?.remoteAddress}`);
+                rejectUpgrade(socket, HTTP_FORBIDDEN, 'Forbidden - Invalid Token');
+                return;
+            }
+        }
+
         const key = request.headers['sec-websocket-key'];
         if (typeof key !== 'string' || !key) {
             rejectUpgrade(socket, 400, 'Bad Request');
@@ -516,6 +531,9 @@ function createBridgeServer(options: BridgeOptions = {}) {
         get remoteUrl() {
             return globalThis.__wandRemoteBridgeUrl;
         },
+        get sessionToken() {
+            return sessionToken;
+        },
         close() {
             for (const client of clients) {
                 closeClient(client);
@@ -572,7 +590,19 @@ function isAllowedWebSocketOrigin(origin: string | undefined, host: string | und
 }
 
 function isLoopback(hostname: string) {
-    return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(hostname.toLowerCase());
+    const clean = hostname.startsWith('::ffff:') ? hostname.slice(7) : hostname;
+    return (
+        clean === 'localhost' ||
+        clean === '127.0.0.1' ||
+        clean === '::1' ||
+        clean === '[::1]' ||
+        clean.startsWith('127.')
+    );
+}
+
+function isLoopbackRequest(request: IncomingMessage) {
+    const remote = request.socket?.remoteAddress;
+    return typeof remote === 'string' && isLoopback(remote);
 }
 
 function rejectUpgrade(socket: Socket, statusCode: number, statusText: string) {

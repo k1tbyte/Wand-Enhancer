@@ -35,6 +35,7 @@ export type BridgeOptions = {
     maxPort?: number;
     host?: string;
     panelRoot?: string;
+    sessionToken?: string;
 };
 
 export type ServerInfo = {

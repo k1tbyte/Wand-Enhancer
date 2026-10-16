@@ -22,8 +22,24 @@ The default .NET patcher modifies files in the selected local Wand installation 
 ✅ Local environment configuration management <br/>
 ✅ Automated compatibility adjustments for new client versions <br/>
 ✅ Advanced layout and theme customization (Client-side only) <br/>
-✅ AI Features <br/>
-✅ Remote web panel (Remote Connect on mobile) <br/>
+✅ AI Features & Pro Subscription enablement <br/>
+✅ Drag & Drop installation folder and executable detection <br/>
+✅ Full Arabic & English bilingual support across Desktop and Web Panel <br/>
+✅ One-click Windows Firewall auto-configuration (Port 3223) <br/>
+✅ Pre-flight system environment diagnostics & log exporter <br/>
+✅ Remote web panel (Remote Connect on mobile with PWA and touch haptics) <br/>
+✅ Cheat presets import and export with strict JSON validation <br/>
+✅ Real-time round-trip latency tracking over WebSocket <br/>
+
+## 🏆 Upstream Impact & Community Continuation
+
+Architectural and UX contributions authored in [PR #328](https://github.com/k1tbyte/Wand-Enhancer/pull/328) have been officially adopted and integrated into the community continuation fork [**Glitxhhh/WandMagica** Release 2.2.0.0](https://github.com/Glitxhhh/WandMagica/releases/tag/2.2.0.0), powering core client and remote capabilities:
+
+- 🌐 **Native Arabic (العربية) Localization:** Full WPF localization dictionary (`lang.ar-SA.xaml`) and Lingui PO translation catalog (`messages.po`) with automated bi-directional LTR/RTL layout switching.
+- 📱 **Progressive Web App (PWA) Engine:** Standalone web manifest (`manifest.webmanifest`), mobile viewport meta optimizations, and vector app icon (`favicon.svg`) for homescreen installation.
+- 🔒 **Cryptographic Pairing Tokens:** Ephemeral pairing token protocol (`?token=<ephemeral_token>`) securing the remote WebSocket bridge against unauthorized LAN access.
+- 📳 **Mobile Touch Haptics:** Zero-dependency tactile vibration feedback (`haptics.ts`) on cheat controls with safe browser fallback guards.
+- 💾 **Portable JSON Cheat Presets:** Schema-validated JSON export and import engine for quick cheat presets with ID deduplication across devices.
 
 ## 🌐 Remote Web Panel
 WandEnhancer includes a built-in **Remote Web Panel** allowing you to control app features directly from your phone.
@@ -32,11 +48,13 @@ WandEnhancer includes a built-in **Remote Web Panel** allowing you to control ap
 1. Ensure both your PC and phone are on the **same Wi-Fi network**.
 2. Hover over the **Connect** button in the top bar of WandEnhancer.
 3. Scan the displayed **QR code** with your phone's camera.
+4. (Optional) Tap **Add to Home Screen** on your mobile browser to install it as a standalone Progressive Web App (PWA) with tactile touch haptics.
 
 ### Troubleshooting & Remote Access:
-- **Page isn't loading?** First, ensure both your PC and phone are connected to the **same local network**. Some routers and guest Wi-Fi networks enable client isolation/AP isolation, which blocks devices on the same SSID from reaching each other. If it still does not load, check Windows Firewall and allow inbound traffic on TCP port `3223` for your local network. If Windows marked your connection as **Public**, switching it to **Private** can also help.
+- **Page isn't loading?** First, ensure both your PC and phone are connected to the **same local network**. Some routers and guest Wi-Fi networks enable client isolation/AP isolation, which blocks devices on the same SSID from reaching each other. If it still does not load, open **Settings** in WandEnhancer and click **Configure Windows Firewall (Port 3223)** to automatically allow inbound traffic on TCP port `3223`. If Windows marked your connection as **Public**, switching it to **Private** can also help.
+- **System Diagnostics:** Open **Settings** and click **Run Diagnostics** to perform a pre-flight check of install paths, ASAR permissions, port availability, and network adapters, and export the report if needed.
 - **Using mobile data or a different network?** If you want to use the panel over mobile data (LTE/5G) or from an entirely different network, you can use [Tailscale](https://tailscale.com/) or similar VPN tools.
-- The panel uses plain HTTP on port `3223` and has no pairing code. Anyone who can reach that port can view the panel and control the active trainer, so use it only on a trusted LAN/VPN and never expose the port directly to the internet.
+- The panel protects connections with an ephemeral session token embedded automatically in the scanned QR code (`?token=...`), ensuring only devices that scanned the code on your display can control the active trainer.
 - The panel protocol does not include your Wand bearer token or installation-path fields.
 
 ## 👀 How to use?

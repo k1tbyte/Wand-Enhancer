@@ -1,4 +1,4 @@
-﻿<Window x:Class="WandEnhancer.View.MainWindow.MainWindow"
+<Window x:Class="WandEnhancer.View.MainWindow.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -14,7 +14,10 @@
         Background="Transparent"
         WindowStyle="None"
         FontFamily="{StaticResource Inter}"
-        AllowsTransparency="True">
+        AllowsTransparency="True"
+        AllowDrop="True"
+        Drop="OnWindowDrop"
+        DragOver="OnWindowDragOver">
     <Border CornerRadius="7" Background="{DynamicResource Background}"
             BorderBrush="{DynamicResource Border}"
             BorderThickness="1" Margin="10">

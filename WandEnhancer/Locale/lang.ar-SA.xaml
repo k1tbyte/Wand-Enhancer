@@ -1,0 +1,82 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:s="clr-namespace:System;assembly=mscorlib">
+
+    <!--#region Language Metadata -->
+    <s:String x:Key="language_display_name">العربية (Arabic)</s:String>
+    <!--#endregion -->
+
+    <!--#region MainWindow -->
+    <s:String x:Key="mw_folder_path">مسار المجلد</s:String>
+    <s:String x:Key="mw_folder_not_found">المجلد غير موجود</s:String>
+    <s:String x:Key="mw_patch">تعزيز وتعديل</s:String>
+    <s:String x:Key="mw_restore">استعادة الأصلي</s:String>
+    <s:String x:Key="mw_source_code">المصدر البرمجي</s:String>
+    <s:String x:Key="mw_made_by">صُنع بـ ❤️ بواسطة k1tbyte</s:String>
+    <s:String x:Key="mw_star_hint">ضع نجمة على المستودع إذا أعجبك المشروع ;)</s:String>
+    <s:String x:Key="mw_copy_logs">نسخ السجلات للحافظة</s:String>
+    <s:String x:Key="mw_export_logs">تصدير السجلات لملف</s:String>
+    <s:String x:Key="mw_update_badge">يتوفر إصدار جديد</s:String>
+    <!--#endregion -->
+
+    <!--#region Settings -->
+    <s:String x:Key="settings_title">الإعدادات</s:String>
+    <s:String x:Key="settings_language">اللغة</s:String>
+    <s:String x:Key="settings_check_updates">التحقق من التحديثات عند بدء التشغيل</s:String>
+    <s:String x:Key="settings_check_prereleases">تنبيه أيضاً بالإصدارات التجريبية (Pre-releases)</s:String>
+    <s:String x:Key="settings_configure_firewall">إعداد جدار الحماية (منفذ 3223)</s:String>
+    <s:String x:Key="settings_run_diagnostics">تشخيص وفحص النظام</s:String>
+    <s:String x:Key="settings_save">حفظ</s:String>
+    <!--#endregion -->
+
+    <!--#region UpdatePopup -->
+    <s:String x:Key="up_popup_title">تحديث متوفر</s:String>
+    <s:String x:Key="up_warning">أداة WandEnhancer لا تُحدّث نفسها تلقائياً أبداً. قم ببناء الإصدار الجديد من المستودع الخاص بك أو افتح صفحة الإصدارات.</s:String>
+    <s:String x:Key="up_current_version">الحالي:</s:String>
+    <s:String x:Key="up_latest_version">الأحدث:</s:String>
+    <s:String x:Key="up_release_notes">ملاحظات الإصدار</s:String>
+    <s:String x:Key="up_show_more">عرض سجل التغييرات الكامل</s:String>
+    <s:String x:Key="up_show_less">عرض ملاحظات الإصدار فقط</s:String>
+    <s:String x:Key="up_loading_changelog">جارٍ التحميل...</s:String>
+    <s:String x:Key="up_changelog_failed">تعذر تحميل سجل التغييرات الكامل.</s:String>
+    <s:String x:Key="up_release_notes_unavailable">لم يتم نشر أي ملاحظات لهذا الإصدار.</s:String>
+    <s:String x:Key="up_open_release">فتح صفحة الإصدار</s:String>
+    <!--#endregion -->
+
+    <!--#region EnhanceVectorsPopup -->
+    <s:String x:Key="pv_activate_pro">تفعيل اشتراك WeMod Pro</s:String>
+    <s:String x:Key="pv_devtools">أدوات المطورين بالضغط على F12</s:String>
+    <s:String x:Key="pv_disable_updates">تعطيل التحديثات التلقائية</s:String>
+    <s:String x:Key="pv_remote_web_panel_preview">تفعيل لوحة التحكم عن بعد عبر الهاتف (تجريبي)</s:String>
+    <s:String x:Key="pv_custom_scripts">سكربتات جافاسكربت مخصصة</s:String>
+    <s:String x:Key="pv_add_js_scripts">إضافة .js</s:String>
+    <s:String x:Key="pv_custom_scripts_hint">الملفات المختارة بصيغة .js سيتم حزمها وتشغيلها داخل نافذة WeMod.</s:String>
+    <s:String x:Key="pv_no_custom_scripts">لم يتم اختيار أي سكربتات</s:String>
+    <s:String x:Key="pv_start">بدء التعديل</s:String>
+    <s:String x:Key="pv_auto_apply">تطبيق التعديل تلقائياً بعد كل تحديث</s:String>
+    <s:String x:Key="pv_popup_title">ما الميزات التي ترغب بتعزيزها؟</s:String>
+    <s:String x:Key="pv_patch_method">طريقة التعديل</s:String>
+    <s:String x:Key="pv_strategy_static">تعديل ثابت Static (موصى به)</s:String>
+    <s:String x:Key="pv_strategy_supervised">تعديل حي بالذاكرة Supervised</s:String>
+    <s:String x:Key="pv_strategy_hint">الطريقة الثابتة تعدل ملف Wand على القرص، مما يلغي التوقيع الرقمي. طريقة الذاكرة تقوم بالترقيع في RAM عند كل تشغيل (قد تنبه مضادات الفيروسات في بعض الأجهزة).</s:String>
+    <!--#endregion -->
+
+    <!--#region Runtime log -->
+    <s:String x:Key="log_install_found">تم العثور على مجلد WeMod في {0} ({1})</s:String>
+    <s:String x:Key="log_already_patched">برنامج WeMod معدل بالفعل. إذا كنت ترغب بتعديله مرة أخرى، يرجى استعادة النسخة الاحتياطية أولاً.</s:String>
+    <s:String x:Key="log_ready">جاهز لتطبيق التعديلات.</s:String>
+    <s:String x:Key="log_install_not_found">لم يتم العثور على مجلد تثبيت WeMod تلقائياً.</s:String>
+    <s:String x:Key="log_no_directory">لا يمكن إتمام العملية. يرجى تحديد مجلد WeMod أولاً.</s:String>
+    <s:String x:Key="log_invalid_directory">المجلد المختار {0} ليس مجلد WeMod صالحاً.</s:String>
+    <s:String x:Key="log_restore_failed">فشلت استعادة النسخة الاحتياطية: {0}</s:String>
+    <s:String x:Key="log_patch_failed">فشل تطبيق التعديل: {0}</s:String>
+    <s:String x:Key="log_copied">تم نسخ السجلات إلى الحافظة بنجاح.</s:String>
+    <s:String x:Key="log_copy_failed">فشل نسخ السجلات: {0}</s:String>
+    <s:String x:Key="log_exported">تم تصدير السجلات بنجاح إلى {0}.</s:String>
+    <s:String x:Key="log_export_failed">فشل تصدير السجلات: {0}</s:String>
+    <s:String x:Key="log_open_link_failed">تعذر فتح الرابط {0} في المتصفح.</s:String>
+    <s:String x:Key="dialog_pick_install">اختر مجلد تثبيت WeMod</s:String>
+    <!--#endregion -->
+
+</ResourceDictionary>
+

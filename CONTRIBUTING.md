@@ -1,4 +1,4 @@
-﻿# Contributing to WandEnhancer
+# Contributing to WandEnhancer
 
 Thank you for your interest in the WandEnhancer project! This document provides guidelines for contributing to the project.
 
@@ -21,11 +21,11 @@ By participating in this project, you commit to maintaining respectful interacti
 
 The project consists of the following main components:
 
-- **WandEnhancer** - Main project containing the enhancement logic and user interface
-- **AsarSharp** - Library for working with ASAR archives (used for unpacking and modifying WeMod files)
-- **Core** - Core of the enhancement flow, including static and dynamic modifications
-- **Models** - Data models used in the project
-- **View** - User interface components
+- **WandEnhancer** - Main WPF desktop application containing patch orchestration, diagnostics, firewall helpers, and UI.
+- **AsarSharp** - High-performance library for working with Electron ASAR archives (unpacking, modifying, and repacking).
+- **Core** - Structural patch engine (`JsCursor`), patch definitions (`EnhancerConfig`), and patching strategies (Static on-disk & Supervised memory fuse).
+- **web-panel** - Preact-based remote control web panel with WebSocket bridge, PWA, touch haptics, presets, and multilingual support.
+- **Models & View** - MVVM data models, view models, WPF controls, and internationalized localized resource dictionaries.
 
 ## Development Environment Setup
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -59,6 +59,39 @@ namespace WandEnhancer.View.MainWindow
             catch (Exception)
             {
                 ViewModel.ReportRepositoryLinkFailure(Constants.RepositoryUrl);
+            }
+        }
+
+        private void OnWindowDragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = true;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void OnWindowDrop(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files != null && files.Length > 0)
+            {
+                string droppedPath = files[0];
+                if (System.IO.File.Exists(droppedPath))
+                {
+                    droppedPath = System.IO.Path.GetDirectoryName(droppedPath);
+                }
+
+                if (System.IO.Directory.Exists(droppedPath))
+                {
+                    ViewModel?.SetCustomInstallPath(droppedPath);
+                }
             }
         }
     }

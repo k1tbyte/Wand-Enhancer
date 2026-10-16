@@ -2,12 +2,16 @@ import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 
 import { Icon } from '@/shared/ui/Icon';
+import { triggerHaptic } from '@/shared/haptics';
 
 import type { ControlInternalProps } from './shared';
 
 export const ActionButton = ({ cheat, disabled, onChange }: ControlInternalProps) => {
     const { _ } = useLingui();
-    const handleClick = () => onChange(1);
+    const handleClick = () => {
+        triggerHaptic(45);
+        onChange(1);
+    };
     const label = typeof cheat.args.button === 'string' ? cheat.args.button : _(msg`Apply`);
 
     return (

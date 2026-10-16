@@ -46,6 +46,41 @@ export function saveString(key: string | null, value: string): boolean {
     }
 }
 
+function getSessionStore(): Storage | null {
+    try {
+        return typeof window === 'undefined' ? null : window.sessionStorage;
+    } catch {
+        return null;
+    }
+}
+
+export function loadSessionString(key: string | null): string | null {
+    const store = getSessionStore();
+    if (!key || !store) {
+        return null;
+    }
+
+    try {
+        return store.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+export function saveSessionString(key: string | null, value: string): boolean {
+    const store = getSessionStore();
+    if (!key || !store) {
+        return false;
+    }
+
+    try {
+        store.setItem(key, value);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function loadJson<T>(key: string | null, revive: Reviver<T>, fallback: T): T {
     const store = getStore();
     if (!key || !store) {

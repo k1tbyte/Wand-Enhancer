@@ -36,15 +36,18 @@ function contentTypeFor(filePath: string) {
             return 'application/json; charset=utf-8';
         case '.svg':
             return 'image/svg+xml';
+        case '.webmanifest':
+            return 'application/manifest+json';
         default:
             return 'application/octet-stream';
     }
 }
 
-function getAdvertisedUrls(port: number) {
+function getAdvertisedUrls(port: number, token?: string) {
     const candidates: { index: number; score: number; url: string }[] = [];
     const interfaces = os.networkInterfaces();
     let index = 0;
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
 
     for (const [name, entries] of Object.entries(interfaces) as [
         string,
@@ -62,7 +65,7 @@ function getAdvertisedUrls(port: number) {
             candidates.push({
                 index,
                 score: scoreIpv4Entry(name, entry),
-                url: `http://${entry.address}:${port}${REMOTE_BASE_PATH}`,
+                url: `http://${entry.address}:${port}${REMOTE_BASE_PATH}${query}`,
             });
             index += 1;
         }
@@ -72,7 +75,7 @@ function getAdvertisedUrls(port: number) {
         .sort((left, right) => right.score - left.score || left.index - right.index)
         .map((candidate) => candidate.url);
 
-    urls.unshift(`http://localhost:${port}${REMOTE_BASE_PATH}`);
+    urls.unshift(`http://localhost:${port}${REMOTE_BASE_PATH}${query}`);
     return Array.from(new Set(urls));
 }
 

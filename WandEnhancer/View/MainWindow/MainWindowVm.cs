@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
@@ -93,6 +93,22 @@ namespace WandEnhancer.View.MainWindow
         public RelayCommand OpenSettingsCommand { get; }
         public RelayCommand CopyLogsCommand { get; }
         public RelayCommand ExportLogsCommand { get; }
+        public RelayCommand ConfigureFirewallCommand { get; }
+        public RelayCommand RunDiagnosticsCommand { get; }
+
+        public void SetCustomInstallPath(string selectedPath)
+        {
+            if (string.IsNullOrWhiteSpace(selectedPath)) return;
+
+            var info = WeModInstalls.CheckWeModPath(selectedPath) ?? WeModInstalls.FindLatestWeMod(selectedPath);
+            if (info == null)
+            {
+                Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(selectedPath)), ELogType.Error);
+                return;
+            }
+
+            UseInstall(info);
+        }
 
         private void OnFolderPathSelection(object obj)
         {
@@ -104,14 +120,7 @@ namespace WandEnhancer.View.MainWindow
                 return;
             }
 
-            var info = WeModInstalls.CheckWeModPath(selectedPath);
-            if (info == null)
-            {
-                Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(selectedPath)), ELogType.Error);
-                return;
-            }
-
-            UseInstall(info);
+            SetCustomInstallPath(selectedPath);
         }
 
         // Runs off the UI thread due to heavy file IO.
@@ -180,7 +189,7 @@ namespace WandEnhancer.View.MainWindow
 
         private void Log(string message, ELogType logType)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            Action action = () =>
             {
                 var entry = new LogEntry
                 {
@@ -188,10 +197,32 @@ namespace WandEnhancer.View.MainWindow
                     Message = $"[{logType.ToString().ToUpper()}] {message}"
                 };
                 LogList.Add(entry);
-                _shell.ScrollLogIntoView(entry);
+                _shell?.ScrollLogIntoView(entry);
                 // Force CanExecute re-evaluation when appending log entries.
                 System.Windows.Input.CommandManager.InvalidateRequerySuggested();
-            });
+            };
+
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher != null && !dispatcher.CheckAccess())
+            {
+                dispatcher.Invoke(action);
+            }
+            else
+            {
+                action();
+            }
+        }
+
+        public void AppendLog(string message, ELogType logType) => Log(message, logType);
+
+        public void RunDiagnostics()
+        {
+            Task.Run(() => DiagnosticsHelper.RunSystemDiagnostics(WeModInfo, Log));
+        }
+
+        public void ConfigureFirewall()
+        {
+            Task.Run(() => FirewallHelper.AddFirewallRule(FirewallHelper.DefaultPort, FirewallHelper.DefaultRuleName, Log));
         }
 
         private void OnOpenSettings(object param)
@@ -261,6 +292,8 @@ namespace WandEnhancer.View.MainWindow
             OpenSettingsCommand = new RelayCommand(OnOpenSettings);
             CopyLogsCommand = new RelayCommand(OnCopyLogs, HasLogs);
             ExportLogsCommand = new RelayCommand(OnExportLogs, HasLogs);
+            ConfigureFirewallCommand = new RelayCommand(_ => ConfigureFirewall());
+            RunDiagnosticsCommand = new RelayCommand(_ => RunDiagnostics());
 
             UseInstall(WeModInstalls.FindWeMod());
             if (WeModInfo == null)

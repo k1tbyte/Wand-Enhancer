@@ -1,0 +1,20 @@
+{
+  "name": "Wand Remote Deck",
+  "short_name": "Wand",
+  "description": "Advanced mobile remote control deck for Wand and WeMod trainers",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050608",
+  "theme_color": "#050608",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

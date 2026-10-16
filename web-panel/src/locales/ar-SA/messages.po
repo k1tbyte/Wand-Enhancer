@@ -1,0 +1,346 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-06-14 23:42+0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: ar\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
+
+#. placeholder {0}: games.length
+#: src/library/ui/LibraryDrawer.tsx
+msgid "{0, plural, one {# game detected} other {# games detected}}"
+msgstr "{0, plural, zero {لم يتم اكتشاف ألعاب} one {تم اكتشاف لعبة واحدة} two {تم اكتشاف لعبتين} few {تم اكتشاف # ألعاب} many {تم اكتشاف # لعبة} other {تم اكتشاف # لعبة}}"
+
+#. placeholder {0}: trainer.totalVisibleCheats
+#: src/app/app.tsx
+msgid "{0} matches"
+msgstr "{0} نتيجة مطابقة"
+
+#: src/trainer/ui/CategorySection.tsx
+msgid "{cheatCount} mods"
+msgstr "{cheatCount} ميزات"
+
+#: src/trainer/ui/CategorySection.tsx
+msgid "{cheatCount} mods · {enabledCount}/{toggleCount} on"
+msgstr "{cheatCount} ميزة · {enabledCount}/{toggleCount} مفعلة"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Accent Color"
+msgstr "لون الواجهة المميز"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Active Session"
+msgstr "الجلسة النشطة"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Add"
+msgstr "إضافة"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Add Preset"
+msgstr "إضافة إعداد مسبق"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "All Games"
+msgstr "كل الألعاب"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Amber"
+msgstr "عنبري"
+
+#: src/trainer/controls/ActionButton.tsx
+msgid "Apply"
+msgstr "تطبيق"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Bridge"
+msgstr "الكوبري (Bridge)"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Bridge offline"
+msgstr "الكوبري غير متصل"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Browse library"
+msgstr "تصفح المكتبة"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Cancel"
+msgstr "إلغاء"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Challenge"
+msgstr "تحدي"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Character"
+msgstr "الشخصية"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Cheats"
+msgstr "الغش"
+
+#: src/shared/ui/SearchInput.tsx
+msgid "Clear search"
+msgstr "مسح البحث"
+
+#: src/shared/ui/Drawer.tsx
+msgid "Close drawer"
+msgstr "إغلاق القائمة"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Close library"
+msgstr "إغلاق المكتبة"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Close preset modal"
+msgstr "إغلاق نافذة الإعداد"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Close settings"
+msgstr "إغلاق الإعدادات"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Cobalt"
+msgstr "أزرق كوبالت"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Crafting"
+msgstr "الصناعة والتركيب"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Crimson"
+msgstr "قرمزي"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Custom"
+msgstr "مخصص"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Cyan"
+msgstr "سماوي"
+
+#. placeholder {0}: preset.name
+#: src/trainer/ui/QuickActions.tsx
+msgid "Delete preset {0}"
+msgstr "حذف الإعداد المسبق {0}"
+
+#. placeholder {0}: trainer.totalCheats
+#: src/app/app.tsx
+msgid "END · {0} MODS"
+msgstr "النهاية · {0} ميزة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Enemies"
+msgstr "الأعداء"
+
+#: src/library/ui/LibraryDrawer.tsx
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Favorite game"
+msgstr "إضافة للمفضلة"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Favorites"
+msgstr "المفضلة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Game"
+msgstr "اللعبة"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "GO"
+msgstr "اتصال"
+
+#: src/app/ui/TopBar.tsx
+msgid "Idle · no game"
+msgstr "خامل · لا توجد لعبة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Inventory"
+msgstr "المخزون"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Items"
+msgstr "العناصر"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Language"
+msgstr "اللغة"
+
+#: src/app/ui/FloatingDock.tsx
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Library"
+msgstr "المكتبة"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Lime"
+msgstr "ليموني"
+
+#: src/app/ui/StatusPill.tsx
+msgid "LINKING"
+msgstr "جارٍ الربط..."
+
+#: src/app/ui/StatusPill.tsx
+msgid "LIVE"
+msgstr "مباشر"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Magenta"
+msgstr "أرجواني"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Name"
+msgstr "الاسم"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "New preset"
+msgstr "إعداد مسبق جديد"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "No active game session."
+msgstr "لا توجد جلسة لعبة نشطة حالياً."
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "No game is running yet. Open the library and launch one to start tweaking."
+msgstr "لا توجد لعبة قيد التشغيل بعد. افتح المكتبة وشغل لعبة للبدء بالتحكم."
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "No games match \"{query}\""
+msgstr "لا توجد ألعاب تطابق \"{query}\""
+
+#. placeholder {0}: trainer.query
+#: src/app/app.tsx
+msgid "No mods match \"{0}\""
+msgstr "لا توجد ميزات تطابق \"{0}\""
+
+#: src/trainer/controls/SelectionControl.tsx
+msgid "No options"
+msgstr "لا توجد خيارات"
+
+#: src/app/ui/FloatingDock.tsx
+msgid "No session"
+msgstr "لا توجد جلسة"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Now Playing"
+msgstr "قيد التشغيل الآن"
+
+#: src/app/ui/StatusPill.tsx
+msgid "OFFLINE"
+msgstr "غير متصل"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Open Settings"
+msgstr "فتح الإعدادات"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Open Settings to point Wand at your trainer bridge over WebSocket."
+msgstr "افتح الإعدادات لتوجيه Wand إلى كوبري الاتصال عبر WebSocket."
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Panic Off"
+msgstr "إلغاء الكل فوراً (Panic)"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Physics"
+msgstr "الفيزياء والحركة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Pinned"
+msgstr "المثبتة"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Play"
+msgstr "تشغيل"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Player"
+msgstr "اللاعب"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Preset name"
+msgstr "اسم الإعداد المسبق"
+
+#: src/library/ui/LibraryDrawer.tsx
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Remove favorite"
+msgstr "إزالة من المفضلة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Resources"
+msgstr "الموارد"
+
+#: src/trainer/ui/QuickActions.tsx
+msgid "Save"
+msgstr "حفظ"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Search games"
+msgstr "بحث في الألعاب"
+
+#: src/app/app.tsx
+msgid "Search mods"
+msgstr "بحث في الميزات"
+
+#: src/app/ui/SessionPlaceholder.tsx
+msgid "Select a game"
+msgstr "اختر لعبة"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Session"
+msgstr "الجلسة"
+
+#: src/app/ui/FloatingDock.tsx
+#: src/app/ui/SettingsDrawer.tsx
+#: src/app/ui/TopBar.tsx
+msgid "Settings"
+msgstr "الإعدادات"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Stats"
+msgstr "الإحصائيات"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "STOP"
+msgstr "إيقاف"
+
+#: src/library/ui/LibraryDrawer.tsx
+msgid "Stop playing"
+msgstr "إيقاف اللعب"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Teleport"
+msgstr "الانتقال الآني"
+
+#: src/trainer/ui/TrainerHeader.tsx
+msgid "Trainer Active"
+msgstr "المدرب نشط"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Vehicles"
+msgstr "المركبات"
+
+#: src/app/ui/SettingsDrawer.tsx
+msgid "Violet"
+msgstr "بنفسجي"
+
+#. placeholder {0}: WEB_CONTRACT.defaultRemotePort
+#: src/app/ui/SettingsDrawer.tsx
+msgid "wand remote · port {0}"
+msgstr "wand remote · منفذ {0}"
+
+#: src/trainer/ui/category-labels.ts
+msgid "Weapons"
+msgstr "الأسلحة"
+
+#: src/trainer/ui/category-labels.ts
+msgid "World"
+msgstr "العالم"
+

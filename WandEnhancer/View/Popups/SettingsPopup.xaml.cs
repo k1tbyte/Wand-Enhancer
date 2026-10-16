@@ -73,6 +73,18 @@ namespace WandEnhancer.View.Popups
             MainWindow.MainWindow.Instance?.ClosePopup();
         }
 
+        private void OnConfigureFirewallClick(object sender, RoutedEventArgs e)
+        {
+            MainWindow.MainWindow.Instance?.ViewModel?.ConfigureFirewall();
+            MainWindow.MainWindow.Instance?.ClosePopup();
+        }
+
+        private void OnRunDiagnosticsClick(object sender, RoutedEventArgs e)
+        {
+            MainWindow.MainWindow.Instance?.ViewModel?.RunDiagnostics();
+            MainWindow.MainWindow.Instance?.ClosePopup();
+        }
+
         private class LanguageItem
         {
             public CultureInfo Culture { get; set; }

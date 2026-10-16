@@ -11,6 +11,7 @@ export const SUPPORTED_LOCALES = [
     { code: 'fr-FR', label: 'Français' },
     { code: 'es-ES', label: 'Español' },
     { code: 'zh-CN', label: '简体中文' },
+    { code: 'ar-SA', label: 'العربية' },
 ] as const;
 
 export type LocaleCode = (typeof SUPPORTED_LOCALES)[number]['code'];
@@ -30,6 +31,10 @@ export async function activateLocale(locale: LocaleCode): Promise<void> {
     const { messages } = await loadCatalog();
     i18n.load(locale, messages);
     i18n.activate(locale);
+    if (typeof document !== 'undefined') {
+        document.documentElement.lang = locale;
+        document.documentElement.dir = locale.startsWith('ar') ? 'rtl' : 'ltr';
+    }
     persistLocale(locale);
 }
 

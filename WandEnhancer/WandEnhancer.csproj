@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="..\packages\ILRepack.2.0.41\build\ILRepack.props" Condition="Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" />
     <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
@@ -65,6 +65,7 @@
         <Reference Include="WindowsBase" />
         <Reference Include="PresentationCore" />
         <Reference Include="PresentationFramework" />
+        <Reference Include="netstandard" />
     </ItemGroup>
     <ItemGroup>
         <ApplicationDefinition Include="App.xaml">
@@ -112,6 +113,8 @@
         <Compile Include="ReactiveUICore\RelayCommand.cs" />
         <Compile Include="Utils\ProcessTerminator.cs" />
         <Compile Include="Utils\WeModInstalls.cs" />
+        <Compile Include="Utils\FirewallHelper.cs" />
+        <Compile Include="Utils\DiagnosticsHelper.cs" />
         <Compile Include="View\Controls\PopupHost.xaml.cs">
           <DependentUpon>PopupHost.xaml</DependentUpon>
         </Compile>
@@ -142,6 +145,7 @@
         <Page Include="Locale\lang.uk-UA.xaml" />
         <Page Include="Locale\lang.ja-JP.xaml" />
         <Page Include="Locale\lang.tr-TR.xaml" />
+        <Page Include="Locale\lang.ar-SA.xaml" />
         <Page Include="Style\ColorScheme.xaml" />
         <Page Include="Style\Icons.xaml" />
         <Page Include="Style\Styles.xaml" />
@@ -216,7 +220,7 @@
             <BuildStampFile>$(IntermediateOutputPath)BuildStamp.cs</BuildStampFile>
         </PropertyGroup>
 
-        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
+        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true"
                           Lines="namespace WandEnhancer { internal static class BuildStamp { public const string Value = &quot;$(BuildStamp)&quot;%3B } }" />
 
         <ItemGroup>
@@ -235,7 +239,7 @@
         </ItemGroup>
 
         <PropertyGroup>
-            <DllList>@(AssemblyList->'%(FullPath)', ' ')</DllList>
+            <DllList>@(AssemblyList->'&quot;%(Identity)&quot;', ' ')</DllList>
         </PropertyGroup>
 
         <Delete Files="$(OutputPath)$(AssemblyName).pdb" ContinueOnError="true" />
