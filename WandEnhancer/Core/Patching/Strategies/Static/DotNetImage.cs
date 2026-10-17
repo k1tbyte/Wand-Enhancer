@@ -78,6 +78,137 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
             return hits;
         }
 
+        /// <summary>
+        /// File offset of the first IL byte of the sole no-arg, <c>bool</c>-returning method
+        /// declared on the type whose IL references <paramref name="anchorString"/> as a string
+        /// literal. Returns -1 when no type references the anchor (feature absent from this
+        /// build). Throws when the anchor is present but the type does not have exactly one
+        /// such method, since the match would then be ambiguous.
+        /// </summary>
+        public long FindBoolPredicateOffsetByTypeStringAnchor(string anchorString)
+        {
+            TypeDefinitionHandle owner = FindTypeReferencingUserString(anchorString);
+            if (owner.IsNil)
+            {
+                return -1;
+            }
+
+            MethodDefinitionHandle? found = null;
+            foreach (MethodDefinitionHandle handle in _reader.GetTypeDefinition(owner).GetMethods())
+            {
+                MethodDefinition method = _reader.GetMethodDefinition(handle);
+                if (method.RelativeVirtualAddress == 0 || !IsNoArgBooleanMethod(method))
+                {
+                    continue; // Abstract/bodyless, or not the predicate shape we need.
+                }
+
+                if (found.HasValue)
+                {
+                    throw new Exception("More than one no-arg bool method on the anchored type; cannot tell which is the integrity predicate");
+                }
+
+                found = handle;
+            }
+
+            if (!found.HasValue)
+            {
+                throw new Exception("No no-arg bool method found on the anchored type; cannot locate the integrity predicate");
+            }
+
+            return IlFileOffset(_reader.GetMethodDefinition(found.Value).RelativeVirtualAddress);
+        }
+
+        private TypeDefinitionHandle FindTypeReferencingUserString(string text)
+        {
+            foreach (TypeDefinitionHandle typeHandle in _reader.TypeDefinitions)
+            {
+                foreach (MethodDefinitionHandle methodHandle in _reader.GetTypeDefinition(typeHandle).GetMethods())
+                {
+                    int rva = _reader.GetMethodDefinition(methodHandle).RelativeVirtualAddress;
+                    if (rva == 0)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        if (BodyLoadsUserString(_pe.GetMethodBody(rva).GetILBytes(), text))
+                        {
+                            return typeHandle;
+                        }
+                    }
+                    catch (BadImageFormatException)
+                    {
+                        // Malformed body: skip rather than trust a wrong match.
+                    }
+                }
+            }
+
+            return default;
+        }
+
+        private bool IsNoArgBooleanMethod(MethodDefinition method)
+        {
+            BlobReader sig = _reader.GetBlobReader(method.Signature);
+            SignatureHeader header = sig.ReadSignatureHeader();
+            if (header.IsGeneric)
+            {
+                sig.ReadCompressedInteger(); // generic parameter count
+            }
+
+            int paramCount = sig.ReadCompressedInteger();
+            return paramCount == 0 && sig.ReadSignatureTypeCode() == SignatureTypeCode.Boolean;
+        }
+
+        // Walks instruction boundaries looking for `ldstr` loading the given literal.
+        private bool BodyLoadsUserString(byte[] il, string text)
+        {
+            int ip = 0;
+            while (ip < il.Length)
+            {
+                byte op = il[ip];
+                if (op == 0xFE)
+                {
+                    if (ip + 2 > il.Length) break;
+                    ip += 2 + TwoByte[il[ip + 1]];
+                }
+                else if (op == 0x72 && ip + 5 <= il.Length) // ldstr
+                {
+                    uint token = ReadU32(il, ip + 1);
+                    if ((token & 0xFF000000u) == 0x70000000u) // UserString heap tag
+                    {
+                        try
+                        {
+                            var handle = MetadataTokens.UserStringHandle((int)(token & 0x00FFFFFFu));
+                            if (string.Equals(_reader.GetUserString(handle), text, StringComparison.Ordinal))
+                            {
+                                return true;
+                            }
+                        }
+                        catch (BadImageFormatException)
+                        {
+                            // Not a valid user-string token: not our match.
+                        }
+                    }
+
+                    ip += 5;
+                }
+                else if (op == 0x45) // switch: uint count then count 4-byte targets
+                {
+                    if (ip + 5 > il.Length) break;
+                    long next = ip + 5L + (long)ReadU32(il, ip + 1) * 4;
+                    if (next > il.Length) break;
+                    ip = (int)next;
+                }
+                else
+                {
+                    ip += 1 + OneByte[op];
+                }
+            }
+
+            return false;
+        }
+
         private int FindMethodToken(string name)
         {
             foreach (MethodDefinitionHandle handle in _reader.MethodDefinitions)

@@ -3,19 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadStringSet, saveStringSet } from './storage';
 
 describe('storage revival', () => {
-    beforeEach(() => localStorage.clear());
+    beforeEach(() => window.localStorage.clear());
     afterEach(() => vi.restoreAllMocks());
 
     it('revives only valid string ids', () => {
-        localStorage.setItem('pins', JSON.stringify(['one', '', 2, 'two']));
+        window.localStorage.setItem('pins', JSON.stringify(['one', '', 2, 'two']));
         expect(loadStringSet('pins')).toEqual({ one: true, two: true });
     });
 
     it('removes empty sets', () => {
         expect(saveStringSet('pins', { one: true })).toBe(true);
-        expect(localStorage.getItem('pins')).toBe(JSON.stringify(['one']));
+        expect(window.localStorage.getItem('pins')).toBe(JSON.stringify(['one']));
         expect(saveStringSet('pins', {})).toBe(true);
-        expect(localStorage.getItem('pins')).toBeNull();
+        expect(window.localStorage.getItem('pins')).toBeNull();
     });
 
     it('reports a failed browser storage write', () => {

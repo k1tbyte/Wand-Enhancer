@@ -96,7 +96,19 @@ Invoke-Step 'Build web-panel' {
 }
 
 Invoke-Step 'Test web-panel' {
-    & $pnpm --dir $webPanelDir exec vitest run
+    # Node 22+ ships its own experimental `localStorage`/`sessionStorage` globals, and without a
+    # configured backing file they're non-functional (e.g. `localStorage.clear is not a
+    # function`). Vitest's jsdom environment defers to them when present instead of using jsdom's
+    # own working storage, and that can only be disabled via a Node startup flag - not from
+    # vitest.config.ts, since the globals are already bound by the time any config code runs.
+    $previousNodeOptions = $env:NODE_OPTIONS
+    $env:NODE_OPTIONS = "$previousNodeOptions --no-experimental-webstorage".Trim()
+    try {
+        & $pnpm --dir $webPanelDir exec vitest run
+    }
+    finally {
+        $env:NODE_OPTIONS = $previousNodeOptions
+    }
 }
 
 Invoke-Step 'Restore NuGet packages' {

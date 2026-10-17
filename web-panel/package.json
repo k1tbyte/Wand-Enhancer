@@ -4,6 +4,11 @@
     "version": "0.1.0",
     "packageManager": "pnpm@10.17.0",
     "type": "module",
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "esbuild"
+        ]
+    },
     "scripts": {
         "dev": "vite",
         "dev:host": "vite --host 0.0.0.0",

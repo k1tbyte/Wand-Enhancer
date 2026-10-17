@@ -10,6 +10,8 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
     {
         private const string AuxiliaryDirectory = @"static\unpacked\auxiliary";
         private const string AuxiliarySearchPattern = "*AuxiliaryService.exe";
+        private const string ResourcesDirectoryName = "resources";
+        private const string AppAsarFileName = "app.asar";
 
         public bool RequiresLauncherAlways => false;
 
@@ -18,6 +20,13 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
             if (!DiskFusePatch.Apply(context.Install.ExecutablePath, context.Log))
             {
                 throw new Exception($"[ENHANCER] Could not clear the ASAR integrity fuse in {Path.GetFileName(context.Install.ExecutablePath)}.");
+            }
+
+            // Absent on builds before 12.61: not every build embeds this resource to rewrite.
+            string asarPath = Path.Combine(context.Install.RootDirectory, ResourcesDirectoryName, AppAsarFileName);
+            if (!AsarIntegrityResourcePatch.Patch(context.Install.ExecutablePath, asarPath, context.Log))
+            {
+                context.Log?.Invoke("[ENHANCER] No ASAR integrity resource found in Wand.exe; skipping (older Wand build).", ELogType.Info);
             }
 
             string aux = FindAuxiliary(context.UnpackedPath);
@@ -30,6 +39,12 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
             if (AuxTrustNeutralizer.Neutralize(aux, context.Log) < 0)
             {
                 throw new Exception("[ENHANCER] Could not neutralise the auxiliary service trust check; it would reject the patched Wand.");
+            }
+
+            // Absent on builds before 12.61: not every build has this re-check to neutralise.
+            if (AuxFuseIntegrityNeutralizer.Neutralize(aux, context.Log) < 0)
+            {
+                context.Log?.Invoke("[ENHANCER] No auxiliary ASAR-fuse re-check found; skipping (older Wand build).", ELogType.Info);
             }
         }
 
