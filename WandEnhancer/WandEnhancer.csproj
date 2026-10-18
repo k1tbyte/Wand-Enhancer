@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <Import Project="..\packages\ILRepack.2.0.41\build\ILRepack.props" Condition="Exists('..\packages\ILRepack.2.0.41\build\ILRepack.props')" />
     <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
@@ -53,7 +53,6 @@
         <Reference Include="System.Reflection.Metadata">
           <HintPath>..\packages\System.Reflection.Metadata.1.6.0\lib\netstandard2.0\System.Reflection.Metadata.dll</HintPath>
         </Reference>
-        <Reference Include="netstandard" />
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
@@ -83,6 +82,7 @@
         <Compile Include="Core\Patching\Shared\PeImage.cs" />
         <Compile Include="Core\Patching\Shared\ElectronFuseWire.cs" />
         <Compile Include="Core\Patching\Shared\DiskFusePatch.cs" />
+        <Compile Include="Core\Patching\Shared\AuxiliaryCompatibility.cs" />
         <Compile Include="Core\Patching\Shared\IconTransplant.cs" />
         <Compile Include="Core\Patching\Shared\LauncherDeployment.cs" />
         <Compile Include="Core\Patching\Content\AsarContentPatcher.cs" />
@@ -106,6 +106,8 @@
         <Compile Include="Core\Js\PatchPayload.cs" />
         <Compile Include="Core\Services\LocalizationManager.cs" />
         <Compile Include="Core\Services\SettingsManager.cs" />
+        <Compile Include="Core\Services\UpdateWatcherService.cs" />
+        <Compile Include="Core\Services\WatcherAutostart.cs" />
         <Compile Include="Models\WeModConfig.cs" />
         <Compile Include="Models\PatchConfig.cs" />
         <Compile Include="Program.cs" />
@@ -217,7 +219,7 @@
             <BuildStampFile>$(IntermediateOutputPath)BuildStamp.cs</BuildStampFile>
         </PropertyGroup>
 
-        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true"
+        <WriteLinesToFile File="$(BuildStampFile)" Overwrite="true" WriteOnlyWhenDifferent="true"
                           Lines="namespace WandEnhancer { internal static class BuildStamp { public const string Value = &quot;$(BuildStamp)&quot;%3B } }" />
 
         <ItemGroup>
