@@ -70,7 +70,7 @@ namespace WandEnhancer.Core.Services
                 UnregisterRunKey(install);
                 UpdateWatcherService.Stop(squirrelRoot);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is SecurityException)
+            catch (Exception)
             {
                 // Best-effort: nothing left to clean up if the registry/root can't be reached.
             }

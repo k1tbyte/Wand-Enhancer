@@ -339,9 +339,10 @@ namespace WandEnhancer.Core
                 File.Delete(proxyDllPath);
             }
 
-            // Undo all footprints at once: launcher stub and on-disk fuse.
+            // Undo all footprints at once: launcher stub, on-disk fuse, background watcher.
             LauncherDeployment.Restore(_weModConfig);
             DiskFusePatch.Remove(_weModConfig.ExecutablePath, _logger);
+            Services.WatcherAutostart.Stop(_weModConfig);
 
             string squirrelRoot = SquirrelRoot;
             foreach (var leftover in new[]
