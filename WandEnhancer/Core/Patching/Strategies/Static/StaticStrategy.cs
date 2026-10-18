@@ -16,7 +16,7 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
                 throw new Exception($"[ENHANCER] Could not clear the ASAR integrity fuse in {Path.GetFileName(context.Install.ExecutablePath)}.");
             }
 
-            AuxiliaryCompatibility.Apply(context, true);
+            AuxiliaryCompatibility.Apply(context);
         }
 
         public bool Launch(PatchContext context, string args)

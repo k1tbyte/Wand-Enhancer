@@ -7,7 +7,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Fixes
 
-- Fixed trainers failing to start on Wand 12.62.0 with `InjectDll: Client integrity check failed` after patching. Both Static and Supervised now handle the auxiliary service's ASAR header check and its separate Electron fuse check against disk and process memory. Older services without these checks keep their existing behavior; an unrecognised check fails patching instead of reporting success with a broken trainer.
+- Fixed trainers failing to start on Wand 12.62.0 with `InjectDll: Client integrity check failed` after patching. Both Static and Supervised neutralise the auxiliary service's ASAR header check, its Electron fuse check against disk and process memory, and the `WinVerifyTrust` caller (Supervised needs the latter because the deployed launcher replaces the root Squirrel stub that the client gate also validates). Older services without these checks keep their existing behavior; an unrecognised check fails patching instead of reporting success with a broken trainer.
 
 ## [2.1.0.0] - 2026-09-09
 

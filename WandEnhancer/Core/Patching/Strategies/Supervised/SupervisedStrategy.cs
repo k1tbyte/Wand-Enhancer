@@ -28,7 +28,9 @@ namespace WandEnhancer.Core.Patching.Strategies.Supervised
 
         public void ApplyEnablement(PatchContext context)
         {
-            AuxiliaryCompatibility.Apply(context, false);
+            // The root-stub gate check validates our unsigned deployed launcher
+            // through the same WinVerifyTrust caller, so it must be neutralised here too.
+            AuxiliaryCompatibility.Apply(context);
         }
 
         private sealed class PendingClear

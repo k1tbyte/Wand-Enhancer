@@ -13,7 +13,7 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
         private static readonly byte[] Stub = { 0x16, 0x2A }; // ldc.i4.0; ret
 
         /// <returns>Methods stubbed, or -1 on failure.</returns>
-        public static int Neutralize(string auxPath, Action<string, ELogType> log, bool includeTrustCheck = true)
+        public static int Neutralize(string auxPath, Action<string, ELogType> log)
         {
             IReadOnlyList<long> offsets;
             List<DotNetImage.ValidationBody> clientBodies;
@@ -27,14 +27,14 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
                     return -1;
                 }
 
-                offsets = includeTrustCheck ? image.FindPInvokeCallerCodeOffsets(ImportName) : new long[0];
+                offsets = image.FindPInvokeCallerCodeOffsets(ImportName);
                 clientBodies = new List<DotNetImage.ValidationBody>(image.FindAsarValidationBodyOffsets());
                 archiveCount = clientBodies.Count;
                 clientBodies.AddRange(image.FindFuseValidationBodyOffsets());
                 fuseCount = clientBodies.Count - archiveCount;
             }
 
-            if (includeTrustCheck && offsets.Count == 0)
+            if (offsets.Count == 0)
             {
                 log?.Invoke($"[ENHANCER] No {ImportName} caller found in {Path.GetFileName(auxPath)}; the aux may have changed.", ELogType.Warn);
                 return -1;

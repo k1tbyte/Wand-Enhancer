@@ -56,7 +56,6 @@ try {
         $options = if ($variant -eq 'legacy') { '/define:LEGACY' } else { '/optimize+' }
         New-Fixture $fixture $options
         $arguments = [object[]]@([string]$fixture, $null)
-        if ($neutralize.GetParameters().Length -eq 3) { $arguments += $true }
         $changed = $neutralize.Invoke($null, $arguments)
         $expected = if ($variant -eq 'current') { 3 } else { 1 }
         Assert-Equal $changed $expected "$variant signature and ASAR patch count"
@@ -67,6 +66,10 @@ try {
         $type = $patched.GetType('AuxiliaryFixture', $true)
         Assert-Equal ($type.GetMethod('SignatureCheck').Invoke($null, $null)) 0 "$variant signature status"
         if ($variant -eq 'current') {
+            # Both strategies share this neutralizer now; the signature stub must
+            # sit next to the archive and fuse stubs in the same binary.
+            $signatureIl = $type.GetMethod('SignatureCheck').GetMethodBody().GetILAsByteArray()
+            Assert-Equal ($signatureIl[0] -eq 0x16 -and $signatureIl[1] -eq 0x2A) $true 'Signature check neutralised'
             $result = $type.GetMethod('AsarCheck').Invoke($null, [object[]]@('missing-client'))
             Assert-Equal ([int]$result) 0 'Patched ASAR validation status'
             $result = $type.GetMethod('FuseCheck').Invoke($null, [object[]]@($null, 'missing-client', $null))
@@ -79,22 +82,11 @@ try {
         Assert-Equal (Get-FileHash -LiteralPath $fixture).Hash $hash "$variant second pass leaves bytes unchanged"
     }
 
-    # Supervised leaves the executable's Authenticode check intact.
-    $supervised = Join-Path $scratch 'supervised.dll'
-    New-Fixture $supervised '/optimize+'
-    Assert-Equal ($neutralize.Invoke($null, [object[]]@([string]$supervised, $null, $false))) 2 'Supervised archive and fuse patch count'
-    $patched = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($supervised))
-    $type = $patched.GetType('AuxiliaryFixture', $true)
-    Assert-Equal ([int]$type.GetMethod('AsarCheck').Invoke($null, [object[]]@('missing-client'))) 0 'Supervised ASAR validation status'
-    Assert-Equal ([int]$type.GetMethod('FuseCheck').Invoke($null, [object[]]@($null, 'missing-client', $null))) 0 'Supervised fuse validation status'
-    $signatureIl = $type.GetMethod('SignatureCheck').GetMethodBody().GetILAsByteArray()
-    Assert-Equal ($signatureIl[0] -eq 0x16 -and $signatureIl[1] -eq 0x2A) $false 'Supervised signature check preserved'
-
     $unsupported = Join-Path $scratch 'unsupported.dll'
     New-Fixture $unsupported '/define:UNSUPPORTED'
     $originalHash = (Get-FileHash -LiteralPath $unsupported).Hash
     $rejected = $false
-    try { $neutralize.Invoke($null, [object[]]@([string]$unsupported, $null, $true)) | Out-Null }
+    try { $neutralize.Invoke($null, [object[]]@([string]$unsupported, $null)) | Out-Null }
     catch { $rejected = $_.Exception.GetBaseException().Message -eq 'Unrecognised auxiliary ASAR validation signature.' }
     Assert-Equal $rejected $true 'Unsupported ASAR shape fails loudly'
     Assert-Equal (Get-FileHash -LiteralPath $unsupported).Hash $originalHash 'Unsupported service is not partially patched'
@@ -103,7 +95,7 @@ try {
     New-Fixture $restructured '/define:RESTRUCTURED'
     $originalHash = (Get-FileHash -LiteralPath $restructured).Hash
     $rejected = $false
-    try { $neutralize.Invoke($null, [object[]]@([string]$restructured, $null, $false)) | Out-Null }
+    try { $neutralize.Invoke($null, [object[]]@([string]$restructured, $null)) | Out-Null }
     catch { $rejected = $_.Exception.GetBaseException().Message -eq 'Auxiliary ASAR validation detected but not recognised.' }
     Assert-Equal $rejected $true 'Detected but restructured ASAR validation fails loudly'
     Assert-Equal (Get-FileHash -LiteralPath $restructured).Hash $originalHash 'Restructured service is unchanged'
@@ -111,11 +103,10 @@ try {
     if ($AuxiliaryPath) {
         $realCopy = Join-Path $scratch 'real-auxiliary.exe'
         Copy-Item -LiteralPath $AuxiliaryPath -Destination $realCopy
-        Assert-Equal ($neutralize.Invoke($null, [object[]]@([string]$realCopy, $null, $false))) 2 'Real auxiliary archive and fuse patch count'
-        Assert-Equal ($neutralize.Invoke($null, [object[]]@([string]$realCopy, $null, $false))) 0 'Real auxiliary ASAR idempotence'
-        # Full client-gate checks below also need the signature adjustment when
-        # the supplied client uses Static and has a changed on-disk fuse.
-        $neutralize.Invoke($null, [object[]]@([string]$realCopy, $null, $true)) | Out-Null
+        $changed = $neutralize.Invoke($null, [object[]]@([string]$realCopy, $null))
+        # A previously enhanced aux already carries the signature stub: 3 = pristine, 2 = re-enhance.
+        if ($changed -ne 2 -and $changed -ne 3) { throw "Real auxiliary patch count unexpected (got $changed)" }
+        Assert-Equal ($neutralize.Invoke($null, [object[]]@([string]$realCopy, $null))) 0 'Real auxiliary idempotence'
         $realAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes($realCopy))
         try { $realTypes = $realAssembly.GetTypes() }
         catch [Reflection.ReflectionTypeLoadException] { $realTypes = $_.Exception.Types | Where-Object { $null -ne $_ } }
@@ -162,7 +153,7 @@ try {
             finally { $verified.Dispose() }
         }
     }
-    Write-Host 'Auxiliary regression checks passed (current, legacy, supervised, executable IL, idempotence).'
+    Write-Host 'Auxiliary regression checks passed (current, legacy, unsupported, executable IL, idempotence).'
 }
 finally {
     if (([IO.Path]::GetFullPath($scratch)).StartsWith(([IO.Path]::GetFullPath([IO.Path]::GetTempPath())), [StringComparison]::OrdinalIgnoreCase)) {
