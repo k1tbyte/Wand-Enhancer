@@ -3,7 +3,7 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
-## [2.1.0.2] - 2026-10-13
+## [2.1.1.0] - 2026-10-18
 
 ### Fixes
 
