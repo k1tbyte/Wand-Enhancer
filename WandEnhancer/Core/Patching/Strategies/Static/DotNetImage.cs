@@ -44,6 +44,136 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
 
         public void Dispose() => _pe.Dispose();
 
+        /// <summary>Finds Wand's archive-status method by its path and hash algorithm, not obfuscated names.</summary>
+        public sealed class ValidationBody
+        {
+            public long HeaderOffset { get; set; }
+            public int StubSize { get; set; }
+        }
+
+        public IReadOnlyList<ValidationBody> FindAsarValidationBodyOffsets()
+        {
+            var hits = new List<ValidationBody>();
+            bool hasAsarCapability = false;
+            foreach (MethodDefinitionHandle handle in _reader.MethodDefinitions)
+            {
+                var method = _reader.GetMethodDefinition(handle);
+                int rva = method.RelativeVirtualAddress;
+                if (rva == 0) continue;
+                var il = _pe.GetMethodBody(rva).GetILBytes();
+                if (BodyContainsString(il, "ElectronAsar") && BodyContainsString(il, "Integrity")) hasAsarCapability = true;
+                if (!BodyContainsString(il, @"resources\app.asar") || !BodyContainsString(il, "SHA256")) continue;
+
+                // The located method must be static, take one string and return
+                // Wand's Int32-backed status enum (zero is the valid status).
+                if (!HasStatusSignature(method, false)) throw new InvalidDataException("Unrecognised auxiliary ASAR validation signature.");
+                var body = GetValidationBody(rva, il);
+                // Leave the remaining IL on instruction boundaries so the same
+                // anchors remain readable on a second patch pass.
+                var remaining = new byte[il.Length - body.StubSize];
+                Array.Copy(il, body.StubSize, remaining, 0, remaining.Length);
+                if (!BodyContainsString(remaining, @"resources\app.asar") || !BodyContainsString(remaining, "SHA256"))
+                    throw new InvalidDataException("Auxiliary ASAR anchors overlap the return stub.");
+                hits.Add(body);
+            }
+            if (hits.Count > 1) throw new InvalidDataException("Ambiguous auxiliary ASAR validation methods.");
+            if (hasAsarCapability && hits.Count == 0) throw new InvalidDataException("Auxiliary ASAR validation detected but not recognised.");
+            return hits;
+        }
+
+        /// <summary>Finds the status check calling Wand's anchored Electron fuse reader.</summary>
+        public IReadOnlyList<ValidationBody> FindFuseValidationBodyOffsets()
+        {
+            int readerToken = 0;
+            foreach (var handle in _reader.MethodDefinitions)
+            {
+                var method = _reader.GetMethodDefinition(handle);
+                if (method.RelativeVirtualAddress == 0) continue;
+                var il = _pe.GetMethodBody(method.RelativeVirtualAddress).GetILBytes();
+                if (!BodyContainsString(il, "The Electron fuse sentinel was not found.")
+                    || !BodyContainsString(il, "The Electron fuse wire is invalid.")) continue;
+                if (readerToken != 0) throw new InvalidDataException("Ambiguous auxiliary Electron fuse readers.");
+                readerToken = MetadataTokens.GetToken(handle);
+            }
+            var hits = new List<ValidationBody>();
+            if (readerToken == 0) return hits; // Legacy auxiliary service.
+            foreach (var handle in _reader.MethodDefinitions)
+            {
+                var method = _reader.GetMethodDefinition(handle);
+                int rva = method.RelativeVirtualAddress;
+                if (rva == 0) continue;
+                var il = _pe.GetMethodBody(rva).GetILBytes();
+                if (!BodyCalls(il, readerToken)) continue;
+                if (!HasStatusSignature(method, true)) throw new InvalidDataException("Unrecognised auxiliary fuse validation signature.");
+                var body = GetValidationBody(rva, il);
+                var remaining = new byte[il.Length - body.StubSize];
+                Array.Copy(il, body.StubSize, remaining, 0, remaining.Length);
+                if (!BodyCalls(remaining, readerToken)) throw new InvalidDataException("Auxiliary fuse reader call overlaps the return stub.");
+                hits.Add(body);
+            }
+            if (hits.Count != 1) throw new InvalidDataException("Auxiliary fuse validation detected but not recognised.");
+            return hits;
+        }
+
+        private bool HasStatusSignature(MethodDefinition method, bool fuse)
+        {
+            var signature = _reader.GetBlobReader(method.Signature);
+            if ((method.Attributes & System.Reflection.MethodAttributes.Static) == 0
+                || signature.ReadByte() != 0 || signature.ReadCompressedInteger() != (fuse ? 3 : 1)
+                || signature.ReadByte() != 0x11) return false;
+            int type = signature.ReadCompressedInteger();
+            if ((type & 3) != 0 || !IsInt32Enum(MetadataTokens.TypeDefinitionHandle(type >> 2))) return false;
+            if (fuse)
+            {
+                if (signature.ReadByte() != 0x12) return false;
+                int streamType = signature.ReadCompressedInteger();
+                if ((streamType & 3) != 1) return false;
+                var stream = _reader.GetTypeReference(MetadataTokens.TypeReferenceHandle(streamType >> 2));
+                if (_reader.GetString(stream.Namespace) != "System.IO" || _reader.GetString(stream.Name) != "FileStream") return false;
+            }
+            if (signature.ReadByte() != 0x0E) return false;
+            if (fuse && (signature.ReadByte() != 0x12 || (signature.ReadCompressedInteger() & 3) != 0)) return false;
+            return signature.RemainingBytes == 0;
+        }
+
+        private ValidationBody GetValidationBody(int rva, byte[] il)
+        {
+            int stubSize = 0;
+            while (stubSize < 2) stubSize = NextInstruction(il, stubSize);
+            return new ValidationBody { HeaderOffset = MethodHeaderFileOffset(rva), StubSize = stubSize };
+        }
+
+        private bool IsInt32Enum(TypeDefinitionHandle handle)
+        {
+            var type = _reader.GetTypeDefinition(handle);
+            if (type.BaseType.Kind != HandleKind.TypeReference) return false;
+            var baseType = _reader.GetTypeReference((TypeReferenceHandle)type.BaseType);
+            if (_reader.GetString(baseType.Namespace) != "System" || _reader.GetString(baseType.Name) != "Enum") return false;
+            foreach (var fieldHandle in type.GetFields())
+            {
+                var field = _reader.GetFieldDefinition(fieldHandle);
+                // Wand also obfuscates the enum's normally named value__ field.
+                if ((field.Attributes & System.Reflection.FieldAttributes.Static) != 0) continue;
+                var signature = _reader.GetBlobBytes(field.Signature);
+                return signature.Length == 2 && signature[0] == 0x06 && signature[1] == 0x08;
+            }
+            return false;
+        }
+
+        private bool BodyContainsString(byte[] il, string value)
+        {
+            for (int ip = 0; ip < il.Length; ip = NextInstruction(il, ip))
+            {
+                if (il[ip] == 0x72 && ip + 5 <= il.Length)
+                {
+                    uint token = ReadU32(il, ip + 1);
+                    if ((token >> 24) == 0x70 && _reader.GetUserString(MetadataTokens.UserStringHandle((int)(token & 0xFFFFFF))) == value)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         /// File offset of the first IL byte of every method that calls the P/Invoke.
         public IReadOnlyList<long> FindPInvokeCallerCodeOffsets(string importName)
         {
@@ -93,42 +223,40 @@ namespace WandEnhancer.Core.Patching.Strategies.Static
 
         private long IlFileOffset(int rva)
         {
+            int headerOffset = MethodHeaderFileOffset(rva);
+            int headerSize = (_bytes[headerOffset] & 0x3) == 0x3 ? (_bytes[headerOffset + 1] >> 4) * 4 : 1;
+            return headerOffset + headerSize;
+        }
+
+        private int MethodHeaderFileOffset(int rva)
+        {
             SectionHeader section = _pe.PEHeaders.SectionHeaders[_pe.PEHeaders.GetContainingSectionIndex(rva)];
-            int headerOffset = section.PointerToRawData + (rva - section.VirtualAddress);
-            // IL follows the method body header: 12 bytes when fat, 1 when tiny.
-            return headerOffset + ((_bytes[headerOffset] & 0x3) == 0x3 ? 12 : 1);
+            return section.PointerToRawData + (rva - section.VirtualAddress);
         }
 
         // Walks instruction boundaries so the token can't match operand data of another instruction.
         private static bool BodyCalls(byte[] il, int token)
         {
-            int ip = 0;
-            while (ip < il.Length)
+            for (int ip = 0; ip < il.Length; ip = NextInstruction(il, ip))
             {
                 byte op = il[ip];
-                if (op == 0xFE)
-                {
-                    if (ip + 2 > il.Length) break;
-                    ip += 2 + TwoByte[il[ip + 1]];
-                }
-                else if ((op == 0x28 || op == 0x6F) && ip + 5 <= il.Length && (int)ReadU32(il, ip + 1) == token)
+                if ((op == 0x28 || op == 0x6F) && ip + 5 <= il.Length && (int)ReadU32(il, ip + 1) == token)
                 {
                     return true;
-                }
-                else if (op == 0x45) // switch: uint count then count 4-byte targets
-                {
-                    if (ip + 5 > il.Length) break;
-                    long next = ip + 5L + (long)ReadU32(il, ip + 1) * 4;
-                    if (next > il.Length) break; // Target table crosses the body.
-                    ip = (int)next;
-                }
-                else
-                {
-                    ip += 1 + OneByte[op];
                 }
             }
 
             return false;
+        }
+
+        private static int NextInstruction(byte[] il, int ip)
+        {
+            byte op = il[ip];
+            if (op == 0xFE) return ip + 2 > il.Length ? il.Length : Math.Min(il.Length, ip + 2 + TwoByte[il[ip + 1]]);
+            if (op != 0x45) return Math.Min(il.Length, ip + 1 + OneByte[op]);
+            if (ip + 5 > il.Length) return il.Length;
+            long next = ip + 5L + (long)ReadU32(il, ip + 1) * 4;
+            return next > il.Length ? il.Length : (int)next;
         }
 
         private static uint ReadU32(byte[] b, int i) =>

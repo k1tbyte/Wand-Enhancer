@@ -3,6 +3,13 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.1.1.0] - 2026-10-18
+
+### Fixes
+
+- Fixed trainers failing to start after enhancing on Wand 12.61.0 and newer: the auxiliary service rejected trainer injection with `InjectDll: Client integrity check failed`, which Wand shows as "We're having trouble loading the mods into your game". Fixed by @RatedRCustomer in #345. #311 #320 #334 #343 #347 #354
+- Fixed auto-apply after update, which never actually fired: Squirrel rewrites the root execution stub while applying the update, erasing the deployed launcher before it could run. A background update watcher by @Glitxhhh from #318 now re-applies the saved patch selection the moment a new Wand version lands, starts with Windows, and stops on Restore.
+
 ## [2.1.0.0] - 2026-09-09
 
 ### Features

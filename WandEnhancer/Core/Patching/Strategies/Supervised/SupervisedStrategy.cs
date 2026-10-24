@@ -26,7 +26,12 @@ namespace WandEnhancer.Core.Patching.Strategies.Supervised
 
         public bool RequiresLauncherAlways => true;
 
-        public void ApplyEnablement(PatchContext context){}
+        public void ApplyEnablement(PatchContext context)
+        {
+            // The root-stub gate check validates our unsigned deployed launcher
+            // through the same WinVerifyTrust caller, so it must be neutralised here too.
+            AuxiliaryCompatibility.Apply(context);
+        }
 
         private sealed class PendingClear
         {
