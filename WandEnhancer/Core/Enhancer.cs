@@ -22,6 +22,7 @@ namespace WandEnhancer.Core
         private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
         private const string IncompletePatchMarkerFileName = ".incomplete-patch";
         private const string ProxyDllFileName = "version.dll";
+        private const string SquirrelUpdaterFileName = "Update.exe";
         private const int LockedFileRetryCount = 3;
         private const int LockedFileRetryDelayMs = 500;
 
@@ -112,7 +113,9 @@ namespace WandEnhancer.Core
         {
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
             ProcessTerminator.TryKillProcess($"{_weModConfig.BrandName}AuxiliaryService");
-            ProcessTerminator.TryKillProcessesUnder(SquirrelRoot);
+            // The parent of a hand-picked folder can hold unrelated programs; only a Squirrel root is dedicated to Wand.
+            bool isSquirrelRoot = File.Exists(Path.Combine(SquirrelRoot, SquirrelUpdaterFileName));
+            ProcessTerminator.TryKillProcessesUnder(isSquirrelRoot ? SquirrelRoot : _weModConfig.RootDirectory);
         }
 
         /// <summary>Retries briefly so locks released by just-killed processes can settle.</summary>
@@ -205,6 +208,7 @@ namespace WandEnhancer.Core
 
         public void Patch()
         {
+            bool hadAutoApply = File.Exists(Path.Combine(SquirrelRoot, Constants.AutoPatchConfigFileName));
             KillInstallProcesses();
             string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
             File.WriteAllText(markerPath, string.Empty);
@@ -257,6 +261,13 @@ namespace WandEnhancer.Core
             catch
             {
                 RollbackQuietly();
+
+                // KillInstallProcesses stopped the watcher; a failed patch must not leave a configured auto-apply dead.
+                if (hadAutoApply)
+                {
+                    Services.WatcherAutostart.EnsureRunning(_weModConfig, _logger);
+                }
+
                 throw;
             }
 

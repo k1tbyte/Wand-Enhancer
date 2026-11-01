@@ -161,6 +161,25 @@ try {
     Assert-Equal $vanished $true 'Vanished auxiliary service fails Patch'
     [IO.File]::WriteAllText((Join-Path $liveTree 'static\unpacked\auxiliary\FixtureAuxiliaryService.exe'), 'service')
     $ensureSurvived.Invoke($null, $trees) | Out-Null
+
+    # Only a Squirrel root (Update.exe present) is swept; the parent of a hand-picked folder may hold other programs.
+    $unrelated = Join-Path $scratch 'unrelated'
+    [IO.Directory]::CreateDirectory($unrelated) | Out-Null
+    $bystander = Join-Path $unrelated 'fixture-bystander.exe'
+    Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\cmd.exe') -Destination $bystander
+    $bystanderProcess = Start-Process -FilePath $bystander -ArgumentList '/c', 'pause' -WindowStyle Hidden -PassThru
+    try {
+        $killInstallProcesses = $enhancerType.GetMethod('KillInstallProcesses', $privateInstance)
+        $killInstallProcesses.Invoke($enhancer, $null) | Out-Null
+        Assert-Equal $bystanderProcess.HasExited $false 'Non-Squirrel parent is not swept'
+        [IO.File]::WriteAllText((Join-Path $scratch 'Update.exe'), '')
+        $killInstallProcesses.Invoke($enhancer, $null) | Out-Null
+        $bystanderProcess.WaitForExit(5000) | Out-Null
+        Assert-Equal $bystanderProcess.HasExited $true 'Squirrel root is swept'
+    }
+    finally {
+        if (-not $bystanderProcess.HasExited) { $bystanderProcess.Kill() }
+    }
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {

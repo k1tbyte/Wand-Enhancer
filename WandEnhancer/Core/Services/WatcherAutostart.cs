@@ -56,7 +56,8 @@ namespace WandEnhancer.Core.Services
                 StartDetached(watcherPath, squirrelRoot);
                 log?.Invoke("[ENHANCER] Update watcher installed and running in the background.", ELogType.Info);
             }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is SecurityException)
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is SecurityException ||
+                                      e is System.ComponentModel.Win32Exception)
             {
                 log?.Invoke($"[ENHANCER] Could not set up the background update watcher: {e.Message}", ELogType.Warn);
             }

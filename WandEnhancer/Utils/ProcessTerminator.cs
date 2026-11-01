@@ -152,7 +152,7 @@ namespace WandEnhancer.Utils
                 string imagePath;
                 try
                 {
-                    imagePath = process.MainModule.FileName;
+                    imagePath = process.MainModule?.FileName;
                 }
                 catch (Exception e) when (e is InvalidOperationException || e is Win32Exception ||
                                           e is NotSupportedException)
