@@ -8,12 +8,28 @@ namespace WandEnhancer.Core.Patching.Shared
 {
     internal static class AuxiliaryCompatibility
     {
+        private static string Find(string unpackedPath)
+        {
+            string directory = string.IsNullOrEmpty(unpackedPath) ? null
+                : Path.Combine(unpackedPath, @"static\unpacked\auxiliary");
+            return directory != null && Directory.Exists(directory)
+                ? Directory.EnumerateFiles(directory, "*AuxiliaryService.exe").SingleOrDefault() : null;
+        }
+
+        /// <summary>
+        /// A missing service is skipped as "this install has none", so one quarantined mid-patch would
+        /// otherwise leave a patch that reports success without it.
+        /// </summary>
+        public static void EnsureSurvivedPatching(string pristineUnpackedPath, string patchedUnpackedPath)
+        {
+            if (Find(pristineUnpackedPath) != null && Find(patchedUnpackedPath) == null)
+                throw new FileNotFoundException("[ENHANCER] The auxiliary service disappeared while patching. " +
+                                                "Antivirus probably quarantined it: add an exclusion for the Wand folder and patch again.");
+        }
+
         public static void Apply(PatchContext context)
         {
-            string directory = string.IsNullOrEmpty(context.UnpackedPath) ? null
-                : Path.Combine(context.UnpackedPath, @"static\unpacked\auxiliary");
-            string auxiliary = directory != null && Directory.Exists(directory)
-                ? Directory.EnumerateFiles(directory, "*AuxiliaryService.exe").SingleOrDefault() : null;
+            string auxiliary = Find(context.UnpackedPath);
             if (auxiliary == null)
             {
                 context.Log?.Invoke("[ENHANCER] No auxiliary service found; skipping compatibility checks.", ELogType.Info);

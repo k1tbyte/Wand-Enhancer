@@ -144,6 +144,23 @@ try {
     }
     $rolledBack = @($messages | Where-Object { $_ -like '*rollback did not finish*' -or $_ -like '*original Wand files were restored*' })
     Assert-Equal ($rolledBack.Count -gt 0) $true 'Locked preparation triggers rollback'
+
+    # A service the pristine install had must not silently vanish (antivirus) and still report success.
+    $ensureSurvived = $assembly.GetType('WandEnhancer.Core.Patching.Shared.AuxiliaryCompatibility', $true).GetMethod('EnsureSurvivedPatching')
+    $pristineTree = Join-Path $scratch 'pristine-tree'
+    $liveTree = Join-Path $scratch 'live-tree'
+    foreach ($tree in $pristineTree, $liveTree) {
+        [IO.Directory]::CreateDirectory((Join-Path $tree 'static\unpacked\auxiliary')) | Out-Null
+    }
+    $trees = [object[]]@([string]$pristineTree, [string]$liveTree)
+    $ensureSurvived.Invoke($null, $trees) | Out-Null
+    $pristineService = Join-Path $pristineTree 'static\unpacked\auxiliary\FixtureAuxiliaryService.exe'
+    [IO.File]::WriteAllText($pristineService, 'service')
+    $vanished = $false
+    try { $ensureSurvived.Invoke($null, $trees) | Out-Null } catch { $vanished = $true }
+    Assert-Equal $vanished $true 'Vanished auxiliary service fails Patch'
+    [IO.File]::WriteAllText((Join-Path $liveTree 'static\unpacked\auxiliary\FixtureAuxiliaryService.exe'), 'service')
+    $ensureSurvived.Invoke($null, $trees) | Out-Null
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {

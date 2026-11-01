@@ -223,6 +223,7 @@ namespace WandEnhancer.Core
                 new RemotePanelInjector(_unpackedPath, _logger).Inject(_config.PatchTypes, _config.CustomScriptPaths);
                 PackSources();
                 _strategy.ApplyEnablement(new PatchContext(_weModConfig, _logger, _unpackedPath));
+                AuxiliaryCompatibility.EnsureSurvivedPatching(_unpackedBackupPath, _unpackedPath);
 
                 // Supervised needs to intercept every start; static never does.
                 if (_strategy.RequiresLauncherAlways)
