@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { hapticTap } from '@/shared/haptics';
 import { cn } from '@/shared/lib/ui';
 import { Icon } from '@/shared/ui/Icon';
 
@@ -72,6 +73,11 @@ type StepButtonProps = {
 };
 
 export const StepButton = ({ icon, border, label, disabled, onClick }: StepButtonProps) => {
+    const handleClick = () => {
+        hapticTap();
+        onClick();
+    };
+
     return (
         <button
             type="button"
@@ -81,7 +87,7 @@ export const StepButton = ({ icon, border, label, disabled, onClick }: StepButto
                 'flex items-center justify-center bg-white/2.5 text-(--deck-fg-2) transition-colors hover:bg-white/6 hover:text-(--deck-fg) disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-white/2.5 disabled:hover:text-(--deck-fg-2)',
                 border === 'right' ? 'border-r border-white/10' : 'border-l border-white/10',
             )}
-            onClick={onClick}
+            onClick={handleClick}
         >
             <Icon className="size-4" name={icon} stroke={2} />
         </button>
