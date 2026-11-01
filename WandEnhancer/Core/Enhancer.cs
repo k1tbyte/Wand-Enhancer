@@ -157,12 +157,20 @@ namespace WandEnhancer.Core
             return new Exception($"[ENHANCER] {message}", inner);
         }
 
-        public void Patch()
+        private void WithLockDiagnostics(Action action)
         {
-            KillInstallProcesses();
-            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
-            File.WriteAllText(markerPath, string.Empty);
+            try
+            {
+                action();
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                throw LockedFilesException(e);
+            }
+        }
 
+        private void PrepareBackups()
+        {
             if (!File.Exists(_backupPath))
             {
                 _logger("[ENHANCER] Creating backup...", ELogType.Info);
@@ -171,7 +179,7 @@ namespace WandEnhancer.Core
             else
             {
                 _logger("[ENHANCER] Backup found, restoring pristine app.asar before patching...", ELogType.Info);
-                AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath);
+                WithLockDiagnostics(() => RetryWhileLocked(() => AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath)));
             }
 
             if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
@@ -182,14 +190,7 @@ namespace WandEnhancer.Core
             else if (Directory.Exists(_unpackedBackupPath))
             {
                 _logger("[ENHANCER] Restoring pristine app.asar.unpacked before patching...", ELogType.Info);
-                try
-                {
-                    ReplaceUnpackedDirectory();
-                }
-                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-                {
-                    throw LockedFilesException(e);
-                }
+                WithLockDiagnostics(ReplaceUnpackedDirectory);
             }
             else if (!Directory.Exists(_unpackedPath))
             {
@@ -200,13 +201,23 @@ namespace WandEnhancer.Core
             {
                 throw new Exception("app.asar not found");
             }
+        }
 
-            // Start from a pristine executable to not inherit a broken signature from prior static patches.
-            DiskFusePatch.Remove(_weModConfig.ExecutablePath, _logger);
+        public void Patch()
+        {
+            KillInstallProcesses();
+            string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
+            File.WriteAllText(markerPath, string.Empty);
 
-            // Never leave a patched archive behind without its launcher.
+            // Restoring the pristine files is destructive too: a lock halfway through it must roll back,
+            // not leave a half-empty app.asar.unpacked. Never leave a patched archive without its launcher.
             try
             {
+                PrepareBackups();
+
+                // Start from a pristine executable to not inherit a broken signature from prior static patches.
+                DiskFusePatch.Remove(_weModConfig.ExecutablePath, _logger);
+
                 ExtractSources();
                 new AsarContentPatcher(_unpackedPath, _logger, new JavaScriptPatchApplier(_logger)).Patch(_config.PatchTypes);
                 new RemotePanelInjector(_unpackedPath, _logger).Inject(_config.PatchTypes, _config.CustomScriptPaths);
@@ -379,15 +390,11 @@ namespace WandEnhancer.Core
             Services.WatcherAutostart.Stop(_weModConfig);
             KillInstallProcesses();
 
-            try
+            WithLockDiagnostics(() =>
             {
                 RetryWhileLocked(() => AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath));
                 ReplaceUnpackedDirectory();
-            }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-            {
-                throw LockedFilesException(e);
-            }
+            });
 
             // Clean up legacy proxy DLL
             var proxyDllPath = Path.Combine(_weModConfig.RootDirectory, ProxyDllFileName);

@@ -112,6 +112,30 @@ try {
     }
     Assert-Equal ([IO.File]::ReadAllText((Join-Path $scratch 'FixtureClient.exe'))) 'original launcher' 'Restore launcher'
     Assert-Equal ($isPatched.Invoke($null, $installArgument)) $false 'Restored installation'
+
+    # A lock while restoring the pristine files must trigger the rollback, not leave a half-emptied tree.
+    [IO.File]::WriteAllText($asar, 'original archive')
+    [IO.File]::WriteAllText($backup, 'original archive')
+    [IO.Directory]::CreateDirectory($unpackedBackup) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $unpackedBackup 'original.txt'), 'original unpacked')
+    [IO.Directory]::CreateDirectory($unpacked) | Out-Null
+    $lockedFile = Join-Path $unpacked 'locked.dll'
+    [IO.File]::WriteAllText($lockedFile, 'in use')
+    $messages = [Collections.Generic.List[string]]::new()
+    $recordingLogger = ({ param($message, $level) $messages.Add($message) }.GetNewClosure()) -as $loggerType
+    $patchConfig = [Activator]::CreateInstance($assembly.GetType('WandEnhancer.Models.PatchConfig', $true))
+    $lockedEnhancer = [Activator]::CreateInstance($enhancerType, @($config, $recordingLogger, $patchConfig))
+    $lock = [IO.File]::Open($lockedFile, 'Open', 'Read', 'None')
+    try {
+        $failed = $false
+        try { $enhancerType.GetMethod('Patch').Invoke($lockedEnhancer, $null) | Out-Null } catch { $failed = $true }
+        Assert-Equal $failed $true 'Locked preparation fails Patch'
+    }
+    finally {
+        $lock.Dispose()
+    }
+    $rolledBack = @($messages | Where-Object { $_ -like '*rollback did not finish*' -or $_ -like '*original Wand files were restored*' })
+    Assert-Equal ($rolledBack.Count -gt 0) $true 'Locked preparation triggers rollback'
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {
