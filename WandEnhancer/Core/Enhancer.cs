@@ -407,18 +407,8 @@ namespace WandEnhancer.Core
             LauncherDeployment.Restore(_weModConfig);
             DiskFusePatch.Remove(_weModConfig.ExecutablePath, _logger);
 
-            string squirrelRoot = SquirrelRoot;
-            foreach (var leftover in new[]
-                     {
-                         Constants.AutoPatchConfigFileName, LauncherLog.FileName, LauncherLog.PreviousFileName
-                     })
-            {
-                string path = Path.Combine(squirrelRoot, leftover);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
-            }
+            // launcher.log stays: bug reports ask for it and Restore is what users run right after a failure.
+            DeleteAutoPatchConfig();
 
             string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
             if (File.Exists(markerPath))

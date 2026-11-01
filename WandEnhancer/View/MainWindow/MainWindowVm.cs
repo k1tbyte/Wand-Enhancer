@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using WandEnhancer.Core;
+using WandEnhancer.Core.Patching.Shared;
 using WandEnhancer.Core.Services;
 using WandEnhancer.Models;
 using WandEnhancer.ReactiveUICore;
@@ -128,12 +129,14 @@ namespace WandEnhancer.View.MainWindow
             {
                 try
                 {
-                    new Enhancer(WeModInfo, Log).Restore();
+                    OpenOperationLog("Restore");
+                    new Enhancer(WeModInfo, LogAndRecord).Restore();
                     return true;
                 }
                 catch (Exception e)
                 {
-                    Log(LocalizationManager.Format("log_restore_failed", e.Message), ELogType.Error);
+                    LogAndRecord(LocalizationManager.Format("log_restore_failed", e.Message), ELogType.Error);
+                    LauncherLog.Write(e.ToString(), ELogType.Error);
                     return false;
                 }
             });
@@ -164,18 +167,34 @@ namespace WandEnhancer.View.MainWindow
                 {
                     try
                     {
-                        new Enhancer(WeModInfo, Log, config).Patch();
+                        OpenOperationLog($"Patch | patches {Program.DescribePatches(config)} | strategy {config.Strategy} | " +
+                                         $"auto-apply {config.AutoApplyAfterUpdate}");
+                        new Enhancer(WeModInfo, LogAndRecord, config).Patch();
                         AlreadyPatched = true;
                         CanRestore = true;
                     }
                     catch (Exception e)
                     {
-                        Log(LocalizationManager.Format("log_patch_failed", e.Message), ELogType.Error);
+                        LogAndRecord(LocalizationManager.Format("log_patch_failed", e.Message), ELogType.Error);
+                        LauncherLog.Write(e.ToString(), ELogType.Error);
                         IsPatchEnabled = true;
                     }
                 });
                 IsBusy = false;
             }), LocalizationManager.Get("pv_popup_title"));
+        }
+
+        /// <summary>Starts a launcher.log section: a failed manual run must leave a file to attach to a bug report.</summary>
+        private void OpenOperationLog(string operation)
+        {
+            LauncherLog.Open(LauncherDeployment.SquirrelRootOf(WeModInfo),
+                $"WandEnhancer {Constants.Version} build {Constants.Build} | {operation} | {WeModInfo.ExecutablePath}");
+        }
+
+        private void LogAndRecord(string message, ELogType logType)
+        {
+            Log(message, logType);
+            LauncherLog.Write(message, logType);
         }
 
         private void Log(string message, ELogType logType)

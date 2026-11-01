@@ -176,7 +176,7 @@ namespace WandEnhancer
         /// <summary>
         /// Describes applied patches for diagnostic logs. Unrecorded if auto-patch is off.
         /// </summary>
-        private static string DescribePatches(PatchConfig patchConfig)
+        internal static string DescribePatches(PatchConfig patchConfig)
         {
             if (patchConfig?.PatchTypes == null)
                 return "unrecorded";

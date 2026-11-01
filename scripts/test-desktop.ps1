@@ -103,6 +103,10 @@ try {
     Assert-Equal ($isPatched.Invoke($null, $installArgument)) $true 'Completed retry'
     [IO.File]::WriteAllText($marker, '')
     [IO.File]::WriteAllText((Join-Path $scratch 'FixtureClient.exe.stub'), 'original launcher')
+    $autoPatchConfig = Join-Path $scratch ($assembly.GetType('WandEnhancer.Constants', $true).GetField('AutoPatchConfigFileName').GetRawConstantValue())
+    foreach ($path in $autoPatchConfig, (Join-Path $scratch 'launcher.log'), (Join-Path $scratch 'launcher.prev.log')) {
+        [IO.File]::WriteAllText($path, 'fixture')
+    }
 
     # Restore can only target this fixture's unique process name and scratch Squirrel root.
     Assert-Equal ([Diagnostics.Process]::GetProcessesByName($config.BrandName).Length) 0 'Fixture process isolation'
@@ -111,6 +115,10 @@ try {
         Assert-Equal (Test-Path $path) $false 'Restore clears patch state'
     }
     Assert-Equal ([IO.File]::ReadAllText((Join-Path $scratch 'FixtureClient.exe'))) 'original launcher' 'Restore launcher'
+    Assert-Equal (Test-Path $autoPatchConfig) $false 'Restore removes auto-patch config'
+    foreach ($log in 'launcher.log', 'launcher.prev.log') {
+        Assert-Equal (Test-Path (Join-Path $scratch $log)) $true "Restore keeps $log"
+    }
     Assert-Equal ($isPatched.Invoke($null, $installArgument)) $false 'Restored installation'
 
     # A lock while restoring the pristine files must trigger the rollback, not leave a half-emptied tree.
