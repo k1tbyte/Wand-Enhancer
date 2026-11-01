@@ -180,6 +180,25 @@ try {
     finally {
         if (-not $bystanderProcess.HasExited) { $bystanderProcess.Kill() }
     }
+
+    # Squirrel keeps writing while its updater runs, so a stable app.asar must not count as "done" until it exits.
+    $waitForSettled = $assembly.GetType('WandEnhancer.Core.Services.UpdateWatcherService', $true).GetMethod('WaitForSettled', $privateStatic)
+    [IO.File]::WriteAllText($asar, 'stable archive')
+    $updaterPath = Join-Path $scratch 'Update.exe'
+    Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\cmd.exe') -Destination $updaterPath -Force
+    $updater = Start-Process -FilePath $updaterPath -ArgumentList '/c', 'pause' -WindowStyle Hidden -PassThru
+    $stopUpdater = Start-Job -ScriptBlock { param($id) Start-Sleep -Seconds 5; Stop-Process -Id $id -Force } -ArgumentList $updater.Id
+    try {
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        $settled = $waitForSettled.Invoke($null, [object[]]@([string]$install, [string]$scratch))
+        $clock.Stop()
+        Assert-Equal $settled $true 'Watcher settles once the updater exits'
+        Assert-Equal ($clock.Elapsed.TotalSeconds -gt 10) $true 'Watcher waits for a running updater'
+    }
+    finally {
+        if (-not $updater.HasExited) { $updater.Kill() }
+        Remove-Job -Job $stopUpdater -Force
+    }
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {

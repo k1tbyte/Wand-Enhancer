@@ -107,7 +107,7 @@ namespace WandEnhancer.Core.Services
         {
             log?.Invoke($"[WATCHER] New version folder detected: {versionRoot}", ELogType.Info);
 
-            if (!WaitForSettled(versionRoot))
+            if (!WaitForSettled(versionRoot, squirrelRoot))
             {
                 log?.Invoke($"[WATCHER] Gave up waiting for {versionRoot} to finish installing.", ELogType.Warn);
                 return;
@@ -150,10 +150,14 @@ namespace WandEnhancer.Core.Services
             }
         }
 
-        /// <summary>Waits for app.asar's size to stop changing, since Squirrel writes the new version in place.</summary>
-        private static bool WaitForSettled(string versionRoot)
+        /// <summary>
+        /// Waits for Squirrel's updater to exit, then for app.asar's size to stop changing. app.asar is
+        /// written before app.asar.unpacked and the root stub, so a stable size alone can precede the end.
+        /// </summary>
+        private static bool WaitForSettled(string versionRoot, string squirrelRoot)
         {
             string asarPath = Path.Combine(versionRoot, "resources", "app.asar");
+            string updaterPath = Path.Combine(squirrelRoot, Constants.SquirrelUpdaterFileName);
             long lastSize = -1;
             int stableReads = 0;
             DateTime deadline = DateTime.UtcNow.AddMilliseconds(SettleTimeoutMs);
@@ -161,6 +165,13 @@ namespace WandEnhancer.Core.Services
             while (DateTime.UtcNow < deadline)
             {
                 Thread.Sleep(SettleIntervalMs);
+
+                if (ProcessTerminator.IsRunningFrom(updaterPath))
+                {
+                    stableReads = 0;
+                    lastSize = -1;
+                    continue;
+                }
 
                 if (!File.Exists(asarPath))
                 {

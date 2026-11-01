@@ -33,6 +33,19 @@ namespace WandEnhancer.Utils
             KillUntilGone($"a helper under \"{prefix}\"", () => Under(prefix, selfId));
         }
 
+        /// <summary>Whether another process runs from exactly the file <paramref name="exePath"/>.</summary>
+        public static bool IsRunningFrom(string exePath)
+        {
+            // A full file path works as the "directory prefix": only that image matches.
+            var processes = Under(Path.GetFullPath(exePath), Process.GetCurrentProcess().Id);
+            foreach (var process in processes)
+            {
+                process.Dispose();
+            }
+
+            return processes.Length > 0;
+        }
+
         /// <summary>
         /// Best-effort "name (PID)" list of processes that still have a module loaded from
         /// under <paramref name="path"/> - e.g. the game holding overlay_game_x64.dll.

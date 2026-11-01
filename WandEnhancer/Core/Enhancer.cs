@@ -22,7 +22,6 @@ namespace WandEnhancer.Core
         private const string AppAsarUnpackedBackupDirectoryName = "app.asar.unpacked.backup";
         private const string IncompletePatchMarkerFileName = ".incomplete-patch";
         private const string ProxyDllFileName = "version.dll";
-        private const string SquirrelUpdaterFileName = "Update.exe";
         private const int LockedFileRetryCount = 3;
         private const int LockedFileRetryDelayMs = 500;
 
@@ -114,7 +113,7 @@ namespace WandEnhancer.Core
             ProcessTerminator.TryKillProcess(_weModConfig.BrandName);
             ProcessTerminator.TryKillProcess($"{_weModConfig.BrandName}AuxiliaryService");
             // The parent of a hand-picked folder can hold unrelated programs; only a Squirrel root is dedicated to Wand.
-            bool isSquirrelRoot = File.Exists(Path.Combine(SquirrelRoot, SquirrelUpdaterFileName));
+            bool isSquirrelRoot = File.Exists(Path.Combine(SquirrelRoot, Constants.SquirrelUpdaterFileName));
             ProcessTerminator.TryKillProcessesUnder(isSquirrelRoot ? SquirrelRoot : _weModConfig.RootDirectory);
         }
 

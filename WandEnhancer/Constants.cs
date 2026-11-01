@@ -15,6 +15,7 @@ namespace WandEnhancer
         public static readonly string[] WeModBrandNames = { "Wand", "WeMod" };
         public const string AppSettingsFileName = "appsettings.json";
         public const string AutoPatchConfigFileName = "enhancer.json";
+        public const string SquirrelUpdaterFileName = "Update.exe";
 
         static Constants()
         {
