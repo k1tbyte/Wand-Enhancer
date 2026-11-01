@@ -37,6 +37,25 @@ namespace WandEnhancer.Utils
 
             return null;
         }
+
+        /// <summary>Accepts an <c>app-*</c> version folder or the Squirrel root that holds them, what a user picks or drops.</summary>
+        public static WeModConfig ResolveInstall(string path)
+        {
+            var config = CheckWeModPath(path);
+            if (config != null)
+            {
+                return config;
+            }
+
+            try
+            {
+                return FindLatestWeMod(path);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException)
+            {
+                return null;
+            }
+        }
         
         public static WeModConfig FindWeMod()
         {

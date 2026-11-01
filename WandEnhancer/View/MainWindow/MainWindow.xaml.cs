@@ -34,6 +34,29 @@ namespace WandEnhancer.View.MainWindow
             this.LogList.ScrollIntoView(entry);
         }
 
+        // Preview (tunneling) events: the read-only text boxes reject file drops in their own class handlers before a bubbling handler runs.
+        private void OnDragOver(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                return;
+            }
+
+            e.Effects = PopupHost.IsOpen ? DragDropEffects.None : DragDropEffects.Link;
+            e.Handled = true;
+        }
+
+        private async void OnDrop(object sender, DragEventArgs e)
+        {
+            if (PopupHost.IsOpen || !(e.Data.GetData(DataFormats.FileDrop) is string[] paths) || paths.Length == 0)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            await ViewModel.UseInstallPathAsync(paths[0]);
+        }
+
         private void OnDragMove(object sender, MouseButtonEventArgs e)
         {
             this.DragMove();

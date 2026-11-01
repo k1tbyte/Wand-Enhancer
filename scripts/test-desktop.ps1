@@ -199,6 +199,22 @@ try {
         if (-not $updater.HasExited) { $updater.Kill() }
         Remove-Job -Job $stopUpdater -Force
     }
+
+    # A picked or dropped folder may be the version folder or the Squirrel root that holds it.
+    $resolveInstall = $assembly.GetType('WandEnhancer.Utils.WeModInstalls', $true).GetMethod('ResolveInstall')
+    $squirrelRoot = Join-Path $scratch 'drop-root'
+    $versionFolder = Join-Path $squirrelRoot 'app-2.0.0'
+    [IO.Directory]::CreateDirectory((Join-Path $versionFolder 'resources')) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $versionFolder 'Wand.exe'), '')
+    [IO.File]::WriteAllText((Join-Path $versionFolder 'resources\app.asar'), '')
+    foreach ($candidate in $versionFolder, $squirrelRoot) {
+        $resolved = $resolveInstall.Invoke($null, [object[]]@([string]$candidate))
+        Assert-Equal ($null -ne $resolved) $true "Resolves $candidate"
+        Assert-Equal $resolved.RootDirectory $versionFolder "Resolved root for $candidate"
+    }
+    foreach ($candidate in $unrelated, (Join-Path $scratch 'missing-folder')) {
+        Assert-Equal ($null -eq $resolveInstall.Invoke($null, [object[]]@([string]$candidate))) $true "Rejects $candidate"
+    }
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {

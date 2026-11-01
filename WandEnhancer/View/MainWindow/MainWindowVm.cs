@@ -95,24 +95,53 @@ namespace WandEnhancer.View.MainWindow
         public RelayCommand CopyLogsCommand { get; }
         public RelayCommand ExportLogsCommand { get; }
 
-        private void OnFolderPathSelection(object obj)
+        private async void OnFolderPathSelection(object obj)
         {
             string selectedPath = _dialogs.PickFolder(
                 LocalizationManager.Get("dialog_pick_install"),
                 Environment.GetEnvironmentVariable("LOCALAPPDATA"));
-            if (selectedPath == null)
+            if (selectedPath != null)
+            {
+                await UseInstallPathAsync(selectedPath);
+            }
+        }
+
+        private bool _isResolvingInstall;
+
+        /// <summary>
+        /// Picks the install from a folder or from the Wand executable inside one. Ignored while a run or
+        /// another pick is active: the install must not change under them.
+        /// </summary>
+        public async Task UseInstallPathAsync(string path)
+        {
+            if (IsBusy || _isResolvingInstall)
             {
                 return;
             }
 
-            var info = WeModInstalls.CheckWeModPath(selectedPath);
-            if (info == null)
+            _isResolvingInstall = true;
+            try
             {
-                Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(selectedPath)), ELogType.Error);
-                return;
-            }
+                // Off the UI thread: a network share or a large folder must not freeze the window, or Explorer waiting on the drop.
+                var info = await Task.Run(() =>
+                    WeModInstalls.ResolveInstall(File.Exists(path) ? Path.GetDirectoryName(path) : path));
+                if (IsBusy)
+                {
+                    return;
+                }
 
-            UseInstall(info);
+                if (info == null)
+                {
+                    Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(path)), ELogType.Error);
+                    return;
+                }
+
+                UseInstall(info);
+            }
+            finally
+            {
+                _isResolvingInstall = false;
+            }
         }
 
         // Runs off the UI thread due to heavy file IO.
