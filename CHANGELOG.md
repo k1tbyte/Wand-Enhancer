@@ -3,6 +3,29 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.2.0.0] - 2026-11-01
+
+### Features
+
+- Drag the Wand folder or `Wand.exe` onto the window to pick the install when it is not detected.
+- Bengali (Bangladesh) language by @amiMohammad in #305.
+- The remote panel gives a short haptic tap on toggles, action buttons and steppers. It works in Android browsers only, iOS Safari has no Vibration API.
+
+### Fixes
+
+- Fixed Patch and Restore failing on files still locked by Wand helpers. Helpers such as Squirrel's `Update.exe`, crashpad and the deployed watcher are now closed by executable path, file operations retry while a lock clears, and a lock that stays names the process holding it. By @w0wzahh in #359. #181 #326
+- Fixed the build failing when the checkout path contains `&`. By @w0wzahh in #359.
+- Fixed a failed restore of the original files leaving `app.asar.unpacked` half empty and Wand unable to start. That step is now rolled back with the rest of the patch.
+- Fixed sharing violations while neutralizing the integrity check: the auxiliary service is now closed before Patch and Restore. Also fixed the missing `netstandard` reference in the build. By @LastRq in #301.
+- A patch now fails and rolls back if the auxiliary service disappears while patching.
+- Auto-apply now waits for Squirrel's updater to exit before patching the new version.
+- The update watcher is restarted when a Patch fails, instead of staying stopped.
+
+### Improvements
+
+- Restore keeps `launcher.log` and `launcher.prev.log`, and manual Patch and Restore write to `launcher.log` too, so one file holds the whole story.
+- The README and the bug report template now say which logs to attach and list the usual causes: an unpatched Wand update and antivirus quarantine.
+
 ## [2.1.1.0] - 2026-10-18
 
 ### Fixes
