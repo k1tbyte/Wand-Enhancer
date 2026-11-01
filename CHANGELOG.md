@@ -136,7 +136,7 @@ The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo
 
 ### Important
 
-- Official releases no longer include downloadable `.exe` files. To update, sync your fork and rerun the `Build executable` workflow, or follow the instructions in [How to use](https://github.com/k1tbyte/Wand-Enhancer#-how-to-use).
+- Official releases no longer include downloadable `.exe` files. To update, sync your fork and rerun the `Build executable` workflow, or follow the instructions in [How to use](https://github.com/k1tbyte/Wand-Enhancer#how-to-use).
 
 ### Changed
 

@@ -124,7 +124,7 @@ After building, validate against an original extracted Wand bundle directory:
 
 The locator harness applies patches only to temporary copies and runs `node --check`. Its default synthetic fixtures cover prettified and reminified identifiers separately. Do not commit proprietary extracted bundles.
 
-Before releasing an RC, record the exact commit, Wand version/channel and enabled patches, then manually check:
+Before a release, record the exact commit, Wand version/channel and enabled patches, then manually check:
 
 - Fresh patch, upgrade from the previous Enhancer, failed patch followed by retry, and Restore.
 - Repeated Wand startup and an overlay opened after a game starts later in the session.

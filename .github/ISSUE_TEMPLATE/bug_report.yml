@@ -11,6 +11,12 @@ body:
         **STOP BEFORE YOU POST: THIS PROJECT DOES NOT PUBLISH OFFICIAL EXECUTABLE DOWNLOADS.**
         Build WandEnhancer yourself from your own fork or local source. If you downloaded an executable from YouTube, Discord, a mirror, or any other third-party website, treat it as untrusted. Do not open issues about third-party binaries or stolen accounts here - this project is not related to those downloads.
 
+        **Please attach logs. Reports without them are hard to investigate and may be closed.** Launcher logs help the most, the enhancer log is a useful addition.
+
+        Check these first, they cause most reports:
+        - Wand updates itself in the background and the new version is not patched. Run Restore, then Patch again, or enable **Auto-apply after updates** / **Disable updates** in the patch dialog.
+        - Antivirus quarantined or blocked patched Wand files. Check Windows Security > Protection history and your antivirus quarantine, then add an exclusion for the Wand folder.
+
   - type: checkboxes
     id: build_source_check
     attributes:
@@ -39,9 +45,9 @@ body:
   - type: textarea
     id: build_commit
     attributes:
-      label: Build branch and commit
-      description: Copy the branch and source commit SHA from your Actions run or launcher.log. A version number alone cannot distinguish RC builds. No upstream pull request is needed to build your fork.
-      placeholder: "feature/rc_v_2.0.0.0, commit abc1234"
+      label: Build commit
+      description: Copy the source commit SHA from your Actions run or launcher.log. A version number alone cannot tell builds apart. No upstream pull request is needed to build your fork.
+      placeholder: "master, commit abc1234"
     validations:
       required: true
 
@@ -56,8 +62,14 @@ body:
   - type: textarea
     id: launcher_logs
     attributes:
-      label: Launcher logs
-      description: For startup failures, attach launcher.log and launcher.prev.log from the Wand installation root. If absent, say so. Redact personal paths; never include tokens, account storage dumps or executables.
+      label: Launcher logs (strongly recommended)
+      description: Paste launcher.log and launcher.prev.log from the Wand installation root (usually %LOCALAPPDATA%\Wand). If they do not exist, write "absent". Also say whether Wand opens after Restore. Redact personal paths; never include tokens, account storage dumps or executables.
+
+  - type: textarea
+    id: enhancer_logs
+    attributes:
+      label: Enhancer logs (recommended)
+      description: Right after the failure, click **Copy logs to clipboard** in the WandEnhancer window and paste the text here.
 
   - type: textarea
     id: bug_description

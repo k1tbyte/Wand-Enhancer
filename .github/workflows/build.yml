@@ -10,7 +10,7 @@ on:
         default: false
   pull_request:
   push:
-    branches: [master, 'feature/rc_*']
+    branches: [master]
 
 jobs:
   build:
