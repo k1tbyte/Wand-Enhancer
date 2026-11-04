@@ -107,6 +107,8 @@ try {
     foreach ($path in $autoPatchConfig, (Join-Path $scratch 'launcher.log'), (Join-Path $scratch 'launcher.prev.log')) {
         [IO.File]::WriteAllText($path, 'fixture')
     }
+    $watcherExe = Join-Path $scratch 'WandEnhancerWatcher.exe'
+    [IO.File]::WriteAllText($watcherExe, 'fixture')
 
     # Restore can only target this fixture's unique process name and scratch Squirrel root.
     Assert-Equal ([Diagnostics.Process]::GetProcessesByName($config.BrandName).Length) 0 'Fixture process isolation'
@@ -116,10 +118,26 @@ try {
     }
     Assert-Equal ([IO.File]::ReadAllText((Join-Path $scratch 'FixtureClient.exe'))) 'original launcher' 'Restore launcher'
     Assert-Equal (Test-Path $autoPatchConfig) $false 'Restore removes auto-patch config'
+    Assert-Equal (Test-Path $watcherExe) $false 'Restore removes the deployed watcher exe'
     foreach ($log in 'launcher.log', 'launcher.prev.log') {
         Assert-Equal (Test-Path (Join-Path $scratch $log)) $true "Restore keeps $log"
     }
     Assert-Equal ($isPatched.Invoke($null, $installArgument)) $false 'Restored installation'
+
+    # A watcher exe still locked by its exiting process must not fail an otherwise complete Restore.
+    [IO.File]::WriteAllText($backup, 'original archive')
+    [IO.Directory]::CreateDirectory($unpackedBackup) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $unpackedBackup 'original.txt'), 'original unpacked')
+    [IO.File]::WriteAllText($watcherExe, 'fixture')
+    $watcherLock = [IO.File]::Open($watcherExe, 'Open', 'Read', 'None')
+    try {
+        $enhancerType.GetMethod('Restore').Invoke($enhancer, $null) | Out-Null
+    }
+    finally {
+        $watcherLock.Dispose()
+    }
+    Assert-Equal (Test-Path $backup) $false 'Restore completes while the watcher exe is locked'
+    Assert-Equal (Test-Path $watcherExe) $true 'A locked watcher exe is left in place'
 
     # A lock while restoring the pristine files must trigger the rollback, not leave a half-emptied tree.
     [IO.File]::WriteAllText($asar, 'original archive')
