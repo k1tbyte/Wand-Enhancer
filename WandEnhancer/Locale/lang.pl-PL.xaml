@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">Katalog WeMod znaleziony w {0} ({1})</s:String>
     <s:String x:Key="log_already_patched">WeMod został już zaktualizowany. Jeśli chcesz zaktualizować ponownie, najpierw przywróć kopię zapasową.</s:String>
     <s:String x:Key="log_ready">Gotowy do aktualizacji (patchowania).</s:String>
+    <s:String x:Key="log_newer_version">Nowsza wersja Wand ({0}) jest zainstalowana w {1}; ten wybór poprawia tylko starszą wersję.</s:String>
     <s:String x:Key="log_install_not_found">Nie znaleziono katalogu WeMod.</s:String>
     <s:String x:Key="log_no_directory">Nie można tego zrobić. Proszę najpierw określić katalog.</s:String>
     <s:String x:Key="log_invalid_directory">Wybrany folder {0} nie jest prawidłowym katalogiem WeMod.</s:String>

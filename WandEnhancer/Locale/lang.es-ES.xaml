@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">Directorio de WeMod encontrado en {0} ({1})</s:String>
     <s:String x:Key="log_already_patched">WeMod ya está parcheado. Si quieres parchear de nuevo, restaura la copia de seguridad primero.</s:String>
     <s:String x:Key="log_ready">Listo para parchear.</s:String>
+    <s:String x:Key="log_newer_version">Hay una versión más reciente de Wand ({0}) instalada en {1}; esta selección solo aplica el parche a la versión anterior.</s:String>
     <s:String x:Key="log_install_not_found">Directorio de WeMod no encontrado.</s:String>
     <s:String x:Key="log_no_directory">No se puede realizar. Por favor, especifica el directorio primero.</s:String>
     <s:String x:Key="log_invalid_directory">La carpeta seleccionada {0} no es un directorio de WeMod válido.</s:String>

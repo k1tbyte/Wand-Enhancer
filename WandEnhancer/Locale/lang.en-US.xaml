@@ -63,6 +63,7 @@
     <s:String x:Key="log_install_found">WeMod directory found at {0} ({1})</s:String>
     <s:String x:Key="log_already_patched">WeMod already patched. If you want to patch again, please restore the backup first.</s:String>
     <s:String x:Key="log_ready">Ready for patching.</s:String>
+    <s:String x:Key="log_newer_version">A newer Wand version ({0}) is installed at {1}; this selection only patches the older version.</s:String>
     <s:String x:Key="log_install_not_found">WeMod directory not found.</s:String>
     <s:String x:Key="log_no_directory">Cant be done. Please specify the directory first.</s:String>
     <s:String x:Key="log_invalid_directory">The selected folder {0} is not a valid WeMod directory.</s:String>

@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">WeMod dizini {0} konumunda bulundu ({1})</s:String>
     <s:String x:Key="log_already_patched">WeMod zaten yamanmış. Tekrar yamamak istiyorsanız, lütfen önce yedeği geri yükleyin.</s:String>
     <s:String x:Key="log_ready">Yama işlemi için hazır.</s:String>
+    <s:String x:Key="log_newer_version">Daha yeni bir Wand sürümü ({0}) {1} konumunda kurulu; bu seçim yalnızca eski sürümü yamalar.</s:String>
     <s:String x:Key="log_install_not_found">WeMod dizini bulunamadı.</s:String>
     <s:String x:Key="log_no_directory">İşlem yapılamıyor. Lütfen önce dizini belirtin.</s:String>
     <s:String x:Key="log_invalid_directory">Seçilen {0} klasörü geçerli bir WeMod dizini değil.</s:String>

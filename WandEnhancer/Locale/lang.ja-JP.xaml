@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">WeModディレクトリが {0} ({1}) に見つかりました</s:String>
     <s:String x:Key="log_already_patched">WeModは既にパッチが適用されています。もう一度パッチを適用する場合は、まずバックアップを復元してください。</s:String>
     <s:String x:Key="log_ready">パッチ適用の準備ができました。</s:String>
+    <s:String x:Key="log_newer_version">新しいバージョンの Wand ({0}) が {1} にインストールされています。この選択では古いバージョンのみにパッチが適用されます。</s:String>
     <s:String x:Key="log_install_not_found">WeModディレクトリが見つかりません。</s:String>
     <s:String x:Key="log_no_directory">実行できません。先にディレクトリを指定してください。</s:String>
     <s:String x:Key="log_invalid_directory">選択したフォルダ {0} は有効なWeModディレクトリではありません。</s:String>

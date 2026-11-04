@@ -421,6 +421,12 @@ namespace WandEnhancer.Core
             // launcher.log stays: bug reports ask for it and Restore is what users run right after a failure.
             DeleteAutoPatchConfig();
 
+            string watcherPath = Path.Combine(SquirrelRoot, Services.WatcherAutostart.WatcherFileName);
+            if (File.Exists(watcherPath))
+            {
+                File.Delete(watcherPath);
+            }
+
             string markerPath = Path.Combine(Path.GetDirectoryName(_asarPath), IncompletePatchMarkerFileName);
             if (File.Exists(markerPath))
             {

@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">在 {0} ({1}) 找到 WeMod 目录</s:String>
     <s:String x:Key="log_already_patched">WeMod 已经修补过。如果想再次修补，请先恢复备份。</s:String>
     <s:String x:Key="log_ready">准备修补。</s:String>
+    <s:String x:Key="log_newer_version">检测到已安装更新的 Wand 版本 ({0})，位于 {1}；当前选择只会修补旧版本。</s:String>
     <s:String x:Key="log_install_not_found">未找到 WeMod 目录。</s:String>
     <s:String x:Key="log_no_directory">无法执行。请先指定目录。</s:String>
     <s:String x:Key="log_invalid_directory">选择的文件夹 {0} 不是有效的 WeMod 目录。</s:String>
