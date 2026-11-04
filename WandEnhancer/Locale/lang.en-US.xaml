@@ -52,6 +52,7 @@
     <s:String x:Key="pv_add_js_scripts">Add .js</s:String>
     <s:String x:Key="pv_custom_scripts_hint">Selected .js files are packed into Wand and loaded in the renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">No scripts selected</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">Custom scripts need remote access. Turn it on, or the scripts will be skipped.</s:String>
     <s:String x:Key="pv_start">Start</s:String>
     <s:String x:Key="pv_auto_apply">Auto-apply after updates</s:String>
     <s:String x:Key="pv_popup_title">What are we gonna enhance?</s:String>

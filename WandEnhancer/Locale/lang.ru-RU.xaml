@@ -35,6 +35,7 @@
     <s:String x:Key="pv_add_js_scripts">Добавить .js</s:String>
     <s:String x:Key="pv_custom_scripts_hint">Выбранные .js попадут в Wand и загрузятся в renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Скрипты не выбраны</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">Свои скрипты работают только с Remote-доступом. Включите его, иначе скрипты не попадут в Wand.</s:String>
     <s:String x:Key="pv_start">Начать</s:String>
     <s:String x:Key="pv_auto_apply">Авто-патч после обновлений</s:String>
     <s:String x:Key="pv_popup_title">Что будем улучшать?</s:String>

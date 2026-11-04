@@ -43,6 +43,7 @@
     <s:String x:Key="pv_add_js_scripts">.js যোগ করুন</s:String>
     <s:String x:Key="pv_custom_scripts_hint">নির্বাচিত .js ফাইলগুলো Wand-এ প্যাক করে renderer-এ লোড করা হবে।</s:String>
     <s:String x:Key="pv_no_custom_scripts">কোনও স্ক্রিপ্ট নির্বাচিত নেই</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">কাস্টম স্ক্রিপ্টের জন্য রিমোট অ্যাক্সেস প্রয়োজন। এটি চালু করুন, নইলে স্ক্রিপ্টগুলো বাদ দেওয়া হবে।</s:String>
     <s:String x:Key="pv_start">শুরু করুন</s:String>
     <s:String x:Key="pv_auto_apply">আপডেটের পর স্বয়ংক্রিয়ভাবে প্রয়োগ করুন</s:String>
     <s:String x:Key="pv_popup_title">আমরা কী উন্নত করব?</s:String>

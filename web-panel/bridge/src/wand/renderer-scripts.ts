@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const {
     RENDERER_INJECTION_DELAYS_MS,
@@ -8,13 +9,23 @@ const {
 } = require('../constants');
 const { writeInstallLog } = require('../logger');
 
-import type { BridgeOptions, ElectronPort, WebContentsPort } from '../types';
+import type { BridgeOptions, ElectronPort, LogLevel, WebContentsPort } from '../types';
 
 declare global {
     var __wandRemoteBridgeRendererScriptsInstalled: boolean | undefined;
 }
 
-function loadRendererScripts(panelRoot: string, scriptsRoot?: string) {
+type RendererScript = { name: string; source: string };
+type InstallLog = (level: LogLevel, message: string, error?: unknown) => void;
+
+// Lines wrapRendererScript puts before the source, so compile errors point at the script's own lines.
+const WRAPPER_LINES_BEFORE_SOURCE = 3;
+
+function loadRendererScripts(
+    panelRoot: string,
+    scriptsRoot?: string,
+    log: InstallLog = writeInstallLog,
+): RendererScript[] {
     const root = scriptsRoot || path.join(panelRoot, RENDERER_SCRIPTS_DIR);
     if (!fs.existsSync(root)) {
         return [];
@@ -24,13 +35,54 @@ function loadRendererScripts(panelRoot: string, scriptsRoot?: string) {
         .readdirSync(root)
         .filter((name: string) => name.endsWith('.js'))
         .sort((left: string, right: string) => left.localeCompare(right))
-        .map((name: string) => ({
-            name,
-            source: fs.readFileSync(path.join(root, name), 'utf8'),
-        }));
+        .map((name: string) =>
+            replaceIfUncompilable(
+                { name, source: fs.readFileSync(path.join(root, name), 'utf8') },
+                log,
+            ),
+        );
 }
 
-function buildRendererBootstrap(remoteUrl: string, scripts: { name: string; source: string }[]) {
+/**
+ * All scripts share one injected bootstrap, so a script that does not parse would stop every other one.
+ * It is swapped for a warning that also reaches the Wand DevTools console.
+ */
+function replaceIfUncompilable(script: RendererScript, log: InstallLog): RendererScript {
+    try {
+        new vm.Script(wrapRendererScript(script), {
+            filename: script.name,
+            lineOffset: -WRAPPER_LINES_BEFORE_SOURCE,
+        });
+        return script;
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        // V8 puts "<filename>:<line>" first in a compile error's stack.
+        const firstStackLine = error instanceof Error ? error.stack?.split('\n')[0] : undefined;
+        const location = firstStackLine?.startsWith(script.name) ? firstStackLine : script.name;
+        const message = `Renderer script ${location} skipped, it does not compile: ${reason}`;
+        log('warn', message);
+        return {
+            name: script.name,
+            source: `console.warn(${JSON.stringify(`[wand-remote-bridge] ${message}`)});`,
+        };
+    }
+}
+
+function wrapRendererScript(script: RendererScript) {
+    const tag = JSON.stringify(`wand-enhancer-script-${script.name}`);
+    return `
+      ;(function (WandEnhancer) {
+        try {
+          ${script.source}
+        } catch (error) {
+          try { console.warn("[wand-remote-bridge] Renderer script failed", ${JSON.stringify(script.name)}, error); } catch (_) {}
+        }
+      })(globalThis.WandEnhancer);
+      //# sourceURL=${tag.slice(1, -1)}
+    `;
+}
+
+function buildRendererBootstrap(remoteUrl: string, scripts: RendererScript[]) {
     const header = `
     globalThis.__wandRemoteBridgeUrl = ${JSON.stringify(remoteUrl)};
     if (!globalThis.WandEnhancer) {
@@ -45,21 +97,7 @@ function buildRendererBootstrap(remoteUrl: string, scripts: { name: string; sour
     console.info("[wand-remote-bridge] Renderer bootstrap (" + ${scripts.length} + " script(s)).");
   `;
 
-    const body = scripts
-        .map((script) => {
-            const tag = JSON.stringify(`wand-enhancer-script-${script.name}`);
-            return `
-      ;(function (WandEnhancer) {
-        try {
-          ${script.source}
-        } catch (error) {
-          try { console.warn("[wand-remote-bridge] Renderer script failed", ${JSON.stringify(script.name)}, error); } catch (_) {}
-        }
-      })(globalThis.WandEnhancer);
-      //# sourceURL=${tag.slice(1, -1)}
-    `;
-        })
-        .join('\n');
+    const body = scripts.map(wrapRendererScript).join('\n');
 
     return `(() => {\n${header}\n${body}\n})();`;
 }

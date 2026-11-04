@@ -34,6 +34,11 @@ namespace WandEnhancer.Core.Patching.Content
         {
             if (!patchTypes.Contains(EPatchType.RemoteWebPanelPreview))
             {
+                if (customScriptPaths != null && customScriptPaths.Any())
+                {
+                    _logger("[ENHANCER] Custom scripts skipped: they are loaded by the remote access patch, which is off.", ELogType.Warn);
+                }
+
                 return;
             }
 
