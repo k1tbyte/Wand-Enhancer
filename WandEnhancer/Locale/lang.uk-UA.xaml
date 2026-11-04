@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">Зроблено з ❤️ by k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Поставте зірку, якщо це було корисно ;)</s:String>
     <s:String x:Key="mw_copy_logs">Скопіювати логи до буфера обміну</s:String>
+    <s:String x:Key="mw_copy_diagnostics">Скопіювати діагностику для звіту про помилку</s:String>
+    <s:String x:Key="mw_redetect">Повторно визначити встановлення Wand</s:String>
     <s:String x:Key="mw_export_logs">Експортувати логи у файл</s:String>
     <!--#endregion -->
 

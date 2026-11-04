@@ -19,13 +19,39 @@ namespace WandEnhancer.View.Popups
         private readonly Action<PatchConfig> _onApply;
         private readonly ObservableCollection<SelectedScript> _selectedScripts = new ObservableCollection<SelectedScript>();
 
-        public PatchVectorsPopup(Action<PatchConfig> onApply)
+        public PatchVectorsPopup(Action<PatchConfig> onApply, PatchConfig saved = null)
         {
             _onApply = onApply;
             InitializeComponent();
             ScriptList.ItemsSource = _selectedScripts;
             LoadStrategies();
+            if (saved != null)
+            {
+                ApplySaved(saved);
+            }
             UpdateScriptsEmptyState();
+        }
+
+        private void ApplySaved(PatchConfig saved)
+        {
+            var types = saved.PatchTypes ?? new HashSet<EPatchType>();
+            ActivateProBox.IsChecked = types.Contains(EPatchType.ActivatePro);
+            DisableUpdateBox.IsChecked = types.Contains(EPatchType.DisableUpdates);
+            DevToolsHotkeyBox.IsChecked = types.Contains(EPatchType.DevToolsOnF12);
+            RemoteWebPanelPreviewBox.IsChecked = types.Contains(EPatchType.RemoteWebPanelPreview);
+            AutoApplyBox.IsChecked = saved.AutoApplyAfterUpdate;
+
+            var match = (StrategyComboBox.ItemsSource as System.Collections.Generic.IEnumerable<StrategyItem>)
+                ?.FirstOrDefault(item => item.Strategy == saved.Strategy);
+            if (match != null)
+            {
+                StrategyComboBox.SelectedItem = match;
+            }
+
+            foreach (var path in (saved.CustomScriptPaths ?? new List<string>()).Where(WeModInstalls.IsJavaScriptFile))
+            {
+                AddScript(path);
+            }
         }
 
         private void LoadStrategies()

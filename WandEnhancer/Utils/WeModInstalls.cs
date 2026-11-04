@@ -47,16 +47,29 @@ namespace WandEnhancer.Utils
                 return config;
             }
 
+            return TryFindLatestWeMod(path);
+        }
+
+        /// <summary>
+        /// The newest install in the current one's Squirrel root (an update may have added it), else the current
+        /// one while it is still valid, which covers a hand-picked folder that is not an <c>app-*</c> folder.
+        /// </summary>
+        public static WeModConfig Rescan(string squirrelRoot, WeModConfig current) =>
+            TryFindLatestWeMod(squirrelRoot) ?? CheckWeModPath(current.RootDirectory);
+
+        /// <summary>A root that cannot be listed is not an install and must not abort a scan of the others.</summary>
+        private static WeModConfig TryFindLatestWeMod(string root)
+        {
             try
             {
-                return FindLatestWeMod(path);
+                return FindLatestWeMod(root);
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException)
             {
                 return null;
             }
         }
-        
+
         public static WeModConfig FindWeMod()
         {
             string localAppDataPath = Environment.GetEnvironmentVariable("LOCALAPPDATA");
@@ -73,7 +86,7 @@ namespace WandEnhancer.Utils
 
                     // Keep scanning the other brand folders if this one has no valid
                     // install instead of giving up on the first folder that exists.
-                    var config = FindLatestWeMod(weModDir);
+                    var config = TryFindLatestWeMod(weModDir);
                     if (config != null)
                     {
                         return config;

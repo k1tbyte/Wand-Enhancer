@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">Creato con ❤️ da k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Metti una stella se ti è stato utile ;)</s:String>
     <s:String x:Key="mw_copy_logs">Copia i log negli appunti</s:String>
+    <s:String x:Key="mw_copy_diagnostics">Copia informazioni diagnostiche per le segnalazioni di bug</s:String>
+    <s:String x:Key="mw_redetect">Rileva di nuovo l'installazione di Wand</s:String>
     <s:String x:Key="mw_export_logs">Esporta i log su file</s:String>
     <!--#endregion -->
 
