@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">Made with ❤️ by k1tbyte</s:String>
     <s:String x:Key="mw_star_hint">Put a star if you found this helpful ;)</s:String>
     <s:String x:Key="mw_copy_logs">Copy logs to clipboard</s:String>
+    <s:String x:Key="mw_copy_diagnostics">Copy diagnostics for bug reports</s:String>
+    <s:String x:Key="mw_redetect">Re-detect the Wand install</s:String>
     <s:String x:Key="mw_export_logs">Export logs to file</s:String>
     <s:String x:Key="mw_update_badge">New version available</s:String>
     <!--#endregion -->

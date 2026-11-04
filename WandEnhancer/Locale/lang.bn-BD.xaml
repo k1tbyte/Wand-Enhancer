@@ -12,6 +12,8 @@
     <s:String x:Key="mw_made_by">k1tbyte-এর ❤️ দিয়ে তৈরি</s:String>
     <s:String x:Key="mw_star_hint">সহায়ক মনে হলে একটি স্টার দিন ;)</s:String>
     <s:String x:Key="mw_copy_logs">লগ ক্লিপবোর্ডে কপি করুন</s:String>
+    <s:String x:Key="mw_copy_diagnostics">বাগ রিপোর্টের জন্য ডায়াগনস্টিকস কপি করুন</s:String>
+    <s:String x:Key="mw_redetect">Wand ইনস্টলেশন পুনরায় সনাক্ত করুন</s:String>
     <s:String x:Key="mw_export_logs">লগ ফাইলে রপ্তানি করুন</s:String>
     <s:String x:Key="mw_update_badge">নতুন সংস্করণ উপলব্ধ</s:String>
 

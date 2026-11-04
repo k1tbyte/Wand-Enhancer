@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">由 k1tbyte 用 ❤️ 制作</s:String>
     <s:String x:Key="mw_star_hint">如果这对您有帮助，请给个星标 ;)</s:String>
     <s:String x:Key="mw_copy_logs">复制日志到剪贴板</s:String>
+    <s:String x:Key="mw_copy_diagnostics">复制诊断信息用于提交问题</s:String>
+    <s:String x:Key="mw_redetect">重新检测 Wand 安装</s:String>
     <s:String x:Key="mw_export_logs">将日志导出到文件</s:String>
     <!--#endregion -->
 
