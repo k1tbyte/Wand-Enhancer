@@ -44,6 +44,19 @@ namespace WandEnhancer.View.MainWindow
 
             Log(LocalizationManager.Get(AlreadyPatched ? "log_already_patched" : "log_ready"),
                 AlreadyPatched ? ELogType.Warn : ELogType.Info);
+
+            try
+            {
+                var newer = WeModInstalls.FindNewerInstall(LauncherDeployment.SquirrelRootOf(config), config);
+                if (newer != null)
+                {
+                    Log(LocalizationManager.Format("log_newer_version",
+                        Path.GetFileName(newer.RootDirectory), newer.RootDirectory), ELogType.Warn);
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException)
+            {
+            }
         }
 
         private bool _isPatchEnabled;

@@ -141,7 +141,7 @@ namespace WandEnhancer.Utils
 
         private static readonly Regex AppFolderVersion = new Regex(@"^app-(\d+(?:\.\d+){1,3})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        private static Version ParseFolderVersion(string folderName)
+        public static Version ParseFolderVersion(string folderName)
         {
             var match = AppFolderVersion.Match(folderName);
             if (match.Success && Version.TryParse(match.Groups[1].Value, out var version))
@@ -170,6 +170,19 @@ namespace WandEnhancer.Utils
 
             return appFolders
                 .Select(folder => CheckWeModPath(folder.Path))
+                .FirstOrDefault(config => config != null);
+        }
+
+        public static WeModConfig FindNewerInstall(string squirrelRoot, WeModConfig current)
+        {
+            var currentVersion = ParseFolderVersion(Path.GetFileName(current.RootDirectory));
+            return Directory.EnumerateDirectories(squirrelRoot)
+                .Select(folderPath => new DirectoryInfo(folderPath))
+                .Where(dirInfo => Regex.IsMatch(dirInfo.Name, @"^app-\w+"))
+                .Select(dirInfo => new { Path = dirInfo.FullName, Version = ParseFolderVersion(dirInfo.Name) })
+                .Where(item => item.Version.CompareTo(currentVersion) > 0)
+                .OrderByDescending(item => item.Version)
+                .Select(item => CheckWeModPath(item.Path))
                 .FirstOrDefault(config => config != null);
         }
     }

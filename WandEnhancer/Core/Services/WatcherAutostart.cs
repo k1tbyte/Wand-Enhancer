@@ -16,7 +16,7 @@ namespace WandEnhancer.Core.Services
     /// </summary>
     internal static class WatcherAutostart
     {
-        private const string WatcherFileName = "WandEnhancerWatcher.exe";
+        internal const string WatcherFileName = "WandEnhancerWatcher.exe";
         private const string RunValueNamePrefix = "WandEnhancerWatcher_";
         private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -70,6 +70,13 @@ namespace WandEnhancer.Core.Services
                 string squirrelRoot = LauncherDeployment.SquirrelRootOf(install);
                 UnregisterRunKey(install);
                 UpdateWatcherService.Stop(squirrelRoot);
+
+                string watcherPath = Path.Combine(squirrelRoot, WatcherFileName);
+                if (File.Exists(watcherPath) &&
+                    !string.Equals(OwnImagePath, watcherPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(watcherPath);
+                }
             }
             catch (Exception)
             {

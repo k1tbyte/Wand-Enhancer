@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">Директория WeMod найдена в {0} ({1})</s:String>
     <s:String x:Key="log_already_patched">WeMod уже пропатчен. Если вы хотите пропатчить снова, сначала восстановите резервную копию.</s:String>
     <s:String x:Key="log_ready">Готово к патчингу.</s:String>
+    <s:String x:Key="log_newer_version">Установлена более новая версия Wand ({0}) в {1}; выбранный вариант обновляет только старую версию.</s:String>
     <s:String x:Key="log_install_not_found">Директория WeMod не найдена.</s:String>
     <s:String x:Key="log_no_directory">Невозможно выполнить. Пожалуйста, сначала укажите директорию.</s:String>
     <s:String x:Key="log_invalid_directory">Выбранная папка {0} не является допустимой директорией WeMod.</s:String>
