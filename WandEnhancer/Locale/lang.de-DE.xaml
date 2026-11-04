@@ -46,6 +46,7 @@
     <s:String x:Key="log_install_found">WeMod-Verzeichnis unter {0} ({1}) gefunden</s:String>
     <s:String x:Key="log_already_patched">WeMod ist bereits gepatcht. Wenn Sie erneut patchen möchten, stellen Sie bitte zuerst das Backup wieder her.</s:String>
     <s:String x:Key="log_ready">Bereit zum Patchen.</s:String>
+    <s:String x:Key="log_newer_version">Eine neuere Wand-Version ({0}) ist unter {1} installiert; diese Auswahl patcht nur die ältere Version.</s:String>
     <s:String x:Key="log_install_not_found">WeMod-Verzeichnis nicht gefunden.</s:String>
     <s:String x:Key="log_no_directory">Vorgang nicht möglich. Bitte geben Sie zuerst das Verzeichnis an.</s:String>
     <s:String x:Key="log_invalid_directory">Der ausgewählte Ordner {0} ist kein gültiges WeMod-Verzeichnis.</s:String>
