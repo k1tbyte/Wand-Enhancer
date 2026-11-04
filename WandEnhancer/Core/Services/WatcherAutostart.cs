@@ -70,10 +70,31 @@ namespace WandEnhancer.Core.Services
                 string squirrelRoot = LauncherDeployment.SquirrelRootOf(install);
                 UnregisterRunKey(install);
                 UpdateWatcherService.Stop(squirrelRoot);
+                RemoveDeployed(squirrelRoot);
             }
             catch (Exception)
             {
                 // Best-effort: nothing left to clean up if the registry/root can't be reached.
+            }
+        }
+
+        /// <summary>Never throws: a watcher still shutting down (or a scanner) keeps its exe locked, which must not fail a Restore.</summary>
+        public static void RemoveDeployed(string squirrelRoot, Action<string, ELogType> log = null)
+        {
+            string watcherPath = Path.Combine(squirrelRoot, WatcherFileName);
+            if (!File.Exists(watcherPath) ||
+                string.Equals(OwnImagePath, watcherPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            try
+            {
+                File.Delete(watcherPath);
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
+                log?.Invoke($"[ENHANCER] Could not remove {WatcherFileName}: {e.Message}", ELogType.Warn);
             }
         }
 

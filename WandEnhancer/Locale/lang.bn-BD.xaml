@@ -51,6 +51,7 @@
     <s:String x:Key="log_install_found">Wand ডিরেক্টরি পাওয়া গেছে: {0} ({1})</s:String>
     <s:String x:Key="log_already_patched">Wand ইতিমধ্যে প্যাচ করা হয়েছে। আবার প্যাচ করতে আগে ব্যাকআপ পুনরুদ্ধার করুন।</s:String>
     <s:String x:Key="log_ready">প্যাচ করার জন্য প্রস্তুত।</s:String>
+    <s:String x:Key="log_newer_version">একটি নতুন Wand সংস্করণ ({0}) {1}-এ ইনস্টল করা আছে; এই নির্বাচনটি কেবল পুরনো সংস্করণে প্যাচ প্রয়োগ করবে।</s:String>
     <s:String x:Key="log_install_not_found">Wand ডিরেক্টরি পাওয়া যায়নি।</s:String>
     <s:String x:Key="log_no_directory">এটি করা যাচ্ছে না। আগে ডিরেক্টরি নির্দিষ্ট করুন।</s:String>
     <s:String x:Key="log_invalid_directory">নির্বাচিত ফোল্ডার {0} বৈধ Wand এর অবস্থান নয়।</s:String>
