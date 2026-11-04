@@ -90,7 +90,7 @@ You can inject your own JavaScript into Wand at patch time. Scripts use the same
 To add a script, pick one or more `.js` files in the patch dialog (only existing `.js` files are accepted), or put them in a `renderer-scripts/` folder next to the patcher executable. Then patch as usual and the scripts are bundled into the client.
 
 - Each script runs in Wand's renderer with full DOM access and Node `require`.
-- A thrown error is logged and never crashes Wand.
+- A thrown error is logged and never crashes Wand. A script with a syntax error is skipped with a warning in the DevTools console that names its file and line; the other scripts still run.
 - A script can run more than once per launch (on load and again shortly after), so guard one-time work with a global flag.
 - A small `WandEnhancer` helper is available: `WandEnhancer.log(...)`, `WandEnhancer.remoteUrl` and `WandEnhancer.apiVersion`. See [web-panel/scripts/custom](web-panel/scripts/custom) for an example.
 

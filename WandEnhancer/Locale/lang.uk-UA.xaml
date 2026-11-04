@@ -35,6 +35,7 @@
     <s:String x:Key="pv_add_js_scripts">Додати .js</s:String>
     <s:String x:Key="pv_custom_scripts_hint">Вибрані файли .js пакуються у Wand і завантажуються в рендерері.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Скрипти не вибрано</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">Користувацькі скрипти працюють лише з віддаленим доступом. Увімкніть його, інакше скрипти буде пропущено.</s:String>
     <s:String x:Key="pv_start">Почати</s:String>
     <s:String x:Key="pv_auto_apply">Автоматично застосовувати після оновлень</s:String>
     <s:String x:Key="pv_patch_method">Метод патчу</s:String>

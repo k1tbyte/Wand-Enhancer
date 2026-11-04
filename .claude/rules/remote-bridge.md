@@ -12,6 +12,8 @@ paths:
 - The protocol never carries the Wand bearer token or installation paths.
 - The bridge is TypeScript under `web-panel/bridge/src/`, bundled and minified into `web-panel/dist/bridge.cjs` by `pnpm run build:bridge`. Never copy bridge source into Wand or embed it as ASAR resources.
 - Default renderer script sources are in `web-panel/bridge/scripts/default/` and are bundled into `web-panel/dist/renderer-scripts/` by the same step. Custom scripts come from the patch dialog (`PatchConfig.CustomScriptPaths`, existing `.js` files only). A `renderer-scripts` folder next to the patcher exe is an advanced fallback.
+- Custom scripts ship only with the remote access patch. Without it `RemotePanelInjector` logs a warning and the patch dialog shows one; never drop them silently.
+- All renderer scripts run as one injected bootstrap, so `web-panel/bridge/src/wand/renderer-scripts.ts` compiles each wrapped script with `vm.Script` first and swaps one that does not parse for a console warning with its file and line. A runtime error stays contained by the per-script `try`.
 
 ## Remote popup cleanup
 

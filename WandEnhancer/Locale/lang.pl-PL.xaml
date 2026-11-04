@@ -35,6 +35,7 @@
     <s:String x:Key="pv_add_js_scripts">Dodaj .js</s:String>
     <s:String x:Key="pv_custom_scripts_hint">Wybrane pliki .js są pakowane do Wand i ładowane w rendererze.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Nie wybrano skryptów</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">Skrypty niestandardowe wymagają zdalnego dostępu. Włącz go, inaczej skrypty zostaną pominięte.</s:String>
     <s:String x:Key="pv_start">Rozpocznij</s:String>
     <s:String x:Key="pv_auto_apply">Zastosuj automatycznie po aktualizacji</s:String>
     <s:String x:Key="pv_patch_method">Metoda łatki</s:String>

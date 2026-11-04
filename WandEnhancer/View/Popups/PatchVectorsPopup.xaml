@@ -65,7 +65,8 @@
             <CheckBox Grid.Row="2" Grid.Column="1" x:Name="DisableUpdateBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
 
             <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_remote_web_panel_preview}" />
-            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="RemoteWebPanelPreviewBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
+            <CheckBox Grid.Row="3" Grid.Column="1" x:Name="RemoteWebPanelPreviewBox" HorizontalAlignment="Right" VerticalAlignment="Center"
+                      Checked="OnRemoteAccessToggled" Unchecked="OnRemoteAccessToggled" />
 
             <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{DynamicResource pv_auto_apply}" />
             <CheckBox Grid.Row="4" Grid.Column="1" x:Name="AutoApplyBox" HorizontalAlignment="Right" VerticalAlignment="Center" />
@@ -119,6 +120,10 @@
                     <TextBlock x:Name="NoScriptsText" Margin="0 7 0 0" FontSize="11"
                                Opacity="0.7"
                                Text="{DynamicResource pv_no_custom_scripts}" />
+
+                    <TextBlock x:Name="ScriptsNeedRemoteText" Margin="0 7 0 0" FontSize="11" TextWrapping="Wrap"
+                               Foreground="{DynamicResource Destructive}" Visibility="Collapsed"
+                               Text="{DynamicResource pv_custom_scripts_need_remote}" />
                 </StackPanel>
             </Border>
 

@@ -29,7 +29,7 @@ namespace WandEnhancer.View.Popups
             {
                 ApplySaved(saved);
             }
-            UpdateScriptsEmptyState();
+            UpdateScriptsState();
         }
 
         private void ApplySaved(PatchConfig saved)
@@ -88,7 +88,7 @@ namespace WandEnhancer.View.Popups
                 RemoteWebPanelPreviewBox.IsChecked = true;
             }
 
-            UpdateScriptsEmptyState();
+            UpdateScriptsState();
         }
 
         private void OnRemoveScriptClick(object sender, RoutedEventArgs e)
@@ -101,7 +101,7 @@ namespace WandEnhancer.View.Popups
             }
 
             _selectedScripts.Remove(script);
-            UpdateScriptsEmptyState();
+            UpdateScriptsState();
         }
 
         private void OnPatchButtonClick(object sender, RoutedEventArgs e)
@@ -153,9 +153,18 @@ namespace WandEnhancer.View.Popups
             _selectedScripts.Add(new SelectedScript(fullPath));
         }
 
-        private void UpdateScriptsEmptyState()
+        private void OnRemoteAccessToggled(object sender, RoutedEventArgs e)
+        {
+            UpdateScriptsState();
+        }
+
+        private void UpdateScriptsState()
         {
             NoScriptsText.Visibility = _selectedScripts.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            // The remote access patch is what loads custom scripts; without it they are dropped.
+            ScriptsNeedRemoteText.Visibility = _selectedScripts.Count > 0 && RemoteWebPanelPreviewBox.IsChecked != true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private sealed class StrategyItem

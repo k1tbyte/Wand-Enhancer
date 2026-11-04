@@ -35,6 +35,7 @@
     <s:String x:Key="pv_add_js_scripts">Ajouter .js</s:String>
     <s:String x:Key="pv_custom_scripts_hint">Les fichiers .js sélectionnés sont intégrés dans Wand et chargés dans le renderer.</s:String>
     <s:String x:Key="pv_no_custom_scripts">Aucun script sélectionné</s:String>
+    <s:String x:Key="pv_custom_scripts_need_remote">Les scripts personnalisés nécessitent l'accès à distance. Activez-le, sinon les scripts seront ignorés.</s:String>
     <s:String x:Key="pv_start">Démarrer</s:String>
     <s:String x:Key="pv_auto_apply">Appliquer automatiquement après les mises à jour</s:String>
     <s:String x:Key="pv_patch_method">Méthode de patch</s:String>
