@@ -3,6 +3,21 @@
 This file is the source of truth for release notes.
 The newest entry must match the version in `WandEnhancer/Properties/AssemblyInfo.cs`.
 
+## [2.2.1.0] - 2026-11-04
+
+### Features
+
+- The patch dialog now remembers your last choices (patches, method, auto-apply, custom scripts), and the main window remembers the Wand install. By @w0wzahh in #387.
+- A Re-detect button next to the install path rescans the current install after a Wand update, without restarting the app. By @w0wzahh in #387.
+- A Copy diagnostics button next to the log copies the enhancer version, OS, install path, Wand version and patch state, ready to paste into a bug report. By @w0wzahh in #387.
+
+### Fixes
+
+- Fixed the patcher targeting an old Wand version after an update. The latest install was chosen by the folder's modification time, which a virus scan or the enhancer's own backup can bump on the previous version. It is now chosen by the version in the folder name. By @w0wzahh in #383. #374
+- Restore now removes the deployed `WandEnhancerWatcher.exe`, and a file that is still locked is skipped with a warning instead of failing the Restore. By @w0wzahh in #386.
+- The log now warns when a newer Wand version sits next to the selected one. By @w0wzahh in #386. #374
+- Fixed the web tests failing on a source ZIP download, which stopped the build at "Test web-panel". #384
+
 ## [2.2.0.0] - 2026-11-01
 
 ### Features
