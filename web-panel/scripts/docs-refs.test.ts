@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from 'node:child_process';
-import { existsSync, globSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { matchesGlob } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,13 +14,23 @@ const NOT_A_PATH = /^[@#/]|^https?:|[<>*{}()=|]|\.\.\./;
 const GENERATED = /^web-panel\/dist(?:\/|$)/;
 
 // Untracked files count, so a rule and the file it names can land before `git add`.
-const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    maxBuffer: 1 << 26,
-})
-    .split('\n')
-    .filter((file) => file !== '' && existsSync(`${ROOT}${file}`));
+// A source archive has no .git: this guard is for maintainers and CI, so it skips there instead of failing the build.
+function listFiles(): string[] {
+    try {
+        return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
+            cwd: ROOT,
+            encoding: 'utf8',
+            maxBuffer: 1 << 26,
+            stdio: ['ignore', 'pipe', 'ignore'],
+        })
+            .split('\n')
+            .filter((file) => file !== '' && existsSync(`${ROOT}${file}`));
+    } catch {
+        return [];
+    }
+}
+
+const files = listFiles();
 
 // Rules shorten paths (`Core/Js/JsCursor.cs`), so a reference holds when any path contains it.
 const known = new Set<string>();
@@ -33,9 +43,12 @@ for (const file of files) {
     }
 }
 
-const RULES = globSync('.claude/rules/*.md', { cwd: ROOT }).map((file) =>
-    file.replaceAll('\\', '/'),
-);
+const RULES_DIR = '.claude/rules';
+const RULES = existsSync(`${ROOT}${RULES_DIR}`)
+    ? readdirSync(`${ROOT}${RULES_DIR}`)
+          .filter((name) => name.endsWith('.md'))
+          .map((name) => `${RULES_DIR}/${name}`)
+    : [];
 const DOCS = ['CLAUDE.md', ...RULES];
 
 const read = (file: string) => readFileSync(`${ROOT}${file}`, 'utf8').replaceAll('\r\n', '\n');
@@ -58,7 +71,7 @@ function pathGlobs(src: string): string[] {
     return [...front.matchAll(/^\s+-\s+'([^']+)'/gm)].map((match) => match[1] ?? '');
 }
 
-describe('agent docs', () => {
+describe.skipIf(files.length === 0)('agent docs', () => {
     test('there are rules to check', () => {
         expect(RULES.length).toBeGreaterThan(0);
     });
