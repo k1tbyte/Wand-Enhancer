@@ -139,6 +139,19 @@ namespace WandEnhancer.Utils
                    && string.Equals(Path.GetExtension(path), JavaScriptFileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
+        private static readonly Regex AppFolderVersion = new Regex(@"^app-(\d+(?:\.\d+){1,3})", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static Version ParseFolderVersion(string folderName)
+        {
+            var match = AppFolderVersion.Match(folderName);
+            if (match.Success && Version.TryParse(match.Groups[1].Value, out var version))
+            {
+                return version;
+            }
+
+            return new Version(0, 0);
+        }
+
         public static WeModConfig FindLatestWeMod(string root)
         {
             var appFolders = Directory.EnumerateDirectories(root)
@@ -148,11 +161,12 @@ namespace WandEnhancer.Utils
                 {
                     Name = dirInfo.Name,
                     Path = dirInfo.FullName,
+                    Version = ParseFolderVersion(dirInfo.Name),
                     LastModified = dirInfo.LastWriteTime
                 })
-                .OrderByDescending(item => item.LastModified)
+                .OrderByDescending(item => item.Version)
+                .ThenByDescending(item => item.LastModified)
                 .ToList();
-            
 
             return appFolders
                 .Select(folder => CheckWeModPath(folder.Path))
