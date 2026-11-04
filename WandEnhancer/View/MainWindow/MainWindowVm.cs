@@ -35,6 +35,9 @@ namespace WandEnhancer.View.MainWindow
             WeModInfo = config;
             if (config == null)
             {
+                AlreadyPatched = false;
+                CanRestore = false;
+                IsPatchEnabled = false;
                 return;
             }
 
@@ -46,16 +49,18 @@ namespace WandEnhancer.View.MainWindow
             Log(LocalizationManager.Get(AlreadyPatched ? "log_already_patched" : "log_ready"),
                 AlreadyPatched ? ELogType.Warn : ELogType.Info);
 
+            // The root, not the app-* folder: Squirrel keeps the previous version folder, which would pin the old version after an update.
+            string squirrelRoot = LauncherDeployment.SquirrelRootOf(config);
             var settings = SettingsManager.LoadSettings() ?? new AppSettings();
-            if (settings.LastInstallPath != config.RootDirectory)
+            if (settings.LastInstallPath != squirrelRoot)
             {
-                settings.LastInstallPath = config.RootDirectory;
+                settings.LastInstallPath = squirrelRoot;
                 SettingsManager.SaveSettings(settings);
             }
 
             try
             {
-                var newer = WeModInstalls.FindNewerInstall(LauncherDeployment.SquirrelRootOf(config), config);
+                var newer = WeModInstalls.FindNewerInstall(squirrelRoot, config);
                 if (newer != null)
                 {
                     Log(LocalizationManager.Format("log_newer_version",
@@ -135,7 +140,12 @@ namespace WandEnhancer.View.MainWindow
         /// Picks the install from a folder or from the Wand executable inside one. Ignored while a run or
         /// another pick is active: the install must not change under them.
         /// </summary>
-        public async Task UseInstallPathAsync(string path)
+        public Task UseInstallPathAsync(string path) =>
+            PickInstallAsync(
+                () => WeModInstalls.ResolveInstall(File.Exists(path) ? Path.GetDirectoryName(path) : path),
+                () => Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(path)), ELogType.Error));
+
+        private async Task PickInstallAsync(Func<WeModConfig> resolve, Action onMissing)
         {
             if (IsBusy || _isResolvingInstall)
             {
@@ -146,8 +156,7 @@ namespace WandEnhancer.View.MainWindow
             try
             {
                 // Off the UI thread: a network share or a large folder must not freeze the window, or Explorer waiting on the drop.
-                var info = await Task.Run(() =>
-                    WeModInstalls.ResolveInstall(File.Exists(path) ? Path.GetDirectoryName(path) : path));
+                var info = await Task.Run(resolve);
                 if (IsBusy)
                 {
                     return;
@@ -155,7 +164,7 @@ namespace WandEnhancer.View.MainWindow
 
                 if (info == null)
                 {
-                    Log(LocalizationManager.Format("log_invalid_directory", Path.GetFileName(path)), ELogType.Error);
+                    onMissing();
                     return;
                 }
 
@@ -240,22 +249,18 @@ namespace WandEnhancer.View.MainWindow
             }, SettingsManager.LoadSettings()?.LastPatchConfig), LocalizationManager.Get("pv_popup_title"));
         }
 
-        private void OnRescanInstall(object param)
+        // The current install first, so a manually picked one is rescanned too; the default locations only when it is gone.
+        private async void OnRescanInstall(object param)
         {
-            if (IsBusy || _isResolvingInstall)
-            {
-                return;
-            }
-
-            var info = WeModInstalls.FindWeMod();
-            if (info != null)
-            {
-                UseInstall(info);
-            }
-            else
-            {
-                Log(LocalizationManager.Get("log_install_not_found"), ELogType.Error);
-            }
+            var current = WeModInfo;
+            await PickInstallAsync(
+                () => (current != null ? WeModInstalls.Rescan(LauncherDeployment.SquirrelRootOf(current), current) : null)
+                      ?? WeModInstalls.FindWeMod(),
+                () =>
+                {
+                    UseInstall(null);
+                    Log(LocalizationManager.Get("log_install_not_found"), ELogType.Error);
+                });
         }
 
         private void OnCopyDiagnostics(object param)

@@ -212,6 +212,28 @@ try {
         Assert-Equal ($null -ne $resolved) $true "Resolves $candidate"
         Assert-Equal $resolved.RootDirectory $versionFolder "Resolved root for $candidate"
     }
+
+    # Re-detect moves to the newest install of the root, and keeps a hand-picked folder that is not an app-* folder.
+    $rescan = $assembly.GetType('WandEnhancer.Utils.WeModInstalls', $true).GetMethod('Rescan')
+    $configType = $assembly.GetType('WandEnhancer.Models.WeModConfig', $true)
+    function Invoke-Rescan([string]$Root, [string]$InstallFolder) {
+        $target = [Activator]::CreateInstance($configType)
+        $target.RootDirectory = $InstallFolder
+        $rescan.Invoke($null, [object[]]@($Root, $target))
+    }
+    $olderFolder = Join-Path $squirrelRoot 'app-1.0.0'
+    $portableRoot = Join-Path $scratch 'portable'
+    $portable = Join-Path $portableRoot 'Wand'
+    foreach ($folder in $olderFolder, $portable) {
+        [IO.Directory]::CreateDirectory((Join-Path $folder 'resources')) | Out-Null
+        [IO.File]::WriteAllText((Join-Path $folder 'Wand.exe'), '')
+        [IO.File]::WriteAllText((Join-Path $folder 'resources\app.asar'), '')
+    }
+    $newest = Invoke-Rescan $squirrelRoot $olderFolder
+    Assert-Equal ($null -ne $newest -and $newest.RootDirectory -eq $versionFolder) $true 'Rescan moves to the newest install'
+    $kept = Invoke-Rescan $portableRoot $portable
+    Assert-Equal ($null -ne $kept -and $kept.RootDirectory -eq $portable) $true 'Rescan keeps a valid hand-picked folder'
+    Assert-Equal ($null -eq (Invoke-Rescan $portableRoot (Join-Path $portableRoot 'Gone'))) $true 'Rescan drops an install that is gone'
     foreach ($candidate in $unrelated, (Join-Path $scratch 'missing-folder')) {
         Assert-Equal ($null -eq $resolveInstall.Invoke($null, [object[]]@([string]$candidate))) $true "Rejects $candidate"
     }
