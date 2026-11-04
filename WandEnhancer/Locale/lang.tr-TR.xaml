@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">k1tbyte tarafından ❤️ ile yapıldı</s:String>
     <s:String x:Key="mw_star_hint">Yardımcı olduysa yıldız verin ;)</s:String>
     <s:String x:Key="mw_copy_logs">Günlükleri panoya kopyala</s:String>
+    <s:String x:Key="mw_copy_diagnostics">Hata raporları için tanılama bilgilerini kopyala</s:String>
+    <s:String x:Key="mw_redetect">Wand kurulumunu yeniden algıla</s:String>
     <s:String x:Key="mw_export_logs">Günlükleri dosyaya aktar</s:String>
     <!--#endregion -->
 

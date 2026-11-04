@@ -114,11 +114,21 @@
                 </Grid.RowDefinitions>
                 
                 <Grid Margin="10" Cursor="Hand" Background="Transparent">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <TextBox Style="{StaticResource TitledTextBox}"
                              IsReadOnly="True"
                              Text="{Binding WeModInfo.RootDirectory, Mode=OneWay}"
                              VerticalAlignment="Center">
                     </TextBox>
+                    <Button Grid.Column="1" Width="22" Height="22" Padding="4" Margin="6 0 0 0"
+                            Style="{StaticResource IconButton}"
+                            Tag="{StaticResource RefreshIcon}"
+                            ToolTip="{DynamicResource mw_redetect}"
+                            Command="{Binding RescanInstallCommand}"
+                            VerticalAlignment="Center" />
                     <Grid.InputBindings>
                         <MouseBinding Gesture="LeftClick" Command="{Binding SetFolderPathCommand}" />
                     </Grid.InputBindings>
@@ -175,6 +185,11 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top"
                                         Margin="0 4 4 0">
                                 <Button Width="22" Height="22" Padding="4"
+                                        Style="{StaticResource IconButton}"
+                                        Tag="{StaticResource InfoIcon}"
+                                        ToolTip="{DynamicResource mw_copy_diagnostics}"
+                                        Command="{Binding CopyDiagnosticsCommand}"/>
+                                <Button Width="22" Height="22" Padding="4" Margin="4 0 0 0"
                                         Style="{StaticResource IconButton}"
                                         Tag="{StaticResource CopyIcon}"
                                         ToolTip="{DynamicResource mw_copy_logs}"

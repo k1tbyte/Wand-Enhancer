@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Newtonsoft.Json;
+using WandEnhancer.Models;
 
 namespace WandEnhancer.Core.Services
 {
@@ -11,6 +12,10 @@ namespace WandEnhancer.Core.Services
         public bool CheckUpdates { get; set; } = true;
 
         public bool CheckPrereleases { get; set; }
+
+        public string LastInstallPath { get; set; }
+
+        public PatchConfig LastPatchConfig { get; set; }
     }
     
     public static class SettingsManager

@@ -15,6 +15,8 @@
     <s:String x:Key="mw_made_by">k1tbyte が ❤️ を込めて作成</s:String>
     <s:String x:Key="mw_star_hint">役に立ったらスターをつけてください ;)</s:String>
     <s:String x:Key="mw_copy_logs">ログをクリップボードにコピー</s:String>
+    <s:String x:Key="mw_copy_diagnostics">バグ報告用の診断情報をコピー</s:String>
+    <s:String x:Key="mw_redetect">Wand のインストールを再検出</s:String>
     <s:String x:Key="mw_export_logs">ログをファイルにエクスポート</s:String>
     <!--#endregion -->
 
