@@ -215,6 +215,18 @@ try {
     foreach ($candidate in $unrelated, (Join-Path $scratch 'missing-folder')) {
         Assert-Equal ($null -eq $resolveInstall.Invoke($null, [object[]]@([string]$candidate))) $true "Rejects $candidate"
     }
+
+    # Squirrel keeps the previous version folder and a scan or backup write makes it look newer: rank by version, not mtime.
+    $rankRoot = Join-Path $scratch 'rank-root'
+    foreach ($name in 'app-12.9.0', 'app-12.10.0') {
+        $folder = Join-Path $rankRoot $name
+        [IO.Directory]::CreateDirectory((Join-Path $folder 'resources')) | Out-Null
+        [IO.File]::WriteAllText((Join-Path $folder 'Wand.exe'), '')
+        [IO.File]::WriteAllText((Join-Path $folder 'resources\app.asar'), '')
+    }
+    (Get-Item -LiteralPath (Join-Path $rankRoot 'app-12.9.0')).LastWriteTime = (Get-Date).AddHours(1)
+    $latest = $resolveInstall.Invoke($null, [object[]]@([string]$rankRoot))
+    Assert-Equal $latest.RootDirectory (Join-Path $rankRoot 'app-12.10.0') 'Latest install is the highest version, not the newest folder'
     Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
 }
 finally {
