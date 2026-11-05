@@ -207,7 +207,10 @@ namespace WandEnhancer
         /// <summary>Buffers logs for the UI and mirrors them to disk for headless runs.</summary>
         private static void RecordStartupLog(string message, ELogType type)
         {
-            StartupLog.Add(new KeyValuePair<string, ELogType>(message, type));
+            lock (StartupLog)
+            {
+                StartupLog.Add(new KeyValuePair<string, ELogType>(message, type));
+            }
             LauncherLog.Write(message, type);
         }
         

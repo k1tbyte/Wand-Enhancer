@@ -39,17 +39,18 @@ namespace WandEnhancer.Core.Patching.Content
 
             string localCustomScriptsRoot = FindLocalCustomScriptsPath();
             string targetRoot = Path.Combine(_unpackedPath, RemotePanelDirectoryName);
-            string targetScriptsRoot = Path.Combine(targetRoot, RemoteRendererScriptsDirectoryName);
-            string targetBridgePath = Path.Combine(targetRoot, RemoteBridgeTargetFileName);
+            string stagingRoot = targetRoot + ".staging";
+            string targetScriptsRoot = Path.Combine(stagingRoot, RemoteRendererScriptsDirectoryName);
+            string targetBridgePath = Path.Combine(stagingRoot, RemoteBridgeTargetFileName);
 
-            if (Directory.Exists(targetRoot))
+            if (Directory.Exists(stagingRoot))
             {
-                Directory.Delete(targetRoot, true);
+                Directory.Delete(stagingRoot, true);
             }
 
-            if (CopyEmbeddedDirectory(EmbeddedRemotePanelDistPrefix, targetRoot) == 0)
+            if (CopyEmbeddedDirectory(EmbeddedRemotePanelDistPrefix, stagingRoot) == 0)
             {
-                AsarSharp.Utils.Extensions.CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), targetRoot);
+                AsarSharp.Utils.Extensions.CopyDirectory(FindWorkspacePath(WebPanelDirectoryName, WebPanelDistDirectoryName), stagingRoot);
             }
 
             if (!File.Exists(targetBridgePath))
@@ -65,8 +66,15 @@ namespace WandEnhancer.Core.Patching.Content
                 throw new FileNotFoundException("[ENHANCER] Remote renderer script artifacts are missing. Run `cd web-panel && pnpm run build` before patching.", targetScriptsRoot);
             }
 
-            int selectedScriptCount = CopySelectedJavaScriptFiles(customScriptPaths, targetScriptsRoot);
-            int localScriptCount = CopyJavaScriptFiles(localCustomScriptsRoot, targetScriptsRoot);
+            int selectedScriptCount = CopySelectedJavaScriptFiles(customScriptPaths, targetScriptsRoot, _logger);
+            int localScriptCount = CopyJavaScriptFiles(localCustomScriptsRoot, targetScriptsRoot, _logger);
+
+            if (Directory.Exists(targetRoot))
+            {
+                Directory.Delete(targetRoot, true);
+            }
+
+            Directory.Move(stagingRoot, targetRoot);
 
             _logger($"[ENHANCER] Injected remote panel assets and renderer scripts into app.asar (default: {defaultScriptCount}, selected: {selectedScriptCount}, local: {localScriptCount})", ELogType.Info);
         }
@@ -88,7 +96,7 @@ namespace WandEnhancer.Core.Patching.Content
             throw new FileNotFoundException($"Required workspace artifact not found: {Path.Combine(segments)}");
         }
 
-        private static int CopyJavaScriptFiles(string sourceDir, string destinationDir)
+        private static int CopyJavaScriptFiles(string sourceDir, string destinationDir, Action<string, ELogType> logger)
         {
             if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
             {
@@ -97,7 +105,7 @@ namespace WandEnhancer.Core.Patching.Content
 
             return CopySelectedJavaScriptFiles(
                 Directory.GetFiles(sourceDir, JavaScriptFileSearchPattern, SearchOption.TopDirectoryOnly),
-                destinationDir);
+                destinationDir, logger);
         }
 
         private static string GetAvailableScriptPath(string destinationDir, string fileName)
@@ -171,7 +179,7 @@ namespace WandEnhancer.Core.Patching.Content
             return Directory.Exists(localScripts) ? localScripts : null;
         }
 
-        private static int CopySelectedJavaScriptFiles(IEnumerable<string> files, string destinationDir)
+        private static int CopySelectedJavaScriptFiles(IEnumerable<string> files, string destinationDir, Action<string, ELogType> logger)
         {
             if (files == null)
             {
@@ -183,6 +191,12 @@ namespace WandEnhancer.Core.Patching.Content
             int copied = 0;
             foreach (var file in files.Where(WeModInstalls.IsJavaScriptFile).Distinct(StringComparer.OrdinalIgnoreCase))
             {
+                if (!File.Exists(file))
+                {
+                    logger?.Invoke($"[ENHANCER] Custom script not found, skipping: {file}", ELogType.Warn);
+                    continue;
+                }
+
                 AsarSharp.Utils.Extensions.CopyOver(file, GetAvailableScriptPath(destinationDir, Path.GetFileName(file)));
                 copied++;
             }

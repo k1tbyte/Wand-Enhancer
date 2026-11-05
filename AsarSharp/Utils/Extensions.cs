@@ -70,6 +70,9 @@ namespace AsarSharp.Utils
             string fullBase = Path.GetFullPath(relativeTo);
             string fullPath = Path.GetFullPath(path);
 
+            if (!string.Equals(Path.GetPathRoot(fullBase), Path.GetPathRoot(fullPath), StringComparison.OrdinalIgnoreCase))
+                return fullPath;
+
             fullBase = TrimTrailingSeparators(fullBase);
             fullPath = TrimTrailingSeparators(fullPath);
 
@@ -224,8 +227,20 @@ namespace AsarSharp.Utils
             }
         }
 
+        private const int MaxCopyDepth = 64;
+
         public static void CopyDirectory(string sourceDir, string destinationDir)
         {
+            CopyDirectory(sourceDir, destinationDir, 0);
+        }
+
+        private static void CopyDirectory(string sourceDir, string destinationDir, int depth)
+        {
+            if (depth > MaxCopyDepth)
+            {
+                throw new IOException($"Directory nesting exceeds {MaxCopyDepth} levels at {sourceDir}");
+            }
+
             Directory.CreateDirectory(destinationDir);
 
             foreach (var file in Directory.GetFiles(sourceDir))
@@ -237,7 +252,7 @@ namespace AsarSharp.Utils
             foreach (var dir in Directory.GetDirectories(sourceDir))
             {
                 var destDir = Path.Combine(destinationDir, Path.GetFileName(dir));
-                CopyDirectory(dir, destDir);
+                CopyDirectory(dir, destDir, depth + 1);
             }
         }
 
@@ -249,7 +264,9 @@ namespace AsarSharp.Utils
                 return dir;
             }
 
-            int lastSeparatorIndex = dir.LastIndexOf(Path.DirectorySeparatorChar, wildcardIndex);
+            int lastSeparatorIndex = Math.Max(
+                dir.LastIndexOf(Path.DirectorySeparatorChar, wildcardIndex),
+                dir.LastIndexOf(Path.AltDirectorySeparatorChar, wildcardIndex));
             if (lastSeparatorIndex == -1)
             {
                 return ".";

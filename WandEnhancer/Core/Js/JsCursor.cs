@@ -36,7 +36,7 @@ namespace WandEnhancer.Core.Js
 
         public int IndexOf(string value, int from = 0)
         {
-            return from >= _text.Length ? -1 : _text.IndexOf(value, from, StringComparison.Ordinal);
+            return from >= _text.Length ? -1 : _text.IndexOf(value, Math.Max(0, from), StringComparison.Ordinal);
         }
 
         /// <summary>Index of the delimiter closing the one at <paramref name="openIndex"/>, or -1.</summary>

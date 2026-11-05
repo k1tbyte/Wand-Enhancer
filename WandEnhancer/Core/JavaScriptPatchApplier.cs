@@ -46,7 +46,15 @@ namespace WandEnhancer.Core
             }
 
             _logger($"[ENHANCER] [{label}] Found target in: {Path.GetFileName(fileName)}", ELogType.Info);
-            foreach (var edit in edits.OrderByDescending(edit => edit.Start))
+            var ordered = edits.OrderByDescending(edit => edit.Start).ToList();
+            for (int i = 1; i < ordered.Count; i++)
+            {
+                if (ordered[i].End > ordered[i - 1].Start)
+                {
+                    throw new Exception($"[ENHANCER] [{label}] overlapping edits would corrupt the file; the version may not be supported.");
+                }
+            }
+            foreach (var edit in ordered)
             {
                 source = edit.ApplyTo(source);
             }

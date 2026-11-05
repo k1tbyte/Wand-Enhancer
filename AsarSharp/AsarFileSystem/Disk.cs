@@ -45,6 +45,9 @@ namespace AsarSharp.AsarFileSystem
                 var sizePickle = Pickle.CreateFromBuffer(sizeBuf);
                 var size = sizePickle.CreateIterator().ReadUInt32();
 
+                if (size == 0 || size > fs.Length - 8)
+                    throw new Exception("Archive header size is out of range");
+
                 var headerBuf = new byte[size];
                 if (fs.ReadFull(headerBuf, 0, (int)size) != size)
                     throw new Exception("Unable to read header");
@@ -129,16 +132,68 @@ namespace AsarSharp.AsarFileSystem
 
             // Build beside the target and swap at the end to prevent corruption on failure.
             string tempPath = dest + ".building";
+            string tempUnpacked = tempPath + ".unpacked";
             try
             {
-                WriteArchive(tempPath, dest, fileSystem, lists, serializerSettings,
+                WriteArchive(tempPath, tempUnpacked, fileSystem, lists, serializerSettings,
                     headerPickle, sizePickle, sizePickleSize, buf, blockBuf);
                 ReplaceFile(tempPath, dest);
+                SwapUnpackedDir(tempUnpacked, dest + ".unpacked");
             }
             catch
             {
                 TryDelete(tempPath);
+                TryDeleteDirectory(tempUnpacked);
                 throw;
+            }
+        }
+
+        private static void SwapUnpackedDir(string staging, string dest)
+        {
+            if (!Directory.Exists(staging))
+            {
+                return;
+            }
+
+            string old = staging + ".old";
+            try
+            {
+                if (Directory.Exists(dest))
+                {
+                    Directory.Move(dest, old);
+                }
+
+                Directory.Move(staging, dest);
+                TryDeleteDirectory(old);
+            }
+            catch
+            {
+                try
+                {
+                    if (!Directory.Exists(dest) && Directory.Exists(old))
+                    {
+                        Directory.Move(old, dest);
+                    }
+                }
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                {
+                }
+
+                throw;
+            }
+        }
+
+        private static void TryDeleteDirectory(string path)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                }
+            }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+            {
             }
         }
 
@@ -171,7 +226,7 @@ namespace AsarSharp.AsarFileSystem
             }
         }
 
-        private static void WriteArchive(string archivePath, string dest, Filesystem fileSystem,
+        private static void WriteArchive(string archivePath, string unpackedDest, Filesystem fileSystem,
             FilesystemFilesAndLinks lists, JsonSerializerSettings serializerSettings,
             Pickle headerPickle, Pickle sizePickle, int sizePickleSize, byte[] buf, byte[] blockBuf)
         {
@@ -186,7 +241,7 @@ namespace AsarSharp.AsarFileSystem
                     if (file.Unpack)
                     {
                         var relName = Extensions.GetRelativePath(fileSystem.GetRootPath(), file.Filename);
-                        CopyFile($"{dest}.unpacked", fileSystem.GetRootPath(), relName);
+                        CopyFile(unpackedDest, fileSystem.GetRootPath(), relName);
                         CopyAndHash(file.Filename, null, buf, blockBuf, fileSystem);
                         continue;
                     }
