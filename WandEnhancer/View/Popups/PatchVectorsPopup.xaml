@@ -123,7 +123,7 @@
             </Border>
 
             <Button Grid.Row="6" Grid.ColumnSpan="2" Padding="0 5 0 5" Margin="0 15 0 0" Content="{DynamicResource pv_start}"
-                    Click="OnPatchButtonClick" />
+                    x:Name="StartButton" Click="OnPatchButtonClick" />
         </Grid>
     </StackPanel>
 
