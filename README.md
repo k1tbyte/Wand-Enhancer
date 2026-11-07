@@ -46,7 +46,7 @@ You do not need a pull request to this repository to build your fork. `master` i
 
 Two causes account for most reports. Check them before opening an issue.
 
-**Pro or mods stop working after a day or two.** Wand updates itself in the background, and the new version is not patched. Run Restore, then Patch again. To stop repeating this, enable **Auto-apply after updates** or **Disable updates** in the patch dialog.
+**Pro or mods stop working after a day or two.** Wand updates itself in the background, and the new version is not patched. Run Restore, then Patch again. To stop repeating this, enable **Auto-apply after updates** or **Disable updates** in the patch dialog. Auto-apply patches a new version once Wand is closed, or has sat in the tray for a minute with no game running from it, and then puts Wand back in the tray.
 
 **Wand does not open, or patched files disappear.** Patched Wand files are modified and unsigned, and the `WandEnhancer.exe` you build is unsigned and uncommon. Antivirus products and SmartScreen can flag both, even when the code was built from your own fork.
 

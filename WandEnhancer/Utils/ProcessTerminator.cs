@@ -27,10 +27,98 @@ namespace WandEnhancer.Utils
         public static void TryKillProcessesUnder(string directory)
         {
             int selfId = Process.GetCurrentProcess().Id;
-            string prefix = Path.GetFullPath(directory)
-                                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                            + Path.DirectorySeparatorChar;
+            string prefix = DirectoryPrefix(directory);
             KillUntilGone($"a helper under \"{prefix}\"", () => Under(prefix, selfId));
+        }
+
+        /// <summary>
+        /// Whether another process named <paramref name="processName"/> runs, and whether one of them
+        /// shows a window. A window hidden to the tray does not count as shown.
+        /// </summary>
+        public static bool IsRunning(string processName, out bool showsWindow)
+        {
+            var processes = Others(Process.GetProcessesByName(processName), Process.GetCurrentProcess().Id);
+            showsWindow = false;
+            try
+            {
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        // Only a visible, unowned top-level window yields a handle; a minimized one still counts.
+                        if (process.MainWindowHandle != IntPtr.Zero)
+                        {
+                            showsWindow = true;
+                            break;
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Exited meanwhile.
+                    }
+                }
+
+                return processes.Length > 0;
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether a process running from outside <paramref name="directory"/> has a module loaded from it,
+        /// such as a game holding a trainer DLL. A process that cannot be inspected counts as not using it.
+        /// </summary>
+        public static bool IsUsedFromOutside(string directory)
+        {
+            string prefix = DirectoryPrefix(directory);
+            int selfId = Process.GetCurrentProcess().Id;
+            var processes = Process.GetProcesses();
+            try
+            {
+                foreach (var process in processes)
+                {
+                    if (process.Id == selfId)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        string image = process.MainModule?.FileName;
+                        if (image == null || image.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
+
+                        foreach (ProcessModule module in process.Modules)
+                        {
+                            if (module.FileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    catch (Exception e) when (e is InvalidOperationException || e is Win32Exception ||
+                                              e is NotSupportedException)
+                    {
+                        // Protected or already exited.
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                foreach (var process in processes)
+                {
+                    process.Dispose();
+                }
+            }
         }
 
         /// <summary>Whether another process runs from exactly the file <paramref name="exePath"/>.</summary>
@@ -52,9 +140,7 @@ namespace WandEnhancer.Utils
         /// </summary>
         public static List<string> FindProcessesUsing(string path)
         {
-            string prefix = Path.GetFullPath(path)
-                                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-                            + Path.DirectorySeparatorChar;
+            string prefix = DirectoryPrefix(path);
             var names = new List<string>();
             foreach (var process in Process.GetProcesses())
             {
@@ -149,6 +235,13 @@ namespace WandEnhancer.Utils
             }
 
             return string.Join(", ", names);
+        }
+
+        private static string DirectoryPrefix(string directory)
+        {
+            return Path.GetFullPath(directory)
+                       .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                   + Path.DirectorySeparatorChar;
         }
 
         private static Process[] Under(string directoryPrefix, int selfId)

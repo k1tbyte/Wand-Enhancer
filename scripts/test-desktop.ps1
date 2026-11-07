@@ -218,6 +218,52 @@ try {
         Remove-Job -Job $stopUpdater -Force
     }
 
+    # Patching closes Wand, so the watcher waits while Wand is in use or a game launched from it holds its files.
+    $waitUntilIdle = $assembly.GetType('WandEnhancer.Core.Services.UpdateWatcherService', $true).GetMethod('WaitUntilClientIdle', $privateStatic)
+    $isUsedFromOutside = $assembly.GetType('WandEnhancer.Utils.ProcessTerminator', $true).GetMethod('IsUsedFromOutside')
+    $idleRoot = Join-Path $scratch 'idle-root'
+    [IO.Directory]::CreateDirectory($idleRoot) | Out-Null
+    $idleBrand = 'wand-idle-' + [guid]::NewGuid().ToString('N')
+    $idleArgs = [object[]]@([string]$idleBrand, [string]$idleRoot, $null, [TimeSpan]::FromMilliseconds(200), [TimeSpan]::FromSeconds(1))
+    Assert-Equal ($waitUntilIdle.Invoke($null, $idleArgs)) $false 'Closed client needs no wait and no restart'
+
+    $client = Join-Path $idleRoot "$idleBrand.exe"
+    Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\cmd.exe') -Destination $client
+    $trainerDll = Join-Path $idleRoot 'fixture-trainer.dll'
+    Copy-Item -LiteralPath (Join-Path $env:SystemRoot 'System32\version.dll') -Destination $trainerDll
+    $holderScript = @"
+Add-Type -Namespace Fixture -Name Native -MemberDefinition '[DllImport("kernel32", CharSet = CharSet.Unicode)] public static extern IntPtr LoadLibrary(string path);'
+if ([Fixture.Native]::LoadLibrary('$trainerDll') -eq [IntPtr]::Zero) { exit 1 }
+Start-Sleep -Seconds 120
+"@
+    $encodedHolder = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($holderScript))
+    $clientProcess = Start-Process -FilePath $client -ArgumentList '/c', 'pause' -WindowStyle Hidden -PassThru
+    $holder = Start-Process -FilePath 'powershell.exe' -ArgumentList '-NoProfile', '-NonInteractive', '-EncodedCommand', $encodedHolder -WindowStyle Hidden -PassThru
+    $waiter = $null
+    try {
+        $rootArgument = [object[]]@([string]$idleRoot)
+        $deadline = (Get-Date).AddSeconds(30)
+        while (-not $isUsedFromOutside.Invoke($null, $rootArgument) -and -not $holder.HasExited -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Milliseconds 500
+        }
+        Assert-Equal ($isUsedFromOutside.Invoke($null, $rootArgument)) $true 'A game holding an install module is detected'
+
+        $waiter = [PowerShell]::Create().AddScript('param($method, $arguments) $method.Invoke($null, $arguments)').AddArgument($waitUntilIdle).AddArgument($idleArgs)
+        $pending = $waiter.BeginInvoke()
+        Start-Sleep -Seconds 4
+        Assert-Equal $pending.IsCompleted $false 'Watcher waits while a game holds the install files'
+        Stop-Process -Id $holder.Id -Force
+        Assert-Equal ($pending.AsyncWaitHandle.WaitOne(20000)) $true 'Watcher stops waiting once the game is gone'
+        Assert-Equal ($waiter.EndInvoke($pending)[0]) $true 'Client hidden in the tray is restarted after patching'
+    }
+    finally {
+        foreach ($process in $clientProcess, $holder) {
+            if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit(5000) | Out-Null }
+        }
+        if ($waiter) { $waiter.Dispose() }
+    }
+
+
     # A picked or dropped folder may be the version folder or the Squirrel root that holds it.
     $resolveInstall = $assembly.GetType('WandEnhancer.Utils.WeModInstalls', $true).GetMethod('ResolveInstall')
     $squirrelRoot = Join-Path $scratch 'drop-root'
@@ -267,7 +313,7 @@ try {
     (Get-Item -LiteralPath (Join-Path $rankRoot 'app-12.9.0')).LastWriteTime = (Get-Date).AddHours(1)
     $latest = $resolveInstall.Invoke($null, [object[]]@([string]$rankRoot))
     Assert-Equal $latest.RootDirectory (Join-Path $rankRoot 'app-12.10.0') 'Latest install is the highest version, not the newest folder'
-    Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore).'
+    Write-Host 'Desktop regression checks passed (native sizes, backups, rollback, retry state, restore, watcher idle wait).'
 }
 finally {
     Remove-Item -LiteralPath $scratch -Recurse -Force

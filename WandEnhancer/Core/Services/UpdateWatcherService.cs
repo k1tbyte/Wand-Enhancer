@@ -1,15 +1,18 @@
 using System;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using WandEnhancer.Models;
 using WandEnhancer.Utils;
 
 namespace WandEnhancer.Core.Services
 {
     /// <summary>
     /// Watches a Squirrel install root for a new version folder and re-applies the saved patch
-    /// the moment one appears and finishes writing. Exists because the deployed-launcher
+    /// once one finishes writing and Wand is not in use. Exists because the deployed-launcher
     /// redirection (<see cref="Patching.Shared.LauncherDeployment"/>) cannot catch an update on
     /// its own: Squirrel rewrites the root execution stub as part of applying the update itself,
     /// before the user's next launch - by the time anything of ours would run again through
@@ -20,7 +23,14 @@ namespace WandEnhancer.Core.Services
         private const int SettleIntervalMs = 2000;
         private const int SettleStableReads = 3;
         private const int SettleTimeoutMs = 10 * 60 * 1000;
+        private const int ClientClosedStableReads = 2;
+        private const string StartInTraySwitch = "--start-in-tray";
+        private static readonly TimeSpan ClientPollInterval = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan TrayIdleBeforePatch = TimeSpan.FromMinutes(1);
         private static readonly TimeSpan SelfCheckInterval = TimeSpan.FromMinutes(10);
+
+        // The startup catch-up and a Created event can target the same folder.
+        private static readonly object PatchLock = new object();
 
         public static string MutexName(string squirrelRoot) => "Global\\WandEnhancer.Watcher." + HashOf(squirrelRoot);
 
@@ -73,6 +83,7 @@ namespace WandEnhancer.Core.Services
                 watcher.Created += (sender, e) => OnEntryCreated(e, squirrelRoot, log);
                 watcher.EnableRaisingEvents = true;
                 log?.Invoke($"[WATCHER] Watching {squirrelRoot} for new Wand versions.", ELogType.Info);
+                QueueLogged(() => CatchUp(squirrelRoot, log), log);
 
                 // Self-check periodically as a safety net: Stop() should be the normal path, but
                 // if the saved config vanished some other way (the app folder was removed by
@@ -98,56 +109,192 @@ namespace WandEnhancer.Core.Services
                 return;
             }
 
-            // Off the watcher thread: settling and patching can take a while and must not block
-            // FileSystemWatcher from raising further events.
-            ThreadPool.QueueUserWorkItem(_ => TryPatchNewVersion(e.FullPath, squirrelRoot, log));
+            // Off the watcher thread: settling, waiting for Wand and patching can take a while and
+            // must not block FileSystemWatcher from raising further events.
+            QueueLogged(() =>
+            {
+                log?.Invoke($"[WATCHER] New version folder detected: {e.FullPath}", ELogType.Info);
+                TryPatchVersion(e.FullPath, squirrelRoot, log);
+            }, log);
         }
 
-        private static void TryPatchNewVersion(string versionRoot, string squirrelRoot, Action<string, ELogType> log)
+        /// <summary>
+        /// Picks up a version that landed while no watcher ran, e.g. Wand was still open at shutdown.
+        /// A version with backups is patched already, or an earlier attempt failed there; neither is retried.
+        /// </summary>
+        private static void CatchUp(string squirrelRoot, Action<string, ELogType> log)
         {
-            log?.Invoke($"[WATCHER] New version folder detected: {versionRoot}", ELogType.Info);
-
-            if (!WaitForSettled(versionRoot, squirrelRoot))
+            var latest = WeModInstalls.FindLatestWeMod(squirrelRoot);
+            if (latest == null || Enhancer.HasBackup(latest.RootDirectory))
             {
-                log?.Invoke($"[WATCHER] Gave up waiting for {versionRoot} to finish installing.", ELogType.Warn);
                 return;
             }
 
+            log?.Invoke($"[WATCHER] {latest.RootDirectory} was never patched; re-applying the saved patches.", ELogType.Info);
+            TryPatchVersion(latest.RootDirectory, squirrelRoot, log);
+        }
+
+        private static void TryPatchVersion(string versionRoot, string squirrelRoot, Action<string, ELogType> log)
+        {
+            lock (PatchLock)
+            {
+                if (!WaitForSettled(versionRoot, squirrelRoot))
+                {
+                    log?.Invoke($"[WATCHER] Gave up waiting for {versionRoot} to finish installing.", ELogType.Warn);
+                    return;
+                }
+
+                var config = ResolveTarget(versionRoot, squirrelRoot, log);
+                if (config == null)
+                {
+                    return;
+                }
+
+                bool wasInTray = WaitUntilClientIdle(config.BrandName, squirrelRoot, log,
+                    ClientPollInterval, TrayIdleBeforePatch);
+
+                // The wait can last hours; the install may have been patched or replaced meanwhile.
+                config = ResolveTarget(versionRoot, squirrelRoot, log);
+                var patchConfig = config == null ? null : Enhancer.LoadAutoPatchConfig(squirrelRoot);
+                if (patchConfig == null || !patchConfig.AutoApplyAfterUpdate)
+                {
+                    return;
+                }
+
+                try
+                {
+                    log?.Invoke($"[WATCHER] Re-applying patches to {config.ExecutablePath}...", ELogType.Info);
+                    new Enhancer(config, log, patchConfig).Patch();
+                    log?.Invoke("[WATCHER] Auto-patch after update succeeded.", ELogType.Success);
+                }
+                catch (Exception e)
+                {
+                    log?.Invoke($"[WATCHER] Auto-patch after update failed: {e.Message}", ELogType.Error);
+                }
+                finally
+                {
+                    // Patch closed it to free the files; bring it back where the user left it.
+                    if (wasInTray && !ProcessTerminator.IsRunning(config.BrandName, out _))
+                    {
+                        RestartInTray(config, squirrelRoot, log);
+                    }
+                }
+            }
+        }
+
+        /// <summary>The install to patch, or null with the reason logged when there is nothing to do.</summary>
+        private static WeModConfig ResolveTarget(string versionRoot, string squirrelRoot, Action<string, ELogType> log)
+        {
             if (!IsStillWanted(squirrelRoot))
             {
                 log?.Invoke("[WATCHER] Auto-apply was turned off while waiting; skipping.", ELogType.Info);
-                return;
+                return null;
             }
 
             var config = WeModInstalls.FindLatestWeMod(squirrelRoot);
             if (config == null || !PathsEqual(config.RootDirectory, versionRoot))
             {
                 log?.Invoke($"[WATCHER] {versionRoot} is not (or no longer) the latest install; skipping.", ELogType.Info);
-                return;
+                return null;
             }
 
             if (Enhancer.IsPatched(config.RootDirectory))
             {
                 log?.Invoke($"[WATCHER] {versionRoot} is already patched; nothing to do.", ELogType.Info);
-                return;
+                return null;
             }
 
-            var patchConfig = Enhancer.LoadAutoPatchConfig(squirrelRoot);
-            if (patchConfig == null || !patchConfig.AutoApplyAfterUpdate)
+            return config;
+        }
+
+        /// <summary>
+        /// Patching closes Wand, so this waits until it is closed, or has sat in the tray for a while
+        /// with no game holding its files. Returns whether Wand was left running in the tray.
+        /// </summary>
+        private static bool WaitUntilClientIdle(string brandName, string squirrelRoot, Action<string, ELogType> log,
+            TimeSpan pollInterval, TimeSpan trayIdle)
+        {
+            bool announced = false;
+            int closedReads = 0;
+            DateTime? hiddenSince = null;
+
+            while (true)
             {
-                return;
-            }
+                if (!ProcessTerminator.IsRunning(brandName, out bool showsWindow))
+                {
+                    // A restart into the new version starts a fresh process within moments.
+                    if (++closedReads >= ClientClosedStableReads)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    closedReads = 0;
+                    if (showsWindow)
+                    {
+                        hiddenSince = null;
+                    }
+                    else if (hiddenSince == null)
+                    {
+                        hiddenSince = DateTime.UtcNow;
+                    }
+                    else if (DateTime.UtcNow - hiddenSince.Value >= trayIdle)
+                    {
+                        // Closing Wand to the tray does not end a game it launched with a trainer.
+                        if (!ProcessTerminator.IsUsedFromOutside(squirrelRoot))
+                        {
+                            return true;
+                        }
 
+                        hiddenSince = DateTime.UtcNow;
+                    }
+
+                    if (!announced)
+                    {
+                        log?.Invoke($"[WATCHER] {brandName} is in use; the update will be patched once it is closed " +
+                                    "or left in the tray.", ELogType.Info);
+                        announced = true;
+                    }
+                }
+
+                Thread.Sleep(pollInterval);
+            }
+        }
+
+        private static void RestartInTray(WeModConfig install, string squirrelRoot, Action<string, ELogType> log)
+        {
+            // Through the root stub, so a Supervised launcher still clears the fuse; Wand's own update restart uses this switch.
+            string stubPath = Path.Combine(squirrelRoot, install.ExecutableName);
             try
             {
-                log?.Invoke($"[WATCHER] Re-applying patches to {config.ExecutablePath}...", ELogType.Info);
-                new Enhancer(config, log, patchConfig).Patch();
-                log?.Invoke("[WATCHER] Auto-patch after update succeeded.", ELogType.Success);
+                Process.Start(new ProcessStartInfo(stubPath, StartInTraySwitch)
+                {
+                    UseShellExecute = false,
+                    WorkingDirectory = squirrelRoot
+                })?.Dispose();
+                log?.Invoke($"[WATCHER] Restarted {install.BrandName} in the tray.", ELogType.Info);
             }
-            catch (Exception e)
+            catch (Exception e) when (e is Win32Exception || e is InvalidOperationException || e is IOException)
             {
-                log?.Invoke($"[WATCHER] Auto-patch after update failed: {e.Message}", ELogType.Error);
+                log?.Invoke($"[WATCHER] Could not restart {install.BrandName}: {e.Message}", ELogType.Warn);
             }
+        }
+
+        /// <summary>An exception on a pool thread would end the watcher behind an error box; log it instead.</summary>
+        private static void QueueLogged(Action work, Action<string, ELogType> log)
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    work();
+                }
+                catch (Exception e)
+                {
+                    log?.Invoke($"[WATCHER] Unexpected error: {e.Message}", ELogType.Error);
+                }
+            });
         }
 
         /// <summary>
