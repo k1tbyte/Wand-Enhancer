@@ -58,7 +58,13 @@ namespace WandEnhancer.Core.Patching.Shared
 
         public static string SquirrelRootOf(WeModConfig install)
         {
-            string root = Directory.GetParent(install.RootDirectory)?.FullName;
+            // Only app-* folders are Squirrel version folders with a shared root above them.
+            // Direct installs (Scoop's `current` junction, plain folders) are their own root.
+            string root = Path.GetFileName(install.RootDirectory)
+                              .StartsWith("app-", StringComparison.OrdinalIgnoreCase)
+                ? Directory.GetParent(install.RootDirectory)?.FullName
+                : install.RootDirectory;
+
             if (string.IsNullOrEmpty(root))
             {
                 throw new Exception("[ENHANCER] Cannot determine Squirrel root directory");

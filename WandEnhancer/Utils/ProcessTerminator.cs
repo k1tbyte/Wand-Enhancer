@@ -106,7 +106,10 @@ namespace WandEnhancer.Utils
                         }
                         catch (Exception e) when (e is InvalidOperationException || e is Win32Exception)
                         {
-                            // Already exited, or protected: the post-loop check decides the outcome.
+                            // Already exited, or protected. A process running as a Windows
+                            // service (the elevated auxiliary service) can refuse Kill() yet
+                            // still accept a stop request through the SCM.
+                            TryStopService(process.ProcessName);
                         }
                     }
                 }
@@ -137,6 +140,28 @@ namespace WandEnhancer.Utils
                 {
                     process.Dispose();
                 }
+            }
+        }
+
+        private static void TryStopService(string processName)
+        {
+            try
+            {
+                using (var service = new System.ServiceProcess.ServiceController(processName))
+                {
+                    if (service.Status == System.ServiceProcess.ServiceControllerStatus.Running ||
+                        service.Status == System.ServiceProcess.ServiceControllerStatus.Paused)
+                    {
+                        service.Stop();
+                        service.WaitForStatus(
+                            System.ServiceProcess.ServiceControllerStatus.Stopped,
+                            TimeSpan.FromSeconds(KillRetryDelayMs / 1000.0));
+                    }
+                }
+            }
+            catch (Exception e) when (e is InvalidOperationException || e is Win32Exception ||
+                                      e is System.ServiceProcess.TimeoutException)
+            {
             }
         }
 

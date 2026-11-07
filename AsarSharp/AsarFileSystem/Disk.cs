@@ -156,30 +156,39 @@ namespace AsarSharp.AsarFileSystem
             }
 
             string old = staging + ".old";
-            try
-            {
-                if (Directory.Exists(dest))
-                {
-                    Directory.Move(dest, old);
-                }
-
-                Directory.Move(staging, dest);
-                TryDeleteDirectory(old);
-            }
-            catch
+            for (int attempt = 0; ; attempt++)
             {
                 try
                 {
-                    if (!Directory.Exists(dest) && Directory.Exists(old))
+                    if (Directory.Exists(dest))
                     {
-                        Directory.Move(old, dest);
+                        Directory.Move(dest, old);
                     }
+
+                    Directory.Move(staging, dest);
+                    TryDeleteDirectory(old);
+                    return;
                 }
                 catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
-                }
+                    try
+                    {
+                        if (!Directory.Exists(dest) && Directory.Exists(old))
+                        {
+                            Directory.Move(old, dest);
+                        }
+                    }
+                    catch (Exception r) when (r is IOException || r is UnauthorizedAccessException)
+                    {
+                    }
 
-                throw;
+                    if (attempt >= 15)
+                    {
+                        throw;
+                    }
+
+                    System.Threading.Thread.Sleep(250);
+                }
             }
         }
 
@@ -199,16 +208,29 @@ namespace AsarSharp.AsarFileSystem
 
         private static void ReplaceFile(string tempPath, string dest)
         {
-            if (!File.Exists(dest))
+            // The destination can be transiently locked (AV scan, a process handle racing
+            // the pre-patch kill). Retry briefly rather than aborting the whole pack.
+            for (int attempt = 0; ; attempt++)
             {
-                File.Move(tempPath, dest);
-                return;
-            }
+                try
+                {
+                    if (!File.Exists(dest))
+                    {
+                        File.Move(tempPath, dest);
+                        return;
+                    }
 
-            // Clear attributes to prevent swap failure on read-only/hidden files.
-            Extensions.ClearAttributes(dest);
-            // Atomic swap.
-            File.Replace(tempPath, dest, null, true);
+                    // Clear attributes to prevent swap failure on read-only/hidden files.
+                    Extensions.ClearAttributes(dest);
+                    // Atomic swap.
+                    File.Replace(tempPath, dest, null, true);
+                    return;
+                }
+                catch (Exception e) when ((e is IOException || e is UnauthorizedAccessException) && attempt < 15)
+                {
+                    System.Threading.Thread.Sleep(250);
+                }
+            }
         }
 
         private static void TryDelete(string path)
