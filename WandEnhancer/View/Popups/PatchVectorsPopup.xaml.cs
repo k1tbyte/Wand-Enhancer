@@ -30,6 +30,21 @@ namespace WandEnhancer.View.Popups
                 ApplySaved(saved);
             }
             UpdateScriptsEmptyState();
+
+            foreach (var box in new[] { ActivateProBox, DisableUpdateBox, DevToolsHotkeyBox, RemoteWebPanelPreviewBox })
+            {
+                box.Checked += OnSelectionChanged;
+                box.Unchecked += OnSelectionChanged;
+            }
+            UpdateStartEnabled();
+        }
+
+        private void OnSelectionChanged(object sender, RoutedEventArgs e) => UpdateStartEnabled();
+
+        private void UpdateStartEnabled()
+        {
+            StartButton.IsEnabled = ActivateProBox.IsChecked == true || DisableUpdateBox.IsChecked == true ||
+                                    DevToolsHotkeyBox.IsChecked == true || RemoteWebPanelPreviewBox.IsChecked == true;
         }
 
         private void ApplySaved(PatchConfig saved)

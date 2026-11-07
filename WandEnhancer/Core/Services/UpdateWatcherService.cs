@@ -90,6 +90,8 @@ namespace WandEnhancer.Core.Services
             }
         }
 
+        private static int _patchInFlight;
+
         private static void OnEntryCreated(FileSystemEventArgs e, string squirrelRoot, Action<string, ELogType> log)
         {
             if (!Directory.Exists(e.FullPath) ||
@@ -98,9 +100,24 @@ namespace WandEnhancer.Core.Services
                 return;
             }
 
+            if (Interlocked.CompareExchange(ref _patchInFlight, 1, 0) != 0)
+            {
+                return;
+            }
+
             // Off the watcher thread: settling and patching can take a while and must not block
             // FileSystemWatcher from raising further events.
-            ThreadPool.QueueUserWorkItem(_ => TryPatchNewVersion(e.FullPath, squirrelRoot, log));
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    TryPatchNewVersion(e.FullPath, squirrelRoot, log);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _patchInFlight, 0);
+                }
+            });
         }
 
         private static void TryPatchNewVersion(string versionRoot, string squirrelRoot, Action<string, ELogType> log)

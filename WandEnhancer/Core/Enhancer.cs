@@ -135,18 +135,74 @@ namespace WandEnhancer.Core
             }
         }
 
+        private void RestoreAsarBackup()
+        {
+            RetryWhileLocked(() =>
+            {
+                string staging = _asarPath + ".restoring";
+                try
+                {
+                    AsarSharp.Utils.Extensions.CopyOver(_backupPath, staging);
+                    MoveOver(staging, _asarPath);
+                }
+                finally
+                {
+                    if (File.Exists(staging))
+                    {
+                        File.Delete(staging);
+                    }
+                }
+            });
+        }
+
         /// <summary>Replaces app.asar.unpacked with the pristine backup, retrying transient locks.</summary>
         private void ReplaceUnpackedDirectory()
         {
             RetryWhileLocked(() =>
             {
-                if (Directory.Exists(_unpackedPath))
+                string staging = _unpackedPath + ".restoring";
+                try
                 {
-                    Directory.Delete(_unpackedPath, true);
-                }
+                    if (Directory.Exists(staging))
+                    {
+                        Directory.Delete(staging, true);
+                    }
 
-                AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, _unpackedPath);
+                    AsarSharp.Utils.Extensions.CopyDirectory(_unpackedBackupPath, staging);
+
+                    if (Directory.Exists(_unpackedPath))
+                    {
+                        Directory.Delete(_unpackedPath, true);
+                    }
+
+                    Directory.Move(staging, _unpackedPath);
+                }
+                finally
+                {
+                    if (Directory.Exists(staging))
+                    {
+                        try
+                        {
+                            Directory.Delete(staging, true);
+                        }
+                        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                        {
+                        }
+                    }
+                }
             });
+        }
+
+        private static void MoveOver(string staging, string destination)
+        {
+            if (File.Exists(destination))
+            {
+                File.Replace(staging, destination, null);
+            }
+            else
+            {
+                File.Move(staging, destination);
+            }
         }
 
         /// <summary>Explains a persistent file lock by naming whoever still has the files open.</summary>
@@ -181,7 +237,7 @@ namespace WandEnhancer.Core
             else
             {
                 _logger("[ENHANCER] Backup found, restoring pristine app.asar before patching...", ELogType.Info);
-                WithLockDiagnostics(() => RetryWhileLocked(() => AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath)));
+                WithLockDiagnostics(RestoreAsarBackup);
             }
 
             if (!Directory.Exists(_unpackedBackupPath) && Directory.Exists(_unpackedPath))
@@ -369,7 +425,7 @@ namespace WandEnhancer.Core
             {
                 if (File.Exists(_backupPath))
                 {
-                    RetryWhileLocked(() => AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath));
+                    RestoreAsarBackup();
                 }
 
                 if (Directory.Exists(_unpackedBackupPath))
@@ -403,7 +459,7 @@ namespace WandEnhancer.Core
 
             WithLockDiagnostics(() =>
             {
-                RetryWhileLocked(() => AsarSharp.Utils.Extensions.CopyOver(_backupPath, _asarPath));
+                RestoreAsarBackup();
                 ReplaceUnpackedDirectory();
             });
 

@@ -56,6 +56,7 @@
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
+        <Reference Include="System.ServiceProcess" />
         <Reference Include="System.Drawing" Condition="'$(EnableUpdateNotifications)' == 'true'" />
         <Reference Include="System.Windows.Forms" />
         <Reference Include="System.Xml" />

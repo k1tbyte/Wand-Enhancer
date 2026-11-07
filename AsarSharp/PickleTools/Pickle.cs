@@ -33,21 +33,16 @@ namespace AsarSharp.PickleTools
 
                 _header = buffer;
                 int payloadSize = GetPayloadSize();
-                if (payloadSize > buffer.Length)
+                if (payloadSize > buffer.Length - SIZE_UINT32)
                     throw new ArgumentException("Payload size exceeds buffer length.", nameof(buffer));
 
                 _headerSize = buffer.Length - payloadSize;
                 _capacityAfterHeader = CAPACITY_READ_ONLY;
                 _writeOffset = 0;
 
-                if (_headerSize != AlignInt(_headerSize, SIZE_UINT32))
+                if (_headerSize < SIZE_UINT32 || _headerSize != AlignInt(_headerSize, SIZE_UINT32))
                 {
-                    _headerSize = 0;
-                }
-
-                if (_headerSize == 0)
-                {
-                    _header = new byte[0];
+                    throw new ArgumentException("Buffer does not contain a valid pickle header.", nameof(buffer));
                 }
             }
             else
