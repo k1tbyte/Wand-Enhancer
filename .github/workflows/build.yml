@@ -1,0 +1,54 @@
+name: Build executable
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_update_notifications:
+        description: Include GitHub release checks when Wand starts
+        type: boolean
+        required: false
+        default: false
+  pull_request:
+  push:
+    branches: [master, 'feature/rc_*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.17.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web-panel/pnpm-lock.yaml
+
+      - name: Build unsigned executable
+        shell: pwsh
+        run: |
+          if ('${{ inputs.enable_update_notifications }}' -eq 'true') {
+            ./build.ps1 -Configuration Release -EnableUpdateNotifications
+          } else {
+            ./build.ps1 -Configuration Release
+          }
+
+      - name: Upload unsigned executable
+        uses: actions/upload-artifact@v6
+        with:
+          name: WandEnhancer-unsigned
+          path: WandEnhancer/bin/Release/WandEnhancer.exe
+          if-no-files-found: error
+
+      # The published artifact is always the offline build; this only proves the
+      # opt-in variant still compiles and passes its checks on every push.
+      - name: Verify opt-in update notifications build
+        shell: pwsh
+        run: ./build.ps1 -Configuration Release -EnableUpdateNotifications
