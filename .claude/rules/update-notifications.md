@@ -2,6 +2,7 @@
 paths:
   - 'WandEnhancer/Core/UpdateNotifier.cs'
   - 'WandEnhancer/WandEnhancer.csproj'
+  - .github/workflows/build.yml
 ---
 
 # Update notifications
