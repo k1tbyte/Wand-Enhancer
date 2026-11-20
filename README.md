@@ -6,6 +6,11 @@
 
 </div>
 
+> [!TIP]
+> Our journey continues :)
+> 
+> https://github.com/tweak-for-me/impulse 
+
 > [!WARNING]
 > **DMCA notice.** On 2026-11-10 GitHub received a DMCA takedown notice for several files of this repository. The files named in the notice were removed from the repository and its history, so the project does not build from this repository at the moment.
 
