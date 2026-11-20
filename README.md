@@ -7,7 +7,7 @@
 </div>
 
 > [!TIP]
-> Our journey continues :)
+> **This project will no longer be maintained. Continuation of the project:**
 > 
 > https://github.com/tweak-for-me/impulse 
 
